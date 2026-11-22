@@ -1,0 +1,232 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ row.name }} {{ status_badge(row.status.as_str()) }}</h1>
+    <p class="muted"><code>{{ row.slug }}</code> · <a href="{{ tenant_url }}" rel="noopener">{{ tenant_url }}</a></p>
+  </div>
+  <div class="btn-row">
+    {%- if row.status.is_operational() %}
+    <form method="post" action="/platform/tenants/{{ row.id }}/impersonate" data-confirm="{{ t("platform.impersonate.confirm") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--soft" type="submit">{{ icon("log-in") }}{{ t("platform.impersonate.button") }}</button>
+    </form>
+    {%- endif %}
+    <a class="btn btn--ghost" href="{{ tenant_url }}/admin" rel="noopener">{{ icon("external-link") }}{{ t("platform.tenant.open_admin") }}</a>
+  </div>
+</div>
+
+<section class="stats" aria-label="{{ t("platform.tenant.usage") }}">
+  {% call ui::stat(t("platform.tenants.col_clients"), num(usage.clients), "", "", "users") %}{% endcall %}
+  {% call ui::stat(t("platform.tenants.col_services"), num(usage.active_services), tv("platform.tenant.live_services", "count", usage.live_services), "", "server") %}{% endcall %}
+  {% call ui::stat(t("platform.tenant.revenue_total"), money_in(usage.revenue_total, row.default_currency), tv("platform.tenant.unpaid_invoices", "count", usage.unpaid_invoices), "", "receipt") %}{% endcall %}
+  {% call ui::stat(t("platform.tenant.staff"), num(usage.staff), tv2("platform.tenant.tickets_domains", "tickets", usage.open_tickets, "domains", usage.domains), "", "shield") %}{% endcall %}
+</section>
+
+<div class="grid grid--2 mt-8">
+{% call ui::card(t("platform.tenant.profile")) %}
+  <dl class="dl">
+    <dt>{{ t("platform.tenant.status") }}</dt><dd>{{ status_badge(row.status.as_str()) }}{% match row.suspended_reason %}{% when Some(r) %} <span class="muted small">{{ r }}</span>{% when None %}{% endmatch %}</dd>
+    <dt>{{ t("platform.tenant.created") }}</dt><dd>{{ datetime(row.created_at) }}</dd>
+    <dt>{{ t("platform.tenant.trial_ends") }}</dt><dd>{{ date_opt(row.trial_ends_at) }}</dd>
+    <dt>{{ t("platform.tenant.contact") }}</dt><dd>{% match row.contact_email %}{% when Some(e) %}{{ e }}{% when None %}—{% endmatch %}</dd>
+    <dt>{{ t("platform.tenant.owner") }}</dt><dd>{% match owner %}{% when Some(o) %}{{ o.display_name() }} &lt;{{ o.email }}&gt;{% when None %}<span class="text-danger">{{ t("platform.impersonate.no_owner") }}</span>{% endmatch %}</dd>
+    <dt>{{ t("platform.tenant_new.locale") }}</dt><dd>{{ row.default_locale.as_str() }} · {{ row.default_currency.as_str() }} · {{ row.timezone }}</dd>
+  </dl>
+  <h3 class="h4 mt-6">{{ t("platform.tenant.change_status") }}</h3>
+  <form class="stack-sm mt-2" method="post" action="/platform/tenants/{{ row.id }}/status">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::field("reason", t("platform.tenant.reason"), "", hint=t("platform.tenant.reason_hint")) %}{% endcall %}
+    <div class="btn-row">
+      {%- if row.status.as_str() != "suspended" %}<button class="btn btn--danger btn--sm" type="submit" name="action" value="suspend">{{ icon("lock") }}{{ t("platform.tenant.suspend") }}</button>{% endif %}
+      {%- if row.status.as_str() != "active" %}<button class="btn btn--soft btn--sm" type="submit" name="action" value="activate">{{ icon("check-circle") }}{{ t("platform.tenant.activate") }}</button>{% endif %}
+      {%- if row.status.as_str() != "trial" %}<button class="btn btn--ghost btn--sm" type="submit" name="action" value="trial">{{ icon("clock") }}{{ t("platform.tenant.to_trial") }}</button>{% endif %}
+      {%- if row.status.as_str() != "cancelled" %}<button class="btn btn--ghost btn--sm" type="submit" name="action" value="cancel">{{ icon("x-circle") }}{{ t("platform.tenant.cancel") }}</button>{% endif %}
+    </div>
+  </form>
+{% endcall %}
+
+{% call ui::card(t("platform.subscription.title"), t("platform.subscription.hint")) %}
+  {%- match subscription %}
+  {%- when Some(s) %}
+  <dl class="dl">
+    <dt>{{ t("platform.tenants.col_plan") }}</dt><dd>{{ s.plan_name }} <code class="muted small">{{ s.plan_code }}</code></dd>
+    <dt>{{ t("platform.subscription.status") }}</dt><dd>{{ badge(sub_status(s.subscription.status), sub_tone(s.subscription.status)) }}</dd>
+    <dt>{{ t("platform.subscription.price") }}</dt><dd>{{ money_in(s.subscription.price, s.subscription.currency) }}{{ per(s.subscription.billing_cycle) }}</dd>
+    <dt>{{ t("platform.subscription.period_end") }}</dt><dd>{{ date_opt(s.subscription.current_period_end) }}</dd>
+    <dt>{{ t("platform.tenant.trial_ends") }}</dt><dd>{{ date_opt(s.subscription.trial_ends_at) }}</dd>
+  </dl>
+  <form class="form-row mt-4" method="post" action="/platform/tenants/{{ row.id }}/subscription">
+    {% call ui::csrf() %}{% endcall %}
+    <input type="hidden" name="subscription_id" value="{{ s.subscription.id }}">
+    {% call ui::field("days", t("platform.subscription.days"), "30", kind="number", inputmode="numeric") %}{% endcall %}
+    <div class="field"><span class="field__label">&nbsp;</span><button class="btn btn--soft btn--sm" type="submit" name="action" value="extend">{{ icon("calendar") }}{{ t("platform.subscription.extend") }}</button></div>
+  </form>
+  <form class="form-row mt-2" method="post" action="/platform/tenants/{{ row.id }}/subscription">
+    {% call ui::csrf() %}{% endcall %}
+    <input type="hidden" name="subscription_id" value="{{ s.subscription.id }}">
+    {% call ui::select("plan", t("platform.tenant_new.plan"), plans, s.plan_code.as_str()) %}{% endcall %}
+    {% call ui::select("billing_cycle", t("platform.tenant_new.cycle"), cycles, s.subscription.billing_cycle.as_str()) %}{% endcall %}
+    <div class="field"><span class="field__label">&nbsp;</span><button class="btn btn--soft btn--sm" type="submit" name="action" value="change_plan">{{ icon("layers") }}{{ t("platform.subscription.change_plan") }}</button></div>
+  </form>
+  <form class="btn-row mt-2" method="post" action="/platform/tenants/{{ row.id }}/subscription">
+    {% call ui::csrf() %}{% endcall %}
+    <input type="hidden" name="subscription_id" value="{{ s.subscription.id }}">
+    <input type="hidden" name="billing_cycle" value="{{ s.subscription.billing_cycle.as_str() }}">
+    <button class="btn btn--primary btn--sm" type="submit" name="action" value="activate">{{ icon("check") }}{{ t("platform.subscription.activate") }}</button>
+    <button class="btn btn--ghost btn--sm" type="submit" name="action" value="cancel">{{ icon("x") }}{{ t("platform.subscription.cancel") }}</button>
+  </form>
+  {%- when None %}
+  <p class="muted">{{ t("platform.subscription.none") }}</p>
+  <form class="form-row mt-4" method="post" action="/platform/tenants/{{ row.id }}/subscription">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::select("plan", t("platform.tenant_new.plan"), plans, "") %}{% endcall %}
+    {% call ui::select("billing_cycle", t("platform.tenant_new.cycle"), cycles, "monthly") %}{% endcall %}
+    <div class="field"><span class="field__label">&nbsp;</span><button class="btn btn--primary btn--sm" type="submit" name="action" value="start">{{ icon("plus") }}{{ t("platform.subscription.start") }}</button></div>
+  </form>
+  {%- endmatch %}
+  {%- if !history.is_empty() %}
+  <details class="mt-4"><summary>{{ t("platform.subscription.history") }}</summary>
+    <ul class="stack-sm mt-2 small">
+    {%- for h in history %}
+      <li>{{ h.plan_name }} · {{ sub_status(h.subscription.status) }} · {{ date(h.subscription.created_at) }}{% match h.subscription.cancelled_at %}{% when Some(c) %} → {{ date(c) }}{% when None %}{% endmatch %}</li>
+    {%- endfor %}
+    </ul>
+  </details>
+  {%- endif %}
+{% endcall %}
+</div>
+
+<div class="grid grid--2 mt-8">
+{% call ui::card(t("platform.limits.title"), t("platform.limits.hint")) %}
+  <div class="pf-limits">
+  {%- for l in limits %}
+    <div>
+      <div class="pf-limit__head"><span>{{ l.label }}</span><span class="tabular{% if l.over %} text-danger{% endif %}">{{ num(l.used) }} / {{ l.max }}</span></div>
+      <progress class="pf-meter{% if l.over %} pf-meter--over{% endif %}" max="100" value="{{ l.percent }}" aria-label="{{ l.label }}">{{ l.percent }}%</progress>
+    </div>
+  {%- endfor %}
+  </div>
+  <details class="mt-4"><summary>{{ t("platform.limits.override") }}</summary>
+  <form class="stack-sm mt-2" method="post" action="/platform/tenants/{{ row.id }}/limits">
+    {% call ui::csrf() %}{% endcall %}
+    <p class="muted small">{{ t("platform.limits.override_hint") }}</p>
+    <div class="form-row">
+    {%- for l in limits %}
+      {% call ui::field(l.input, l.label, l.override_value) %}{% endcall %}
+    {%- endfor %}
+    </div>
+    <button class="btn btn--soft btn--sm" type="submit">{{ t("common.actions.save") }}</button>
+  </form>
+  </details>
+{% endcall %}
+
+{% call ui::card(t("platform.features.title"), t("platform.features.hint")) %}
+  <form class="stack" method="post" action="/platform/tenants/{{ row.id }}/features">
+    {% call ui::csrf() %}{% endcall %}
+    <div class="pf-features">
+    {%- for f in features %}
+      <label class="pf-feature"><span><code>{{ f.key }}</code> {% if f.enabled %}{{ badge(t("platform.features.on"), "success") }}{% else %}{{ badge(t("platform.features.off"), "") }}{% endif %}</span>
+        <select class="select" name="feature.{{ f.key }}" aria-label="{{ f.key }}">
+          <option value="plan"{% if !f.overridden %} selected{% endif %}>{% if f.in_plan %}{{ t("platform.features.plan_on") }}{% else %}{{ t("platform.features.plan_off") }}{% endif %}</option>
+          <option value="on"{% if f.overridden && f.enabled %} selected{% endif %}>{{ t("platform.features.force_on") }}</option>
+          <option value="off"{% if f.overridden && !f.enabled %} selected{% endif %}>{{ t("platform.features.force_off") }}</option>
+        </select>
+      </label>
+    {%- endfor %}
+    </div>
+    <div><button class="btn btn--soft btn--sm" type="submit">{{ t("common.actions.save") }}</button></div>
+  </form>
+{% endcall %}
+</div>
+
+<div class="mt-8">
+{% call ui::card(t("platform.domains.title"), t("platform.domains.hint")) %}
+  <div class="table-wrap"><table class="table table--stack">
+    <thead><tr>
+      <th scope="col">{{ t("platform.domains.host") }}</th>
+      <th scope="col">{{ t("platform.domains.state") }}</th>
+      <th scope="col">{{ t("platform.domains.dns") }}</th>
+      <th scope="col"></th>
+    </tr></thead>
+    <tbody>
+    {%- for d in domains %}
+      <tr>
+        <td data-label="{{ t("platform.domains.host") }}"><a href="{{ d.url }}" rel="noopener"><code>{{ d.host }}</code></a> {% if d.primary %}{{ badge(t("platform.domains.primary"), "brand") }}{% endif %} <span class="muted small">{{ d.kind }}</span></td>
+        <td data-label="{{ t("platform.domains.state") }}">
+          {%- if d.verified %}{{ badge(t("platform.domains.verified_badge"), "success") }} <span class="muted small">{{ date_opt(d.verified_at) }}</span>
+          {%- else %}{{ badge(t("platform.domains.pending_badge"), "warning") }}{% match d.last_checked_at %}{% when Some(c) %}<br><span class="muted small">{{ tv("platform.domains.checked_at", "time", datetime(c)) }}</span>{% when None %}{% endmatch %}{% if !d.error.is_empty() %}<br><span class="small text-danger">{{ d.error }}</span>{% endif %}{% endif %}
+        </td>
+        <td data-label="{{ t("platform.domains.dns") }}">
+          {%- if d.kind == "custom" && !d.verified %}
+          <div class="pf-dns">
+            <span>TXT <code>{{ d.txt_name }}</code> = <code>{{ d.txt_value }}</code></span>
+            <span>{{ t("platform.domains.or_cname") }} CNAME → <code>{{ d.cname_target }}</code></span>
+          </div>
+          {%- else %}<span class="muted">—</span>{% endif %}
+        </td>
+        <td>
+          {%- if d.kind == "custom" %}
+          <div class="btn-row">
+            {%- if !d.verified %}
+            <form method="post" action="/platform/tenants/{{ row.id }}/domains/{{ d.id }}/verify">{% call ui::csrf() %}{% endcall %}<button class="btn btn--soft btn--sm" type="submit">{{ icon("refresh") }}{{ t("platform.domains.verify") }}</button></form>
+            {%- endif %}
+            {%- if !d.primary %}
+            <form method="post" action="/platform/tenants/{{ row.id }}/domains/{{ d.id }}/delete" data-confirm="{{ t("platform.domains.delete_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ icon("x") }}{{ t("platform.domains.delete") }}</button></form>
+            {%- endif %}
+          </div>
+          {%- endif %}
+        </td>
+      </tr>
+    {%- endfor %}
+    </tbody>
+  </table></div>
+  <form class="form-row mt-4" method="post" action="/platform/tenants/{{ row.id }}/domains">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::field("host", t("platform.domains.add_label"), "", placeholder="www.example.com") %}{% endcall %}
+    <div class="field"><span class="field__label">&nbsp;</span><button class="btn btn--soft" type="submit">{{ icon("plus") }}{{ t("platform.domains.add") }}</button></div>
+  </form>
+{% endcall %}
+</div>
+
+<div class="grid grid--2 mt-8">
+{% call ui::card(t("platform.tenant.notes")) %}
+  <form class="stack-sm" method="post" action="/platform/tenants/{{ row.id }}/notes">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::textarea("notes", t("platform.tenant.notes_label"), notes, rows=5) %}{% endcall %}
+    <div><button class="btn btn--soft btn--sm" type="submit">{{ t("common.actions.save") }}</button></div>
+  </form>
+{% endcall %}
+{% call ui::card(t("platform.tenant.audit")) %}
+  {%- if audit.is_empty() %}
+  <p class="muted">{{ t("platform.audit.empty") }}</p>
+  {%- else %}
+  <ul class="stack-sm small">
+  {%- for a in audit %}
+    <li><code>{{ a.action }}</code> · {{ a.actor_kind.as_str() }} · <time datetime="{{ iso(a.created_at) }}">{{ datetime(a.created_at) }}</time></li>
+  {%- endfor %}
+  </ul>
+  <p class="small mt-2"><a href="/platform/audit?tenant={{ row.slug }}">{{ t("platform.tenant.audit_all") }}</a></p>
+  {%- endif %}
+{% endcall %}
+</div>
+
+<div class="mt-8">
+<section class="card pf-danger">
+  <header class="card__head"><div><h2>{{ t("platform.delete.title") }}</h2><p class="muted small">{{ t("platform.delete.hint") }}</p></div></header>
+  <div class="card__body">
+  {%- if can_delete %}
+  <form class="form-row" method="post" action="/platform/tenants/{{ row.id }}/delete" data-confirm="{{ t("platform.delete.confirm") }}">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::field("confirm_slug", tv("platform.delete.type_slug", "slug", row.slug), "", autocomplete="off") %}{% endcall %}
+    <div class="field"><span class="field__label">&nbsp;</span><button class="btn btn--danger" type="submit">{{ icon("x-circle") }}{{ t("platform.delete.button") }}</button></div>
+  </form>
+  {%- else %}
+  <p class="muted">{{ t("platform.delete.suspend_first") }}</p>
+  {%- endif %}
+  </div>
+</section>
+</div>
+{% endblock %}

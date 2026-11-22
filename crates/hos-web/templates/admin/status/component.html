@@ -1,0 +1,40 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ ctx.title }}</h1></div></div>
+<div class="biz-narrow">
+{%- if !error.is_empty() %}{% call ui::alert("error", error) %}{% endcall %}{% endif %}
+<form method="post" action="{% match id %}{% when Some(cid) %}{{ url("/admin/status/components/" ~ cid) }}{% when None %}{{ url("/admin/status/components") }}{% endmatch %}" class="stack-lg">
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::card() %}
+  <div class="stack">
+    <div class="form-grid form-grid--2">
+      {% call ui::field("name", t("netstatus.fields.component"), c.name, required=true, hint=t("netstatus.admin.name_hint")) %}{% endcall %}
+      {% call ui::field("group_name", t("netstatus.fields.group"), c.group_name, hint=t("netstatus.admin.group_hint")) %}{% endcall %}
+    </div>
+    {% call ui::field("description", t("netstatus.fields.description"), c.description.clone().unwrap_or_default()) %}{% endcall %}
+    <div class="form-grid form-grid--2">
+      {% call ui::select("status", t("netstatus.fields.status"), statuses, c.status.as_str()) %}{% endcall %}
+      {% call ui::field("sort_order", t("netstatus.fields.sort_order"), c.sort_order, kind="number") %}{% endcall %}
+    </div>
+    <div class="field"><label class="field__label" for="f-integration_id">{{ t("netstatus.fields.integration") }}</label>
+      <select class="select" id="f-integration_id" name="integration_id" aria-describedby="f-integration-hint">
+        <option value="">{{ t("netstatus.admin.no_integration") }}</option>
+        {%- let iv = integration_value() %}
+        {%- for (v, l) in integrations %}<option value="{{ v }}"{{ sel(v, iv) }}>{{ l }}</option>{% endfor %}
+      </select>
+      <p class="field__hint" id="f-integration-hint">{{ t("netstatus.admin.integration_hint") }}</p></div>
+    {% call ui::checkbox("is_public", t("netstatus.admin.is_public"), c.is_public) %}{% endcall %}
+  </div>
+  {% endcall %}
+  <div class="biz-actions">
+    <button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button>
+    <a class="btn btn--ghost" href="{{ url("/admin/status") }}">{{ t("common.actions.cancel") }}</a>
+  </div>
+</form>
+{%- match id %}{% when Some(cid) %}
+<form method="post" action="{{ url("/admin/status/components/" ~ cid ~ "/delete") }}" class="mt-4" data-confirm="{{ t("netstatus.admin.component_delete_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--danger" type="submit">{{ icon("trash") }}{{ t("admin.common.delete") }}</button></form>
+{%- when None %}{% endmatch %}
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{
+  "a11y": {
+    "breadcrumbs": "Sayfa konumu",
+    "main_nav": "Ana menü",
+    "menu": "Menü",
+    "sidebar": "Panel menüsü",
+    "skip": "İçeriğe geç",
+    "tabs": "Sekmeler",
+    "mobile_nav": "Mobil menü"
+  },
+  "actions": {
+    "cancel": "Vazgeç",
+    "close": "Kapat",
+    "copied": "Kopyalandı",
+    "copy": "Kopyala",
+    "login": "Giriş yap",
+    "logout": "Çıkış",
+    "register": "Kayıt ol",
+    "save": "Kaydet",
+    "toggle_theme": "Açık / koyu tema"
+  },
+  "cycle": {
+    "annual": "Yıllık",
+    "biennial": "2 yıllık",
+    "monthly": "Aylık",
+    "one_time": "Tek seferlik",
+    "quarterly": "3 aylık",
+    "semiannual": "6 aylık",
+    "triennial": "3 yıllık"
+  },
+  "errors": {
+    "offline": "Bağlantı kurulamadı. İnternet bağlantınızı kontrol edin.",
+    "request_failed": "İstek tamamlanamadı. Lütfen tekrar deneyin."
+  },
+  "form": {
+    "fix_errors": "Lütfen işaretli alanları düzeltin."
+  },
+  "lang": {
+    "switch": "Dili değiştir"
+  },
+  "nav": {
+    "home": "Ana sayfa",
+    "storefront": "Siteye git"
+  },
+  "no": "Hayır",
+  "pagination": {
+    "label": "Sayfalar",
+    "next": "Sonraki sayfa",
+    "prev": "Önceki sayfa"
+  },
+  "per": {
+    "annual": "/yıl",
+    "biennial": "/2 yıl",
+    "monthly": "/ay",
+    "one_time": "tek seferlik",
+    "quarterly": "/3 ay",
+    "semiannual": "/6 ay",
+    "triennial": "/3 yıl"
+  },
+  "status": {
+    "active": "Aktif",
+    "answered": "Yanıtlandı",
+    "archived": "Arşivlendi",
+    "cancelled": "İptal edildi",
+    "closed": "Kapalı",
+    "collections": "Tahsilatta",
+    "completed": "Tamamlandı",
+    "customer_reply": "Müşteri yanıtı",
+    "draft": "Taslak",
+    "expired": "Süresi doldu",
+    "failed": "Başarısız",
+    "fraud": "Sahte",
+    "grace": "Ek süre",
+    "in_progress": "İşlemde",
+    "inactive": "Pasif",
+    "on_hold": "Beklemede",
+    "open": "Açık",
+    "overdue": "Gecikmiş",
+    "paid": "Ödendi",
+    "partially_refunded": "Kısmen iade",
+    "payment_pending": "Ödeme bekleniyor",
+    "pending": "Bekliyor",
+    "pending_transfer": "Transfer bekliyor",
+    "published": "Yayında",
+    "redemption": "Geri alım",
+    "refunded": "İade edildi",
+    "scheduled": "Zamanlandı",
+    "suspended": "Askıda",
+    "terminated": "Sonlandırıldı",
+    "trial": "Deneme",
+    "unpaid": "Ödenmedi"
+  },
+  "yes": "Evet"
+}

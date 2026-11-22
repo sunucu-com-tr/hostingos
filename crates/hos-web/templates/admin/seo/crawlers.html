@@ -1,0 +1,58 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_content.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("admin_content.seo.crawlers.title") }}</h1><p>{{ t("admin_content.seo.crawlers.lead") }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/robots.txt") }}" target="_blank" rel="noopener">{{ icon("external-link") }}robots.txt</a></div>
+</div>
+{% include "admin/seo/_tabs.html" %}
+<form class="admin-grid admin-grid--side mt-4" method="post" action="{{ url("/admin/seo/crawlers") }}"
+  hx-post="{{ url("/admin/seo/crawlers/preview") }}" hx-trigger="change, keyup changed delay:600ms from:textarea" hx-target="#robots-preview" hx-swap="innerHTML">
+  <div class="stack">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::form_errors(errors) %}{% endcall %}
+    {% call ui::card(t("admin_content.seo.crawlers.classes"), t("admin_content.seo.crawlers.classes_lead")) %}
+    <div class="stack-sm">
+      {% call ui::checkbox("allow_search", t("admin_content.seo.crawlers.allow_search"), form.policy.allow_search) %}{% endcall %}
+      <p class="field__hint">{{ t("admin_content.seo.crawlers.allow_search_hint") }}</p>
+      {% call ui::checkbox("allow_user_fetch", t("admin_content.seo.crawlers.allow_user_fetch"), form.policy.allow_user_fetch) %}{% endcall %}
+      <p class="field__hint">{{ t("admin_content.seo.crawlers.allow_user_fetch_hint") }}</p>
+      {% call ui::checkbox("allow_training", t("admin_content.seo.crawlers.allow_training"), form.policy.allow_training) %}{% endcall %}
+      <p class="field__hint">{{ t("admin_content.seo.crawlers.allow_training_hint") }}</p>
+    </div>
+    {% endcall %}
+    {% call ui::card(t("admin_content.seo.crawlers.bots"), t("admin_content.seo.crawlers.bots_lead")) %}
+    <div class="table-wrap"><table class="table table--dense table--stack bot-table">
+      <thead><tr><th scope="col">{{ t("admin_content.seo.crawlers.bot") }}</th><th scope="col">{{ t("admin_content.seo.crawlers.operator") }}</th><th scope="col">{{ t("admin_content.seo.crawlers.purpose_col") }}</th><th scope="col">{{ t("admin_content.seo.crawlers.rule") }}</th><th scope="col">{{ t("admin_content.seo.crawlers.effective") }}</th></tr></thead>
+      <tbody>
+      {%- for b in bots %}
+        <tr>
+          <td data-label="{{ t("admin_content.seo.crawlers.bot") }}"><span class="mono">{{ b.token }}</span>{% if b.legacy %} {{ badge(t("admin_content.seo.crawlers.legacy"), "") }}{% endif %}{% if b.control_only %} {{ badge(t("admin_content.seo.crawlers.control_only"), "info") }}{% endif %}</td>
+          <td data-label="{{ t("admin_content.seo.crawlers.operator") }}">{{ b.operator }}</td>
+          <td data-label="{{ t("admin_content.seo.crawlers.purpose_col") }}">{{ purpose_label(b.purpose) }}</td>
+          <td data-label="{{ t("admin_content.seo.crawlers.rule") }}"><label class="visually-hidden" for="bot-{{ b.token }}">{{ b.token }}</label>
+            <select class="select select--sm" id="bot-{{ b.token }}" name="bot_{{ b.token }}">
+              <option value="">{{ t("admin_content.seo.crawlers.rule_class") }}</option>
+              <option value="allow"{{ sel("allow", b.choice) }}>{{ t("admin_content.seo.crawlers.rule_allow") }}</option>
+              <option value="disallow"{{ sel("disallow", b.choice) }}>{{ t("admin_content.seo.crawlers.rule_disallow") }}</option>
+            </select></td>
+          <td data-label="{{ t("admin_content.seo.crawlers.effective") }}">{% if b.allowed %}{{ badge(t("admin_content.seo.crawlers.allowed"), "success") }}{% else %}{{ badge(t("admin_content.seo.crawlers.blocked"), "danger") }}{% endif %}</td>
+        </tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
+    {% call ui::textarea("custom", t("admin_content.seo.crawlers.custom"), form.custom, error=errors.get("custom"), hint=t("admin_content.seo.crawlers.custom_hint"), rows=3) %}{% endcall %}
+    {% endcall %}
+    {% call ui::card(t("admin_content.seo.crawlers.paths"), t("admin_content.seo.crawlers.paths_lead")) %}
+    {% call ui::textarea("disallow", t("admin_content.seo.crawlers.disallow"), form.disallow, error=errors.get("disallow"), hint=t("admin_content.seo.crawlers.disallow_hint"), rows=4) %}{% endcall %}
+    {% endcall %}
+    <div class="form-actions"><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button></div>
+  </div>
+  <aside>
+    {% call ui::card(t("admin_content.seo.crawlers.preview"), t("admin_content.seo.crawlers.preview_lead")) %}
+    <div id="robots-preview" aria-live="polite"><pre class="code-block robots-preview"><code>{{ preview }}</code></pre></div>
+    {% endcall %}
+  </aside>
+</form>
+{% endblock %}

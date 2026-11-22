@@ -1,0 +1,97 @@
+{%- import "components/ui.html" as ui -%}
+{%- let sc = store() -%}
+{%- if tpl() == "corporate" %}{% include "themes/corporate/utility_bar.html" %}{% endif %}
+<header class="site-header">
+  <div class="container site-header__bar">
+    <a class="brand" href="{{ url("/") }}">
+      {%- if sc.logo_url.is_empty() %}
+      <span class="brand__mark">{{ icon("forge") }}</span><span>{{ site_name }}</span>
+      {%- else %}
+      <img src="{{ sc.logo_url }}" alt="{{ site_name }}" width="160" height="32" decoding="async" fetchpriority="high">
+      {%- endif %}
+    </a>
+    <nav class="site-nav" aria-label="{{ t("common.a11y.main_nav") }}">
+      {%- if !sc.groups.is_empty() %}
+      <details data-menu class="site-nav__menu">
+        <summary>{{ t("storefront.nav.products") }}{{ icon("chevron-down") }}</summary>
+        <div class="mega{% if sc.groups.len() > 4 %} mega--wide{% endif %}">
+          <div class="mega__grid">
+            {%- for g in sc.groups %}
+            <a class="mega__item" href="{{ g.href }}"><span class="mega__icon">{{ icon(g.icon) }}</span><span><strong>{{ g.label }}</strong>{% if !g.description.is_empty() %}<span>{{ g.description }}</span>{% endif %}</span></a>
+            {%- endfor %}
+          </div>
+          <div class="mega__foot">
+            <a href="{{ url("/domains") }}">{{ icon("globe") }}<span>{{ t("storefront.nav.domains") }}</span></a>
+            <a href="{{ url("/whois") }}">{{ icon("search") }}<span>{{ t("storefront.nav.whois") }}</span></a>
+            <a href="{{ url("/contact") }}">{{ icon("mail") }}<span>{{ t("storefront.nav.sales") }}</span></a>
+          </div>
+        </div>
+      </details>
+      {%- endif %}
+      <a class="site-nav__link" href="{{ url("/domains") }}"{% if is_current("/domains") %} aria-current="page"{% endif %}>{{ t("storefront.nav.domains") }}</a>
+      <a class="site-nav__link" href="{{ url("/kb") }}"{% if is_current("/kb") %} aria-current="page"{% endif %}>{{ t("storefront.nav.kb") }}</a>
+      <a class="site-nav__link" href="{{ url("/blog") }}"{% if is_current("/blog") %} aria-current="page"{% endif %}>{{ t("storefront.nav.blog") }}</a>
+      {%- for p in sc.nav_pages %}
+      <a class="site-nav__link" href="{{ p.href }}"{% if path == p.href %} aria-current="page"{% endif %}>{{ p.label }}</a>
+      {%- endfor %}
+      <a class="site-nav__link" href="{{ url("/contact") }}"{% if is_current("/contact") %} aria-current="page"{% endif %}>{{ t("storefront.nav.contact") }}</a>
+    </nav>
+    <div class="site-header__actions">
+      {% call ui::lang_switch() %}{% endcall %}
+      {%- let currencies = currency_choices() %}
+      {%- if !currencies.is_empty() %}
+      <details class="currency-switch" data-menu>
+        <summary class="btn btn--ghost btn--sm" aria-label="{{ t("storefront.currency.label") }}" title="{{ t("storefront.currency.label") }}"><span>{{ currency.as_str() }}</span></summary>
+        <div class="currency-switch__panel" role="list">
+          {%- for c in currencies.iter() %}
+          <form role="listitem" method="post" action="{{ currency_url(c) }}">{% call ui::csrf() %}{% endcall %}<button type="submit"{% if is_currency(c) %} aria-current="true"{% endif %}>{{ c }}</button></form>
+          {%- endfor %}
+        </div>
+      </details>
+      {%- endif %}
+      {% call ui::theme_toggle() %}{% endcall %}
+      <a class="btn btn--ghost btn--sm site-header__cart" href="{{ url("/cart") }}"{% if is_current("/cart") %} aria-current="page"{% endif %} aria-label="{{ tn("admin_settings.store.cart_items", cart_count) }}">{{ icon("cart") }}<span class="hide-sm">{{ t("cart.title") }}</span>
+        {%- if cart_count > 0 %}<span class="badge" aria-hidden="true">{{ cart_count }}</span>{% endif %}</a>
+      {%- if logged_in() %}
+      <a class="btn btn--primary btn--sm site-header__cta" href="{{ home_url() }}">{{ icon("gauge") }}<span>{{ t("storefront.nav.my_account") }}</span></a>
+      {%- else %}
+      <a class="btn btn--ghost btn--sm site-header__login" href="{{ url("/auth/login") }}">{{ t("common.actions.login") }}</a>
+      <a class="btn btn--primary btn--sm site-header__cta" href="{{ url("/auth/register") }}">{{ t("common.actions.register") }}</a>
+      {%- endif %}
+      <details class="nav-mobile" data-menu>
+        <summary class="btn btn--ghost btn--icon" aria-label="{{ t("common.a11y.menu") }}">{{ icon("menu") }}</summary>
+        <nav class="nav-mobile__panel" aria-label="{{ t("common.a11y.mobile_nav") }}">
+          {%- if !sc.groups.is_empty() %}
+          <p class="nav-mobile__label">{{ t("storefront.nav.products") }}</p>
+          {%- for g in sc.groups %}<a class="nav-mobile__product" href="{{ g.href }}"><span class="mega__icon">{{ icon(g.icon) }}</span><span>{{ g.label }}</span></a>{% endfor %}
+          {%- endif %}
+          <p class="nav-mobile__label">{{ t("storefront.nav.explore") }}</p>
+          <a href="{{ url("/domains") }}">{{ t("storefront.nav.domains") }}</a>
+          <a href="{{ url("/kb") }}">{{ t("storefront.nav.kb") }}</a>
+          <a href="{{ url("/blog") }}">{{ t("storefront.nav.blog") }}</a>
+          {%- for p in sc.nav_pages %}<a href="{{ p.href }}">{{ p.label }}</a>{% endfor %}
+          <a href="{{ url("/contact") }}">{{ t("storefront.nav.contact") }}</a>
+          <p class="nav-mobile__label">{{ t("storefront.footer.client_area") }}</p>
+          <a href="{{ url("/cart") }}">{{ t("cart.title") }}{% if cart_count > 0 %} ({{ cart_count }}){% endif %}</a>
+          {%- if logged_in() %}
+          <a href="{{ home_url() }}">{{ t("storefront.nav.my_account") }}</a>
+          {%- else %}
+          <a href="{{ url("/auth/login") }}">{{ t("common.actions.login") }}</a>
+          <a class="btn btn--primary btn--block" href="{{ url("/auth/register") }}">{{ t("common.actions.register") }}</a>
+          {%- endif %}
+          <p class="nav-mobile__label">{{ t("common.lang.switch") }}</p>
+          <div class="nav-mobile__langs">
+            <a href="{{ switch_url("tr") }}" hreflang="tr" lang="tr"{% if lang == "tr" %} aria-current="true"{% endif %}>Türkçe</a>
+            <a href="{{ switch_url("en") }}" hreflang="en" lang="en"{% if lang == "en" %} aria-current="true"{% endif %}>English</a>
+          </div>
+          {%- if !currencies.is_empty() %}
+          <p class="nav-mobile__label">{{ t("storefront.currency.label") }}</p>
+          <div class="nav-mobile__langs">
+            {%- for c in currencies.iter() %}<form method="post" action="{{ currency_url(c) }}">{% call ui::csrf() %}{% endcall %}<button type="submit"{% if is_currency(c) %} aria-current="true"{% endif %}>{{ c }}</button></form>{% endfor %}
+          </div>
+          {%- endif %}
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>

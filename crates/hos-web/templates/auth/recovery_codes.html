@@ -1,0 +1,17 @@
+{% extends "layouts/auth.html" %}
+{% import "components/ui.html" as ui %}
+{% block card %}
+<header class="auth-card__head">
+  <span class="icon-tile">{{ icon("key") }}</span>
+  <h1>{{ t("auth.two_factor.codes_title") }}</h1>
+  <p>{{ t("auth.two_factor.codes_lead") }}</p>
+</header>
+<ul class="codes" id="recovery-codes">
+  {%- for c in codes %}<li class="mono">{{ c }}</li>{% endfor %}
+</ul>
+<pre class="visually-hidden" id="recovery-codes-text">{{ codes_text }}</pre>
+<div class="btn-row">
+  <button type="button" class="btn btn--soft" data-copy="#recovery-codes-text" data-copied="{{ t("common.actions.copied") }}">{{ icon("copy") }}{{ t("common.actions.copy") }}</button>
+  <a class="btn btn--primary" href="{{ back_href }}">{{ t("auth.two_factor.done") }}</a>
+</div>
+{% endblock %}

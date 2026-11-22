@@ -1,0 +1,57 @@
+{
+  "actions": {
+    "help": "Help center",
+    "home": "Back to home",
+    "panel": "Back to your panel"
+  },
+  "bad_request": {
+    "text": "The submitted data could not be processed. Please check it and try again.",
+    "title": "Bad request"
+  },
+  "conflict": {
+    "text": "This record was changed by another action. Please reload the page.",
+    "title": "Conflict"
+  },
+  "csrf": {
+    "text": "The security check failed. Reload the page and try again.",
+    "title": "Session check failed"
+  },
+  "demo_disabled": {
+    "text": "This action is switched off in the public demo, so that the demo stays usable and safe for every visitor. Install HostingOS yourself to try it.",
+    "title": "Not available in the demo"
+  },
+  "forbidden": {
+    "text": "You do not have permission to view this page. Try signing in with another account.",
+    "title": "Access denied"
+  },
+  "internal": {
+    "text": "Our team has been notified. Please try again later.",
+    "title": "Something went wrong"
+  },
+  "not_found": {
+    "text": "The page you are looking for may have moved or never existed.",
+    "title": "Page not found"
+  },
+  "payload_too_large": {
+    "text": "The content you sent exceeds the allowed size.",
+    "title": "Upload too large"
+  },
+  "popular": "Perhaps you were looking for",
+  "rate_limited": {
+    "text": "You made too many attempts in a short time. Please wait a moment and try again.",
+    "title": "Too many requests"
+  },
+  "reference": "Error reference",
+  "suspended": {
+    "text": "This site is currently unavailable. Please visit again later.",
+    "title": "Service temporarily suspended"
+  },
+  "unauthorized": {
+    "text": "Sign in to your account to view this page.",
+    "title": "Please sign in"
+  },
+  "unavailable": {
+    "text": "This service is not responding right now. Please try again in a few minutes.",
+    "title": "Temporarily unavailable"
+  }
+}

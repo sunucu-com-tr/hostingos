@@ -1,0 +1,51 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ ctx.title }}</h1><p>{{ t("fraud.admin.lead") }} <a href="{{ url("/admin/orders?status=fraud") }}">{{ t("fraud.admin.held_orders") }}</a></p></div></div>
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    <form method="post" action="{{ url("/admin/fraud") }}" class="stack-lg">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::card(t("fraud.admin.rules_title"), t("fraud.admin.rules_hint")) %}
+      <div class="stack">
+        {% call ui::checkbox("enabled", t("fraud.admin.enabled"), s.enabled) %}{% endcall %}
+        {% call ui::checkbox("block_disposable", t("fraud.admin.block_disposable"), s.block_disposable) %}{% endcall %}
+        <div class="form-grid form-grid--2">
+          {% call ui::field("hold_score", t("fraud.admin.hold_score"), s.hold_score, kind="number", hint=t("fraud.admin.hold_score_hint"), required=true) %}{% endcall %}
+          {% call ui::field("max_orders_per_ip", t("fraud.admin.max_orders_per_ip"), s.max_orders_per_ip, kind="number", required=true) %}{% endcall %}
+          {% call ui::field("max_clients_per_ip", t("fraud.admin.max_clients_per_ip"), s.max_clients_per_ip, kind="number", required=true) %}{% endcall %}
+          {% call ui::field("max_orders_per_client", t("fraud.admin.max_orders_per_client"), s.max_orders_per_client, kind="number", required=true) %}{% endcall %}
+        </div>
+      </div>
+      {% endcall %}
+      <div><button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button></div>
+    </form>
+    {% call ui::card(t("fraud.admin.bans_title"), t("fraud.admin.bans_hint")) %}
+    {%- if bans.is_empty() %}<p class="biz-muted">{{ t("fraud.admin.bans_empty") }}</p>{% else %}
+    <div class="table-wrap"><table class="table table--dense table--stack">
+      <thead><tr><th scope="col">{{ t("fraud.fields.kind") }}</th><th scope="col">{{ t("fraud.fields.value") }}</th><th scope="col">{{ t("fraud.fields.reason") }}</th><th scope="col">{{ t("fraud.fields.added") }}</th><th scope="col"><span class="visually-hidden">{{ t("fraud.fields.actions") }}</span></th></tr></thead>
+      <tbody>{% for b in bans %}<tr>
+        <td data-label="{{ t("fraud.fields.kind") }}">{{ lbl("fraud.kind", b.kind.as_str()) }}</td>
+        <td data-label="{{ t("fraud.fields.value") }}" class="mono">{{ b.value }}</td>
+        <td data-label="{{ t("fraud.fields.reason") }}">{{ o(b.reason) }}</td>
+        <td data-label="{{ t("fraud.fields.added") }}" class="nowrap">{{ date(b.created_at) }}</td>
+        <td class="num biz-cellact"><form method="post" action="{{ url("/admin/fraud/bans/" ~ b.id ~ "/delete") }}" data-confirm="{{ t("fraud.admin.delete_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ icon("trash") }}{{ t("admin.common.delete") }}</button></form></td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {%- endif %}
+    {% endcall %}
+  </div>
+  <aside class="stack-lg">
+    {% call ui::card(t("fraud.admin.ban_add")) %}
+    <form method="post" action="{{ url("/admin/fraud/bans") }}" class="stack">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::select("kind", t("fraud.fields.kind"), kinds, "email") %}{% endcall %}
+      {% call ui::field("value", t("fraud.fields.value"), "", required=true, hint=t("fraud.admin.value_hint")) %}{% endcall %}
+      {% call ui::field("reason", t("fraud.fields.reason"), "") %}{% endcall %}
+      <div><button class="btn btn--primary" type="submit">{{ icon("plus") }}{{ t("fraud.admin.ban_add") }}</button></div>
+    </form>
+    {% endcall %}
+  </aside>
+</div>
+{% endblock %}

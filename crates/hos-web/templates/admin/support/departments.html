@@ -1,0 +1,39 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("admin_support.departments.title") }}</h1><p>{{ t("admin_support.departments.lead") }}</p></div>
+</div>
+<div class="admin-grid admin-grid--side">
+  <div>
+  {%- if rows.is_empty() %}
+  {% call ui::empty("layers", t("admin_support.departments.empty_title"), t("admin_support.departments.empty_text")) %}{% endcall %}
+  {%- else %}
+  <div class="table-wrap"><table class="table table--dense table--stack">
+    <thead><tr><th scope="col">{{ t("admin.common.name") }}</th><th scope="col">{{ t("admin_support.departments.email") }}</th><th scope="col" class="num">{{ t("admin_support.departments.tickets") }}</th><th scope="col">{{ t("admin_support.departments.visibility") }}</th><th scope="col" class="actions"><span class="visually-hidden">{{ t("admin.common.edit") }}</span></th></tr></thead>
+    <tbody>
+    {%- for r in rows %}
+      <tr>
+        <td data-label="{{ t("admin.common.name") }}"><a class="row-link" href="{{ url("/admin/support/departments/" ~ r.d.id) }}">{{ r.d.name }}</a><span class="sub mono">{{ r.d.slug }}</span></td>
+        <td data-label="{{ t("admin_support.departments.email") }}">{{ o(r.d.email) }}</td>
+        <td data-label="{{ t("admin_support.departments.tickets") }}" class="num"><a href="{{ url("/admin/support/tickets?status=all&department=" ~ r.d.id) }}">{{ num(r.tickets) }}</a></td>
+        <td data-label="{{ t("admin_support.departments.visibility") }}">
+          {%- if r.d.is_hidden %}{{ badge(t("admin_support.departments.hidden_badge"), "warning") }}{% else %}{{ badge(t("admin_support.departments.visible_badge"), "success") }}{% endif %}
+          {%- if r.d.clients_only %} {{ badge(t("admin_support.departments.clients_only_badge"), "info") }}{% endif %}</td>
+        <td class="actions"><a class="btn btn--ghost btn--sm" href="{{ url("/admin/support/departments/" ~ r.d.id) }}">{{ t("admin.common.edit") }}</a></td>
+      </tr>
+    {%- endfor %}
+    </tbody>
+  </table></div>
+  {%- endif %}
+  </div>
+  {% call ui::card(t("admin_support.departments.new")) %}
+  <form class="stack" method="post" action="{{ url("/admin/support/departments") }}">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::form_errors(errors) %}{% endcall %}
+    {% include "admin/support/_department_fields.html" %}
+    <div class="form-actions"><button class="btn btn--primary" type="submit">{{ icon("plus") }}{{ t("admin.common.create") }}</button></div>
+  </form>
+  {% endcall %}
+</div>
+{% endblock %}

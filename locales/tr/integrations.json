@@ -1,0 +1,434 @@
+{
+  "proxmox": {
+    "api_url": {
+      "label": "API adresi",
+      "help": "Kümedeki herhangi bir düğüm; /api2/json otomatik eklenir."
+    },
+    "token_id": {
+      "label": "API token kimliği",
+      "help": "KULLANICI@REALM!TOKENID"
+    },
+    "skip_tls_verify": {
+      "label": "TLS sertifika doğrulamasını atla",
+      "help": "Yalnızca güvenilir ağdaki kendinden imzalı sertifikalar için."
+    },
+    "default_node": {
+      "label": "Varsayılan düğüm",
+      "help": "Ürün bir düğüm belirtmediğinde kullanılır; aksi hâlde şablonun düğümü."
+    },
+    "default_storage": {
+      "label": "Varsayılan depolama",
+      "help": "Tam klonlar ve LXC kök diskleri için hedef depolama."
+    },
+    "default_bridge": {
+      "label": "Varsayılan köprü"
+    },
+    "default_guest_type": {
+      "label": "Varsayılan konuk türü"
+    },
+    "pool": {
+      "label": "Kaynak havuzu",
+      "help": "Yeni konuklar için isteğe bağlı havuz."
+    },
+    "cpu_type": {
+      "label": "CPU türü",
+      "help": "QEMU `cpu` seçeneği; boş bırakılırsa şablonun ayarı korunur."
+    },
+    "ciuser": {
+      "label": "cloud-init kullanıcısı",
+      "help": "Parolayı ve SSH anahtarlarını alan kullanıcı."
+    },
+    "timeout_secs": {
+      "label": "HTTP zaman aşımı (sn)"
+    },
+    "task_timeout_secs": {
+      "label": "Görev bekleme sınırı (sn)",
+      "help": "Tek bir işlem içinde beklenen klonlama/durdurma/silme görevleri için üst sınır."
+    },
+    "task_poll_ms": {
+      "label": "Görev sorgulama aralığı (ms)"
+    },
+    "token_secret": {
+      "label": "API token gizli anahtarı"
+    }
+  },
+  "vmware": {
+    "api_url": {
+      "label": "vCenter adresi"
+    },
+    "deployment": {
+      "label": "Dağıtım yöntemi"
+    },
+    "username": {
+      "label": "Kullanıcı adı"
+    },
+    "skip_tls_verify": {
+      "label": "TLS sertifika doğrulamasını atla",
+      "help": "Yalnızca güvenilir ağdaki kendinden imzalı vCenter sertifikaları için."
+    },
+    "cluster": {
+      "label": "Küme MoRef"
+    },
+    "resource_pool": {
+      "label": "Kaynak havuzu MoRef"
+    },
+    "vm_folder": {
+      "label": "Sanal makine klasörü MoRef",
+      "help": "İçerik kitaplığından dağıtımlar için gereklidir."
+    },
+    "datastore": {
+      "label": "Veri deposu MoRef"
+    },
+    "network": {
+      "label": "Varsayılan ağ MoRef",
+      "help": "İlk ağ kartına bağlanan port grubu (VLAN'lar port grubunun özelliğidir)."
+    },
+    "content_library": {
+      "label": "İçerik kitaplığı kimliği",
+      "help": "Yalnızca bu kitaplıktaki şablonları listele (varsayılan: tüm kitaplıklar)."
+    },
+    "customization": {
+      "label": "Konuk özelleştirme"
+    },
+    "vijson_release": {
+      "label": "VI/JSON sürümü",
+      "help": "vCenter 8.0 U1+: anlık görüntüleri, disk büyütmeyi ve canlı ölçümleri etkinleştirir."
+    },
+    "timeout_secs": {
+      "label": "HTTP zaman aşımı (sn)"
+    },
+    "deploy_timeout_secs": {
+      "label": "Klonlama/dağıtım zaman aşımı (sn)",
+      "help": "Klonlama ve kitaplıktan dağıtım eşzamanlı REST çağrılarıdır."
+    },
+    "task_timeout_secs": {
+      "label": "Görev bekleme sınırı (sn)"
+    },
+    "task_poll_ms": {
+      "label": "Görev sorgulama aralığı (ms)"
+    },
+    "password": {
+      "label": "Parola"
+    }
+  },
+  "cpanel": {
+    "host": {
+      "label": "Sunucu adı veya IP",
+      "help": "Sunucu adı / IP ya da https://sunucu.ornek.com:2087 gibi tam bir adres"
+    },
+    "port": {
+      "label": "API portu",
+      "help": "Sunucu alanı zaten bir port içeriyorsa yok sayılır"
+    },
+    "use_ssl": {
+      "label": "HTTPS kullan"
+    },
+    "skip_tls_verify": {
+      "label": "TLS sertifika doğrulamasını atla",
+      "help": "Yalnızca kendinden imzalı sertifikalı sunucular için. Güvensizdir: kimlik bilgileri ele geçirilebilir"
+    },
+    "timeout_secs": {
+      "label": "İstek zaman aşımı (saniye)"
+    },
+    "username": {
+      "label": "WHM kullanıcı adı",
+      "help": "API token'ının sahibi: root veya bir bayi"
+    },
+    "default_ip": {
+      "label": "Varsayılan IP adresi",
+      "help": "Sipariş özel IP istemediğinde yeni hesaplar için kullanılır"
+    },
+    "nameservers": {
+      "label": "Ad sunucuları",
+      "help": "Virgülle ayrılmış; hoş geldiniz e-postasında müşteriye bildirilir"
+    },
+    "login_url": {
+      "label": "Müşteri giriş adresi",
+      "help": "Hoş geldiniz e-postalarındaki herkese açık panel adresi; boşsa sunucu adından türetilir"
+    },
+    "reseller_acl_list": {
+      "label": "Bayi ACL listesi",
+      "help": "Yeni bayi hesaplarına uygulanan kayıtlı ACL listesi (WHM » Edit Reseller Nameservers and Privileges)"
+    },
+    "reseller_owns_self": {
+      "label": "Bayiler kendi hesaplarının sahibi olsun"
+    },
+    "keep_dns_on_terminate": {
+      "label": "Sonlandırmada DNS bölgesini koru"
+    },
+    "api_token": {
+      "label": "WHM API token'ı"
+    }
+  },
+  "plesk": {
+    "host": {
+      "label": "Sunucu adı veya IP",
+      "help": "Sunucu adı / IP ya da https://sunucu.ornek.com:8443 gibi tam bir adres"
+    },
+    "port": {
+      "label": "API portu",
+      "help": "Sunucu alanı zaten bir port içeriyorsa yok sayılır"
+    },
+    "use_ssl": {
+      "label": "HTTPS kullan"
+    },
+    "skip_tls_verify": {
+      "label": "TLS sertifika doğrulamasını atla",
+      "help": "Yalnızca kendinden imzalı sertifikalı sunucular için. Güvensizdir: kimlik bilgileri ele geçirilebilir"
+    },
+    "timeout_secs": {
+      "label": "İstek zaman aşımı (saniye)"
+    },
+    "username": {
+      "label": "Yönetici kullanıcı adı",
+      "help": "API anahtarı yoksa parolayla birlikte kullanılır"
+    },
+    "default_ip": {
+      "label": "Varsayılan IP adresi",
+      "help": "Sipariş özel IP istemediğinde yeni hesaplar için kullanılır"
+    },
+    "nameservers": {
+      "label": "Ad sunucuları",
+      "help": "Virgülle ayrılmış; hoş geldiniz e-postasında müşteriye bildirilir"
+    },
+    "login_url": {
+      "label": "Müşteri giriş adresi",
+      "help": "Hoş geldiniz e-postalarındaki herkese açık panel adresi; boşsa sunucu adından türetilir"
+    },
+    "suspend_customer": {
+      "label": "Müşteri hesabını da askıya al",
+      "help": "Abonelik askıdayken panele girişi engeller"
+    },
+    "delete_customer_on_terminate": {
+      "label": "Sonlandırmada müşteriyi sil",
+      "help": "Yalnızca müşterinin başka aboneliği yoksa"
+    },
+    "api_key": {
+      "label": "API anahtarı",
+      "help": "Parolaya tercih edilir"
+    },
+    "password": {
+      "label": "Yönetici parolası"
+    }
+  },
+  "resellerclub": {
+    "reseller_id": {
+      "label": "Bayi kimliği (auth-userid)"
+    },
+    "sandbox": {
+      "label": "Test modu",
+      "help": "Demo hesap bilgileriyle https://test.httpapi.com/api/ kullanılır."
+    },
+    "base_url": {
+      "label": "API temel adresi (değiştirme)",
+      "help": "Resmî canlı/test adresini kullanmak için boş bırakın."
+    },
+    "currency": {
+      "label": "Hesap para birimi",
+      "help": "Dönen fiyatların ISO kodu; boş = resellers/details.json'dan okunur."
+    },
+    "default_customer_id": {
+      "label": "Tüm siparişler için müşteri kimliği",
+      "help": "Boş = her kayıt sahibi e-postası için bir ResellerClub müşterisi (gerektiğinde oluşturulur)."
+    },
+    "default_nameservers": {
+      "label": "Varsayılan ad sunucuları",
+      "help": "Her satıra bir tane veya virgülle ayrılmış; siparişte ad sunucusu yoksa kullanılır."
+    },
+    "price_source": {
+      "label": "Uzantı fiyat kaynağı"
+    },
+    "language": {
+      "label": "Müşteri dili (lang-pref)"
+    },
+    "timeout_secs": {
+      "label": "İstek zaman aşımı (saniye)"
+    },
+    "api_key": {
+      "label": "API anahtarı"
+    }
+  },
+  "stripe": {
+    "mode": {
+      "label": "Mod",
+      "help": "API anahtarının önekiyle eşleşmelidir (sk_test_ / sk_live_)."
+    },
+    "api_version": {
+      "label": "API sürümü (Stripe-Version)",
+      "help": "İsteğe bağlı. Sabitlerseniz webhook uç noktasında da aynı sürümü kullanın."
+    },
+    "session_expiry_minutes": {
+      "label": "Ödeme oturumu süresi (dakika)",
+      "help": "30–1440. Boş = Stripe varsayılanı (24 saat)."
+    },
+    "webhook_tolerance_secs": {
+      "label": "Webhook zaman damgası toleransı (saniye)"
+    },
+    "secret_key": {
+      "label": "Gizli anahtar"
+    },
+    "webhook_secret": {
+      "label": "Webhook imzalama anahtarı"
+    }
+  },
+  "iyzico": {
+    "mode": {
+      "label": "Mod"
+    },
+    "display": {
+      "label": "Ödeme sayfası"
+    },
+    "category": {
+      "label": "Sepet ürün kategorisi"
+    },
+    "fallback_identity_number": {
+      "label": "Yedek T.C. kimlik no (TCKN)",
+      "help": "Müşterinin kayıtlı kimlik numarası yoksa buyer.identityNumber olarak gönderilir."
+    },
+    "enabled_installments": {
+      "label": "Sunulan taksitler",
+      "help": "Boş = iyzico varsayılanı."
+    },
+    "api_key": {
+      "label": "API anahtarı"
+    },
+    "secret_key": {
+      "label": "Gizli anahtar"
+    }
+  },
+  "paytr": {
+    "merchant_id": {
+      "label": "Mağaza no"
+    },
+    "mode": {
+      "label": "Mod",
+      "help": "Test = her istekte test_mode=1."
+    },
+    "no_installment": {
+      "label": "Yalnızca tek çekim"
+    },
+    "max_installment": {
+      "label": "En fazla taksit",
+      "help": "0 = PayTR varsayılanı, aksi hâlde 2–12."
+    },
+    "timeout_limit": {
+      "label": "Ödeme zaman aşımı (dakika)"
+    },
+    "debug_on": {
+      "label": "Entegrasyon hatalarını göster"
+    },
+    "merchant_key": {
+      "label": "Mağaza parolası (merchant_key)"
+    },
+    "merchant_salt": {
+      "label": "Mağaza gizli anahtarı (merchant_salt)"
+    }
+  },
+  "smtp": {
+    "host": {
+      "label": "Sunucu"
+    },
+    "security": {
+      "label": "Güvenlik"
+    },
+    "port": {
+      "label": "Port",
+      "help": "Boş = güvenlik moduna göre varsayılan port."
+    },
+    "username": {
+      "label": "Kullanıcı adı"
+    },
+    "from_email": {
+      "label": "Gönderen adresi",
+      "help": "Varsayılan gönderen adresi; sağlayıcıda doğrulanmış olmalıdır."
+    },
+    "from_name": {
+      "label": "Gönderen adı"
+    },
+    "timeout_secs": {
+      "label": "Zaman aşımı (saniye)",
+      "help": "İstek başına ağ zaman aşımı (1–120)."
+    },
+    "password": {
+      "label": "Parola"
+    }
+  },
+  "anthropic": {
+    "model": {
+      "label": "Model",
+      "help": "Model kimliği, ör. claude-opus-5-5. Boş = HOS_AI_MODEL veya claude-opus-5-5."
+    },
+    "default_effort": {
+      "label": "Varsayılan çaba düzeyi",
+      "help": "Görev belirtmediğinde output_config.effort (boş = model varsayılanı)."
+    },
+    "refusal_fallback": {
+      "label": "Ret durumunda yedek model",
+      "help": "Güvenlik reddinin Anthropic'in önerdiği yedek modelde yeniden denenmesi için fallbacks: \"default\" gönderilir."
+    },
+    "base_url": {
+      "label": "API temel adresi",
+      "help": "Yalnızca bir ağ geçidi / vekil sunucu için değiştirin."
+    },
+    "api_version": {
+      "label": "anthropic-version"
+    },
+    "timeout_secs": {
+      "label": "Zaman aşımı (sn)"
+    },
+    "max_retries": {
+      "label": "En fazla yeniden deneme"
+    },
+    "api_key": {
+      "label": "API anahtarı"
+    }
+  },
+  "parasut": {
+    "company_id": {
+      "label": "Firma no (company ID)"
+    },
+    "client_id": {
+      "label": "OAuth istemci kimliği (client ID)"
+    },
+    "username": {
+      "label": "Kullanıcı e-postası"
+    },
+    "commercial_scenario": {
+      "label": "e-Faturayı TİCARİFATURA olarak gönder",
+      "help": "Kapalı: TEMELFATURA (temel senaryo)."
+    },
+    "test_company": {
+      "label": "Bu bir Paraşüt test firması",
+      "help": "Test firmasının belgeleri test belgesi olarak işaretlenir."
+    },
+    "base_url": {
+      "label": "API adresi (isteğe bağlı)",
+      "help": "Boş bırakın: https://api.parasut.com."
+    },
+    "timeout_secs": {
+      "label": "İstek zaman aşımı (saniye)"
+    },
+    "client_secret": {
+      "label": "OAuth istemci sırrı (client secret)"
+    },
+    "password": {
+      "label": "Kullanıcı parolası"
+    }
+  },
+  "nilvera": {
+    "environment": {
+      "label": "Ortam"
+    },
+    "base_url": {
+      "label": "API adresi (isteğe bağlı)",
+      "help": "Boş bırakın: seçilen ortamın resmi adresi kullanılır."
+    },
+    "timeout_secs": {
+      "label": "İstek zaman aşımı (saniye)"
+    },
+    "api_key": {
+      "label": "API anahtarı",
+      "help": "Nilvera portalında (API Tanımları) oluşturulur; test ve canlı ortamın anahtarları ayrıdır."
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.integrations.title") }}</h1><p>{{ t("admin.integrations.lead") }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/ip-pools") }}">{{ icon("hard-drive") }}{{ t("admin.ip.title") }}</a></div></div>
+<div class="stack-lg">
+{%- for sec in sections %}
+<section class="card" id="cat-{{ sec.key }}">
+  <header class="card__head"><div><h2>{{ sec.label }}</h2><p class="muted small">{{ sec.hint }}</p></div>
+    {%- if !sec.kinds.is_empty() %}
+    <form class="inline-form" method="get" action="{{ url("/admin/integrations/new") }}"><input type="hidden" name="category" value="{{ sec.key }}"><select class="select select--sm" name="kind" aria-label="{{ t("admin.integrations.provider") }}">{% for (k, l) in sec.kinds %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select><button class="btn btn--soft btn--sm" type="submit">{{ icon("plus") }}{{ t("admin.common.add") }}</button></form>
+    {%- endif %}
+  </header>
+  <div class="card__body">
+  {%- if sec.rows.is_empty() %}<p class="muted">{{ t("admin.integrations.none") }}</p>{% else %}
+  <div class="table-wrap"><table class="table table--dense">
+    <thead><tr><th>{{ t("admin.common.name") }}</th><th>{{ t("admin.integrations.provider") }}</th><th>{{ t("admin.integrations.last_test") }}</th><th>{{ t("admin.common.status") }}</th><th class="actions"></th></tr></thead>
+    <tbody>{% for r in sec.rows %}<tr>
+      <td><a class="row-link" href="{{ url("/admin/integrations/" ~ r.id) }}">{{ r.name }}</a>{% if r.is_default %} {{ badge(t("admin.integrations.default"), "info") }}{% endif %}</td>
+      <td class="mono">{{ r.kind }}</td>
+      <td>{% match r.last_test_ok %}{% when Some(true) %}<span class="check-pass">{{ icon("check") }}{{ t("admin.integrations.test_ok") }}</span>{% when Some(false) %}<span class="check-fail">{{ icon("x") }}{{ t("admin.integrations.test_failed") }}</span>{% when None %}<span class="muted">{{ t("admin.integrations.untested") }}</span>{% endmatch %}<span class="sub">{{ dtopt(r.last_test_at) }}</span></td>
+      <td>{% if r.is_active %}{{ badge(t("admin.common.active"), "success") }}{% else %}{{ badge(t("admin.integrations.inactive"), "") }}{% endif %}</td>
+      <td class="actions">
+        {%- if !r.is_default && r.is_active %}<form method="post" action="{{ url("/admin/integrations/" ~ r.id ~ "/default") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ t("admin.integrations.make_default") }}</button></form>{% endif %}
+        {%- if sec.key == "virt" %}<a class="btn btn--ghost btn--sm" href="{{ url("/admin/integrations/" ~ r.id ~ "/inventory") }}">{{ t("admin.integrations.inventory") }}</a>{% endif %}
+      </td></tr>{% endfor %}</tbody>
+  </table></div>
+  {%- endif %}
+  </div>
+</section>
+{%- endfor %}
+</div>
+{% endblock %}

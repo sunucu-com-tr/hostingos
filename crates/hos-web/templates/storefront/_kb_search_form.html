@@ -1,0 +1,8 @@
+<form class="domain-search" method="get" action="{{ url("/kb/search") }}" role="search">
+  <label class="domain-search__field">
+    {{ icon("search") }}
+    <span class="visually-hidden">{{ t("storefront.kb.search_label") }}</span>
+    <input type="search" name="q" value="{{ search_value }}" placeholder="{{ t("storefront.kb.search_placeholder") }}" minlength="2" maxlength="120" required>
+  </label>
+  <button type="submit" class="btn btn--primary btn--lg">{{ t("storefront.kb.search") }}</button>
+</form>

@@ -1,0 +1,110 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/_macros.html" as ax %}
+{% block content %}
+{%- let filtered = !q.is_empty() || !department.is_empty() || !priority.is_empty() || !assigned.is_empty() %}
+<div class="page-head">
+  <div><h1>{{ t("admin_support.tickets.title") }}</h1><p>{{ tn("admin_support.tickets.count", pager.total) }}</p></div>
+  <div class="page-head__actions">
+    {%- if can_manage %}
+    <a class="btn btn--ghost" href="{{ url("/admin/support/departments") }}">{{ icon("layers") }}{{ t("admin_support.departments.title") }}</a>
+    <a class="btn btn--ghost" href="{{ url("/admin/support/canned") }}">{{ icon("list") }}{{ t("admin_support.canned.title") }}</a>
+    <a class="btn btn--ghost" href="{{ url("/admin/support/inbound") }}">{{ icon("mail") }}{{ t("inbound.admin.title") }}</a>
+    <a class="btn btn--primary" href="{{ url("/admin/support/tickets/new") }}">{{ icon("plus") }}{{ t("admin_support.new.title") }}</a>
+    {%- endif %}
+  </div>
+</div>
+<nav class="chips" aria-label="{{ t("admin_support.tickets.status_filter") }}">
+  {%- let mut marked = false %}
+  {%- for c in chips %}
+  <a class="chip" href="{{ c.href }}"{% if c.value == status && !marked %} aria-current="true"{% mut marked = true %}{% endif %}>{{ c.label }} <span class="chip__count">{{ num(c.count) }}</span></a>
+  {%- endfor %}
+</nav>
+<form class="filters" method="get" action="{{ url("/admin/support/tickets") }}" role="search">
+  <input type="hidden" name="status" value="{{ status }}">
+  <div class="field field--grow">{{ icon("search") }}<label class="visually-hidden" for="f-q">{{ t("admin.common.search") }}</label>
+    <input class="input" id="f-q" type="search" name="q" value="{{ q }}" placeholder="{{ t("admin_support.tickets.search_placeholder") }}"></div>
+  <div class="field"><label class="field__label" for="f-dep">{{ t("admin_support.ticket.department") }}</label>
+    <select class="select" id="f-dep" name="department" data-autosubmit>
+      <option value="">{{ t("admin.common.all") }}</option>
+      {%- for d in departments %}<option value="{{ d.id }}"{{ sel(d.id.to_string().as_str(), department) }}>{{ d.name }}</option>{% endfor %}
+    </select></div>
+  <div class="field"><label class="field__label" for="f-pri">{{ t("admin_support.ticket.priority") }}</label>
+    <select class="select" id="f-pri" name="priority" data-autosubmit>
+      <option value="">{{ t("admin.common.all") }}</option>
+      {%- for (v, l) in priorities %}<option value="{{ v }}"{{ sel(v, priority) }}>{{ l }}</option>{% endfor %}
+    </select></div>
+  <div class="field"><label class="field__label" for="f-asg">{{ t("admin_support.ticket.assignee") }}</label>
+    <select class="select" id="f-asg" name="assigned" data-autosubmit>
+      <option value="">{{ t("admin.common.all") }}</option>
+      <option value="me"{{ sel("me", assigned) }}>{{ t("admin_support.tickets.assigned_me") }}</option>
+      <option value="none"{{ sel("none", assigned) }}>{{ t("admin_support.tickets.unassigned") }}</option>
+      {%- for (v, l) in staff %}<option value="{{ v }}"{{ sel(v, assigned) }}>{{ l }}</option>{% endfor %}
+    </select></div>
+  <div class="filters__actions"><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("admin.common.filter") }}</button></div>
+</form>
+{%- if filtered %}
+<div class="ax-chips" role="group" aria-label="{{ t("admin.shell.filters") }}">
+  {%- if !q.is_empty() %}<a class="ax-chip" href="{{ url("/admin/support/tickets?status=" ~ (status|urlencode) ~ "&department=" ~ (department|urlencode) ~ "&priority=" ~ (priority|urlencode) ~ "&assigned=" ~ (assigned|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.common.search") }}:</span><span class="ax-chip__value">{{ q }}</span>{{ icon("x") }}</a>{% endif %}
+  {%- for d in departments %}{% if d.id.to_string().as_str() == department.as_str() %}<a class="ax-chip" href="{{ url("/admin/support/tickets?status=" ~ (status|urlencode) ~ "&q=" ~ (q|urlencode) ~ "&priority=" ~ (priority|urlencode) ~ "&assigned=" ~ (assigned|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin_support.ticket.department") }}:</span><span class="ax-chip__value">{{ d.name }}</span>{{ icon("x") }}</a>{% endif %}{% endfor %}
+  {%- for (v, l) in priorities %}{% if v.as_str() == priority.as_str() %}<a class="ax-chip" href="{{ url("/admin/support/tickets?status=" ~ (status|urlencode) ~ "&q=" ~ (q|urlencode) ~ "&department=" ~ (department|urlencode) ~ "&assigned=" ~ (assigned|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin_support.ticket.priority") }}:</span><span class="ax-chip__value">{{ l }}</span>{{ icon("x") }}</a>{% endif %}{% endfor %}
+  {%- if !assigned.is_empty() %}<a class="ax-chip" href="{{ url("/admin/support/tickets?status=" ~ (status|urlencode) ~ "&q=" ~ (q|urlencode) ~ "&department=" ~ (department|urlencode) ~ "&priority=" ~ (priority|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin_support.ticket.assignee") }}:</span><span class="ax-chip__value">{% if assigned.as_str() == "me" %}{{ t("admin_support.tickets.assigned_me") }}{% elif assigned.as_str() == "none" %}{{ t("admin_support.tickets.unassigned") }}{% else %}{% for (v, l) in staff %}{% if v.as_str() == assigned.as_str() %}{{ l }}{% endif %}{% endfor %}{% endif %}</span>{{ icon("x") }}</a>{% endif %}
+  <a class="ax-chips__clear" href="{{ url("/admin/support/tickets?status=" ~ (status|urlencode)) }}">{{ t("admin.shell.clear_all") }}</a>
+</div>
+{%- endif %}
+{%- if rows.is_empty() %}
+{% call ui::empty("ticket", t("admin_support.tickets.empty_title"), t("admin_support.tickets.empty_text")) %}
+{%- if filtered %}<a class="btn btn--soft" href="{{ url("/admin/support/tickets?status=" ~ (status|urlencode)) }}">{{ icon("x") }}{{ t("admin.shell.clear_all") }}</a>{% endif %}
+{% endcall %}
+{%- else %}
+<form method="post" action="{{ url("/admin/support/tickets/bulk") }}">
+  {% call ui::csrf() %}{% endcall %}
+  <input type="hidden" name="back" value="{{ back }}">
+  {%- if can_manage %}
+  <div class="bulkbar">
+    <span class="bulkbar__count" aria-live="polite">{{ tv("admin.shell.selected", "count", 0) }}</span>
+    <label class="visually-hidden" for="b-action">{{ t("admin.common.bulk_action") }}</label>
+    <select class="select select--sm" id="b-action" name="action">
+      <option value="close">{{ t("admin_support.tickets.bulk_close") }}</option>
+      <option value="assign">{{ t("admin_support.tickets.bulk_assign") }}</option>
+      <option value="unassign">{{ t("admin_support.tickets.bulk_unassign") }}</option>
+    </select>
+    <label class="visually-hidden" for="b-assignee">{{ t("admin_support.ticket.assignee") }}</label>
+    <select class="select select--sm" id="b-assignee" name="assignee" data-show-when="action=assign">
+      <option value="{{ me }}">{{ t("admin_support.tickets.assigned_me") }}</option>
+      {%- for (v, l) in staff %}{% if v.as_str() != me.as_str() %}<option value="{{ v }}">{{ l }}</option>{% endif %}{% endfor %}
+    </select>
+    <button class="btn btn--soft btn--sm" type="submit">{{ t("admin.common.apply_selected") }}</button>
+  </div>
+  {%- endif %}
+  <div class="table-wrap"><table class="table table--dense table--stack">
+    <thead><tr>
+      {%- if can_manage %}<th scope="col" class="check"><input type="checkbox" data-check-all="ids" aria-label="{{ t("admin.common.select_all") }}"></th>{% endif %}
+      <th scope="col">{{ t("admin_support.tickets.col_subject") }}</th>
+      <th scope="col">{{ t("admin_support.tickets.col_client") }}</th>
+      <th scope="col">{{ t("admin_support.ticket.department") }}</th>
+      <th scope="col">{{ t("admin_support.ticket.priority") }}</th>
+      <th scope="col">{{ t("admin.common.status") }}</th>
+      <th scope="col">{{ t("admin_support.ticket.assignee") }}</th>
+      <th scope="col">{{ t("admin_support.tickets.col_last") }}</th>
+    </tr></thead>
+    <tbody>
+    {%- for r in rows %}
+      <tr>
+        {%- if can_manage %}<td class="check"><input type="checkbox" name="ids" value="{{ r.t.ticket.id }}" aria-label="#{{ r.t.ticket.number }}"></td>{% endif %}
+        <td data-label="{{ t("admin_support.tickets.col_subject") }}"><a class="row-link" href="{{ url("/admin/support/tickets/" ~ r.t.ticket.id) }}">#{{ r.t.ticket.number }} · {{ r.t.ticket.subject }}</a>
+          <span class="sub">{{ tn("admin_support.tickets.messages", r.t.message_count) }}{% if r.t.ticket.last_reply_by.as_str() != "staff" && r.t.ticket.status.awaits_staff() %} · {{ t("admin_support.tickets.awaiting_badge") }}{% endif %}</span></td>
+        <td data-label="{{ t("admin_support.tickets.col_client") }}">{% match r.t.client_name %}{% when Some(n) %}{% match r.t.ticket.client_id %}{% when Some(cid) %}<a href="{{ url("/admin/clients/" ~ cid) }}">{{ n }}</a>{% when None %}{{ n }}{% endmatch %}{% when None %}<span class="muted">{{ o(r.t.ticket.guest_email) }}</span>{% endmatch %}</td>
+        <td data-label="{{ t("admin_support.ticket.department") }}">{{ r.t.department_name }}</td>
+        <td data-label="{{ t("admin_support.ticket.priority") }}">{{ sbadge(r.t.ticket.priority.as_str()) }}</td>
+        <td data-label="{{ t("admin.common.status") }}">{{ sbadge(r.t.ticket.status.as_str()) }}</td>
+        <td data-label="{{ t("admin_support.ticket.assignee") }}">{% if r.assignee.is_empty() %}<span class="muted">—</span>{% else %}{{ r.assignee }}{% endif %}</td>
+        <td data-label="{{ t("admin_support.tickets.col_last") }}">{{ datetime(r.t.ticket.last_reply_at) }}</td>
+      </tr>
+    {%- endfor %}
+    </tbody>
+  </table></div>
+</form>
+{% call ax::pager(pager) %}{% endcall %}
+{%- endif %}
+{% endblock %}

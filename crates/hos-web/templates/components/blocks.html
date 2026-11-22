@@ -1,0 +1,147 @@
+{#- CMS content blocks (routes::storefront::blocks): {% import "components/blocks.html" as blk %}
+    `render(list)` turns a Vec<Block> into page sections. Headings: block
+    title = h2, items = h3 (the page owns the single h1). -#}
+{% import "components/catalog.html" as cat %}
+
+{% macro render(list) %}
+{%- for b in list %}
+{%- if b.kind == "markdown" %}
+<div class="block block--prose">
+  <div class="container"><div class="prose prose--wide">{{ b.html|safe }}</div></div>
+</div>
+{%- elif b.kind == "features" %}
+<section class="section block block--features"{% if !b.title.is_empty() %} aria-labelledby="{{ b.id }}"{% endif %}>
+  <div class="container">
+    {%- if !b.title.is_empty() %}
+    <header class="section__head">
+      <h2 id="{{ b.id }}">{{ b.title }}</h2>
+      {%- if !b.intro_html.trim().is_empty() %}<div class="section__lead">{{ b.intro_html|safe }}</div>{% endif %}
+    </header>
+    {%- endif %}
+    <div class="cell-grid cell-grid--{% if b.items.len() % 3 == 0 || b.items.len() > 4 %}3{% elif b.items.len() == 4 %}4{% else %}2{% endif %} feature-grid">
+      {%- for i in b.items %}
+      <article class="feature-card">
+        {%- if !i.icon.is_empty() %}<span class="icon-tile">{{ icon(i.icon) }}</span>{% endif %}
+        <h3>{{ i.title }}</h3>
+        <div class="feature-card__text">{{ i.html|safe }}</div>
+      </article>
+      {%- endfor %}
+    </div>
+  </div>
+</section>
+{%- elif b.kind == "steps" %}
+<section class="section block block--steps"{% if !b.title.is_empty() %} aria-labelledby="{{ b.id }}"{% endif %}>
+  <div class="container">
+    {%- if !b.title.is_empty() %}
+    <header class="section__head">
+      <h2 id="{{ b.id }}">{{ b.title }}</h2>
+      {%- if !b.intro_html.trim().is_empty() %}<div class="section__lead">{{ b.intro_html|safe }}</div>{% endif %}
+    </header>
+    {%- endif %}
+    <ol class="step-list">
+      {%- for i in b.items %}
+      <li class="step-list__item">
+        <span class="step-list__n" aria-hidden="true">{{ loop.index }}</span>
+        <h3>{{ i.title }}</h3>
+        <div class="step-list__text">{{ i.html|safe }}</div>
+      </li>
+      {%- endfor %}
+    </ol>
+  </div>
+</section>
+{%- elif b.kind == "faq" %}
+<section class="section block block--faq"{% if !b.title.is_empty() %} aria-labelledby="{{ b.id }}"{% endif %}>
+  <div class="container faq-layout">
+    <header class="section__head">
+      {%- if !b.title.is_empty() %}<h2 id="{{ b.id }}">{{ b.title }}</h2>{% endif %}
+      {%- if !b.intro_html.trim().is_empty() %}<div class="section__lead">{{ b.intro_html|safe }}</div>{% endif %}
+    </header>
+    <div class="faq-layout__body">
+      <div class="accordion">
+        {%- for i in b.items %}
+        <details{% if loop.first %} open{% endif %}><summary><h3 class="faq__q">{{ i.title }}</h3></summary><div class="prose">{{ i.html|safe }}</div></details>
+        {%- endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{%- elif b.kind == "compare" || b.kind == "spec" %}
+<section class="section block block--{{ b.kind }}"{% if !b.title.is_empty() %} aria-labelledby="{{ b.id }}"{% endif %}>
+  <div class="container">
+    {%- if !b.title.is_empty() %}
+    <header class="section__head"><h2 id="{{ b.id }}">{{ b.title }}</h2></header>
+    {%- endif %}
+    <div class="block__table">{{ b.html|safe }}</div>
+  </div>
+</section>
+{%- elif b.kind == "pricing" %}
+<section class="section block block--pricing"{% if !b.title.is_empty() %} aria-labelledby="{{ b.id }}"{% endif %}>
+  <div class="container js-cycle-scope">
+    <header class="section__head">
+      {%- if !b.title.is_empty() %}<h2 id="{{ b.id }}">{{ b.title }}</h2>{% endif %}
+      {%- if !b.cards.is_empty() %}<div class="section__aside">{% call cat::cycle_switch(b.saving, b.id) %}{% endcall %}</div>{% endif %}
+    </header>
+    {%- if b.cards.is_empty() %}
+    <div class="empty empty--inline">
+      <span class="icon-tile">{{ icon("mail") }}</span>
+      <div><p class="empty__title">{{ t("storefront.blocks.pricing_empty_title") }}</p><p>{{ t("storefront.blocks.pricing_empty_text") }}</p></div>
+      <a class="btn btn--soft" href="{{ url("/contact") }}">{{ t("storefront.nav.contact") }}{{ icon("arrow-right") }}</a>
+    </div>
+    {%- else %}
+    <div class="price-grid">
+      {%- for card in b.cards %}{% call cat::price_card(card) %}{% endcall %}{% endfor %}
+    </div>
+    {%- endif %}
+  </div>
+</section>
+{%- elif b.kind == "tlds" %}
+<section class="section block block--tlds"{% if !b.title.is_empty() %} aria-labelledby="{{ b.id }}"{% endif %}>
+  <div class="container">
+    <header class="section__head">
+      {%- if !b.title.is_empty() %}<h2 id="{{ b.id }}">{{ b.title }}</h2>{% endif %}
+      {%- if !b.intro_html.trim().is_empty() %}<div class="section__lead">{{ b.intro_html|safe }}</div>{% endif %}
+    </header>
+    {%- if b.tlds.is_empty() %}
+    <p class="muted">{{ t("storefront.blocks.tlds_empty") }}</p>
+    {%- else %}
+    {% call cat::tld_table(b.tlds) %}{% endcall %}
+    {%- endif %}
+  </div>
+</section>
+{%- elif b.kind == "cta" %}
+<section class="section block block--cta">
+  <div class="container">
+    <div class="cta-band">
+      <div>
+        {%- if !b.title.is_empty() %}<h2>{{ b.title }}</h2>{% endif %}
+        {{ b.html|safe }}
+      </div>
+      {%- if !b.links.is_empty() %}
+      <div class="btn-row">
+        {%- for l in b.links %}<a class="btn btn--lg{% if loop.first %} btn--primary{% endif %}" href="{{ l.href }}">{{ l.label }}</a>{% endfor %}
+      </div>
+      {%- endif %}
+    </div>
+  </div>
+</section>
+{%- elif b.kind == "note" %}
+<div class="block block--note">
+  <div class="container">
+    <aside class="callout callout--{{ b.arg }}"{% if !b.title.is_empty() %} aria-label="{{ b.title }}"{% endif %}>
+      {{ icon("info") }}
+      <div class="prose">{% if !b.title.is_empty() %}<p class="callout__title">{{ b.title }}</p>{% endif %}{{ b.html|safe }}</div>
+    </aside>
+  </div>
+</div>
+{%- elif b.kind == "todo" %}
+<div class="block block--todo">
+  <div class="container">
+    <aside class="callout callout--todo" aria-label="{{ t("storefront.blocks.todo_label") }}">
+      {{ icon("pencil") }}
+      <div class="prose"><p class="callout__title">{{ t("storefront.blocks.todo_label") }}{% if !b.title.is_empty() %} · {{ b.title }}{% endif %}</p>{{ b.html|safe }}</div>
+    </aside>
+  </div>
+</div>
+{%- endif %}
+{%- endfor %}
+{% endmacro %}

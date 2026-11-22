@@ -1,0 +1,35 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="container page-hero__inner">
+    <h1>{{ title }}</h1>
+    <p class="lead">{{ t("bundles.lead") }}</p>
+  </div>
+</section>
+<section class="section section--tight">
+  <div class="container">
+  {%- if bundles.is_empty() %}
+    {% call ui::empty("box", t("bundles.empty"), t("bundles.empty_text")) %}{% endcall %}
+  {%- else %}
+    <div class="bundle-grid">
+    {%- for v in bundles %}
+      <article class="bundle-card" aria-labelledby="bundle-{{ v.bundle.slug }}">
+        <h2 id="bundle-{{ v.bundle.slug }}">{{ v.bundle.name }}</h2>
+        {%- if let Some(d) = v.bundle.description %}<p class="muted">{{ d }}</p>{% endif %}
+        <ul>
+          {%- for (i, price) in v.items %}
+          <li><span>{% if let Some(g) = i.group_slug %}<a href="{{ url("/") }}{{ g }}/{{ i.product_slug }}">{{ i.product_name }}</a>{% else %}{{ i.product_name }}{% endif %}</span><span class="muted nowrap">{{ price }}</span></li>
+          {%- endfor %}
+        </ul>
+        <p class="bundle-card__price"><s>{{ v.list_total }}</s><strong>{{ v.bundle_total }}</strong><span class="badge badge--success">{{ tv("bundles.saving", "amount", v.saving) }}</span></p>
+        <p class="small muted">{% if store().prices_include_tax %}{{ t("storefront.product.tax_note_included") }}{% else %}{{ t("storefront.product.tax_note") }}{% endif %}</p>
+        <form method="post" action="{{ url("/bundles/") }}{{ v.bundle.slug }}/order">{% call ui::csrf() %}{% endcall %}<button type="submit" class="btn btn--primary btn--block">{{ icon("cart") }}{{ t("bundles.order") }}</button></form>
+      </article>
+    {%- endfor %}
+    </div>
+  {%- endif %}
+  </div>
+</section>
+{% endblock %}

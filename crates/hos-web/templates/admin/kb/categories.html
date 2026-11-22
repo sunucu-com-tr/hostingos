@@ -1,0 +1,40 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("admin_support.kb.categories_title") }}</h1><p>{{ t("admin_support.kb.categories_lead") }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/support/kb") }}">{{ icon("book") }}{{ t("admin_content.kinds.kb.title") }}</a></div>
+</div>
+<div class="admin-grid admin-grid--side">
+  <div>
+  {%- if rows.is_empty() %}
+  {% call ui::empty("layers", t("admin_support.kb.categories_empty_title"), t("admin_support.kb.categories_empty_text")) %}{% endcall %}
+  {%- else %}
+  <div class="table-wrap"><table class="table table--dense table--stack">
+    <thead><tr><th scope="col">{{ t("admin.common.name") }}</th><th scope="col">{{ t("admin_content.editor.slug") }}</th><th scope="col" class="num">{{ t("admin_support.kb.articles") }}</th><th scope="col" class="num">{{ t("admin_content.editor.sort_order") }}</th><th scope="col">{{ t("admin.common.status") }}</th><th scope="col" class="actions"><span class="visually-hidden">{{ t("admin.common.edit") }}</span></th></tr></thead>
+    <tbody>
+    {%- for r in rows %}
+      <tr>
+        <td data-label="{{ t("admin.common.name") }}"><a class="row-link" href="{{ url("/admin/support/kb/categories/" ~ r.category.id) }}">{{ r.category.name }}</a>{% match r.category.description %}{% when Some(d) %}<span class="sub">{{ d }}</span>{% when None %}{% endmatch %}</td>
+        <td data-label="{{ t("admin_content.editor.slug") }}" class="mono">{{ r.category.slug }}</td>
+        <td data-label="{{ t("admin_support.kb.articles") }}" class="num"><a href="{{ url("/admin/support/kb?category=" ~ r.category.id) }}">{{ num(r.article_count) }}</a></td>
+        <td data-label="{{ t("admin_content.editor.sort_order") }}" class="num">{{ r.category.sort_order }}</td>
+        <td data-label="{{ t("admin.common.status") }}">{% if r.category.is_hidden %}{{ badge(t("admin_support.kb.cat_hidden_badge"), "warning") }}{% else %}{{ badge(t("admin_support.kb.cat_visible_badge"), "success") }}{% endif %}</td>
+        <td class="actions"><a class="btn btn--ghost btn--sm" href="{{ url("/admin/support/kb/categories/" ~ r.category.id) }}">{{ t("admin.common.edit") }}</a></td>
+      </tr>
+    {%- endfor %}
+    </tbody>
+  </table></div>
+  <p class="field__hint mt-2">{{ t("admin_support.kb.articles_hint") }}</p>
+  {%- endif %}
+  </div>
+  {% call ui::card(t("admin_support.kb.new_category")) %}
+  <form class="stack" method="post" action="{{ url("/admin/support/kb/categories") }}">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::form_errors(errors) %}{% endcall %}
+    {% include "admin/kb/_category_fields.html" %}
+    <div class="form-actions"><button class="btn btn--primary" type="submit">{{ icon("plus") }}{{ t("admin.common.create") }}</button></div>
+  </form>
+  {% endcall %}
+</div>
+{% endblock %}

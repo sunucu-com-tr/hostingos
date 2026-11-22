@@ -1,0 +1,30 @@
+{#- Live server state + charts. Polled with htmx (the form carries the
+    previous samples so the charts keep their history). -#}
+<form id="vm-live" class="card vm-live" hx-get="{{ live_url }}" hx-trigger="{% if live.busy %}every 3s{% else %}every 10s{% endif %}" hx-swap="outerHTML" aria-live="polite">
+  <header class="card__head between">
+    <h2>{{ t("client.vm.status") }}</h2>
+    <span class="cluster">{{ st(live.status) }}{% if live.status == "running" %}<span class="small muted">{{ tv("client.vm.uptime", "time", live.uptime) }}</span>{% endif %}</span>
+  </header>
+  <div class="card__body stack">
+    {%- if live.busy %}<progress class="bar" aria-label="{{ t("client.vm.working") }}"></progress><p class="small muted">{{ t("client.vm.working") }}</p>{% endif %}
+    {%- if !live.error.is_empty() %}<p class="small muted">{{ live.error }}</p>{% endif %}
+    {%- if !live.series.is_empty() %}
+    <div class="vm-charts">
+      {%- for sr in live.series %}
+      <figure class="vm-chart">
+        <figcaption><span>{{ sr.label }}</span><strong>{{ sr.current }}</strong></figcaption>
+        <svg viewBox="0 0 300 60" preserveAspectRatio="none" role="img" aria-label="{{ sr.label }}: {{ sr.current }}">
+          <polyline class="vm-chart__grid" points="0,58 300,58"></polyline>
+          {%- if !sr.points.is_empty() %}<polyline class="vm-chart__line" points="{{ sr.points }}"></polyline>{% endif %}
+        </svg>
+        <input type="hidden" name="{{ sr.key }}" value="{{ sr.history }}">
+      </figure>
+      {%- endfor %}
+    </div>
+    <dl class="dl">
+      <div><dt>{{ t("client.vm.disk") }}</dt><dd>{{ live.disk }}{% match live.disk_percent %}{% when Some(p) %} <progress class="bar bar--inline" max="100" value="{{ p }}">%{{ p }}</progress>{% when None %}{% endmatch %}</dd></div>
+      <div><dt>{{ t("client.vm.bandwidth") }}</dt><dd>{{ live.bandwidth }}</dd></div>
+    </dl>
+    {%- endif %}
+  </div>
+</form>

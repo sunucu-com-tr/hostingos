@@ -1,0 +1,251 @@
+/* Client area, cart and checkout (linked from client/_layout.html and the
+   cart templates; not part of the shared bundle). Shared tokens only. */
+@layer pages {
+  /* ---------------------------------------------------------- layouts */
+  .cart-layout,
+  .invoice-layout,
+  .vm-layout,
+  .dns-layout {
+    display: grid;
+    gap: var(--space-6);
+    align-items: start;
+  }
+  @media (min-width: 960px) {
+    .cart-layout { grid-template-columns: minmax(0, 1fr) 22rem; column-gap: var(--space-8); }
+    .invoice-layout { grid-template-columns: minmax(0, 1fr) 21rem; }
+    .vm-layout { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+    .dns-layout { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+    .cart-layout:not(:has(> aside)) { grid-template-columns: minmax(0, 1fr); }
+  }
+  /* Phones: section tabs (9 on the account pages, 6 on a server) wrap onto
+     more lines instead of a row that has to be scrolled sideways with its
+     later tabs out of sight. */
+  @media (max-width: 47.99rem) {
+    .panel-content .tabs {
+      flex-wrap: wrap;
+      overflow-x: visible;
+    }
+  }
+  .form-narrow { max-width: 44rem; }
+  .block { display: block; }
+  .break { overflow-wrap: anywhere; }
+  form.inline { display: inline; }
+  ul.plain { list-style: none; margin: 0; padding: 0; }
+  .text-success { color: var(--success); }
+  .text-danger { color: var(--danger); }
+
+  /* Storefront pages that load this sheet (cart, checkout) use the same
+     page-head as the panels, without the panel density. */
+  .site-main .page-head h1 { font-size: var(--step-4); letter-spacing: var(--tracking-display); }
+
+  /* ---------------------------------------------------------- impersonation */
+  .impersonation-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0 0 var(--space-6);
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+    border: 1px solid color-mix(in oklab, var(--warning) 45%, transparent);
+    box-shadow: inset 3px 0 0 var(--warning);
+    border-radius: var(--radius-lg);
+    background: var(--warning-soft);
+    color: var(--ink);
+  }
+  .impersonation-bar > .icon { color: var(--warning); }
+  .impersonation-bar p { flex: 1 1 16rem; margin: 0; }
+
+  /* ---------------------------------------------------------- lists
+     Ruled rows with a fixed minimum height: title + meta on the left,
+     value / status on the right (numbers mono, right-aligned). */
+  .row-list { list-style: none; margin: 0; padding: 0; }
+  .row-list > li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: 3.25rem;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .row-list > li:first-child { padding-top: 0; min-height: 2.75rem; }
+  .row-list > li:last-child { border-bottom: 0; padding-bottom: 0; min-height: 2.75rem; }
+  .row-list > li:only-child { min-height: 2.25rem; }
+  .row-list > li > a {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+  }
+  .row-list > li > a:hover strong { color: var(--brand-strong); }
+  .row-list > li > a > span:first-child,
+  .row-list > li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+  .row-list strong { font-weight: var(--weight-medium); overflow-wrap: anywhere; }
+  .row-list span > strong + span,
+  .row-list span > .muted { display: block; }
+  .row-list .nowrap { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 0.8125rem; }
+  .row-list .icon { color: var(--muted); }
+  .card__body > .row-list { margin-block: calc(-1 * var(--space-1)); }
+  .setting-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--line);
+  }
+  .setting-row:last-child { border-bottom: 0; padding-bottom: 0; }
+  .setting-row p { margin: 0; }
+  .timeline { list-style: none; margin: 0; padding: 0; }
+  .timeline li {
+    display: grid;
+    grid-template-columns: minmax(10rem, auto) 1fr;
+    gap: var(--space-4);
+    align-items: baseline;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--line);
+    font-size: var(--step--1);
+  }
+  .timeline li:last-child { border-bottom: 0; }
+  .timeline time { color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+  @media (max-width: 30rem) {
+    .timeline li { grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
+  }
+  .member { padding-bottom: var(--space-4); border-bottom: 1px solid var(--line); }
+  .member:last-child { border-bottom: 0; }
+  .member form.cluster { margin-top: var(--space-2); }
+
+  /* ---------------------------------------------------------- cart */
+  .cart-table td { vertical-align: top; }
+  .cart-table td.num,
+  .cart-table td.cart-actions { vertical-align: top; }
+  .cart-item { display: flex; gap: var(--space-3); align-items: flex-start; min-width: 0; }
+  .cart-item > .icon { margin-top: 0.15em; color: var(--muted); }
+  .cart-item > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .cart-item strong { font-weight: var(--weight-semibold); }
+  .cart-child td:first-child { padding-left: var(--space-10); }
+  .cart-child .cart-item strong { font-weight: var(--weight-regular); }
+  .cart-table td.num > span,
+  .cart-table td.num > strong { display: block; }
+  .cart-table td.num > strong { font-weight: 500; color: var(--ink); }
+  .cart-actions { width: 1%; white-space: nowrap; }
+  .select--sm {
+    min-height: var(--control-h-sm);
+    padding-block: 0;
+    font-size: var(--step--1);
+    min-width: 8rem;
+  }
+  .cart-domain-form { display: grid; gap: var(--space-4); }
+  @media (min-width: 720px) {
+    .cart-domain-form { grid-template-columns: 2fr 1fr 1.5fr auto; align-items: start; }
+    .cart-domain-form__submit { padding-top: calc(0.8125rem * 1.4 + var(--space-2)); }
+  }
+  .cart-summary .card__body { gap: var(--space-5); }
+  .totals { margin: 0; display: grid; gap: var(--space-2); font-size: var(--control-font); }
+  .totals > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+  .totals dt, .totals dd { margin: 0; }
+  .totals dd { font-family: var(--font-mono); font-size: 0.92em; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .totals__grand {
+    padding-top: var(--space-3);
+    margin-top: var(--space-1);
+    border-top: 1px solid var(--line);
+    font-weight: var(--weight-semibold);
+    font-size: var(--step-1);
+  }
+  .totals__grand dd { font-weight: 500; font-size: 1em; }
+  .summary-lines { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+  .summary-lines li { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--step--1); }
+  .summary-lines li span:first-child { min-width: 0; overflow-wrap: anywhere; }
+  .summary-lines li span:last-child { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .summary-lines__child { padding-left: var(--space-4); color: var(--muted); }
+  .addon-option {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: var(--space-3);
+    align-items: start;
+    min-height: 3.25rem;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    cursor: pointer;
+    background: var(--surface);
+  }
+  .addon-option:hover { border-color: var(--line-strong); }
+  .addon-option:has(input:checked) { border-color: var(--brand); background: var(--brand-softer); box-shadow: inset 0 0 0 1px var(--brand); }
+  .addon-option input { accent-color: var(--brand); inline-size: 1rem; block-size: 1rem; margin: 0.2em 0 0; }
+  .addon-option span .muted { display: block; }
+  .addon-option > .nowrap { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 0.875rem; }
+  .input--narrow { max-width: 8rem; }
+  .corporate-fields { padding-left: var(--space-4); border-left: 1px solid var(--line-strong); }
+  .billing-address { display: flex; flex-direction: column; font-style: normal; gap: 2px; }
+  #config-summary { min-height: 6rem; }
+
+  /* ---------------------------------------------------------- payment */
+  .pay-frame { width: 100%; min-height: 36rem; border: 0; border-radius: var(--radius-lg); background: var(--surface); }
+  .pay-embed { min-height: 20rem; }
+  .card--danger { border-color: color-mix(in oklab, var(--danger) 45%, var(--line)); }
+  .card--danger .card__head h2 { color: var(--danger); }
+
+  /* ---------------------------------------------------------- server */
+  .vm-charts { display: grid; gap: 1px; padding: 1px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); }
+  .vm-chart { margin: 0; padding: var(--space-3) var(--space-4); background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
+  .vm-chart figcaption { display: flex; justify-content: space-between; gap: var(--space-2); font-family: var(--font-mono); font-size: var(--step--2); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); }
+  .vm-chart figcaption strong { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 500; letter-spacing: 0; }
+  .vm-chart svg { display: block; width: 100%; height: 4rem; margin-top: var(--space-2); overflow: visible; }
+  .vm-chart__line { fill: none; stroke: var(--brand); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+  .vm-chart__grid { fill: none; stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  progress.bar--inline { display: inline-block; width: 6rem; vertical-align: middle; }
+
+  /* ---------------------------------------------------------- support */
+  .thread { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+  .thread__msg {
+    padding: var(--space-4) var(--space-5);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+  }
+  .thread__msg--staff { box-shadow: inset 2px 0 0 var(--brand); background: var(--surface-2); }
+  .thread__msg header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--line); }
+  .thread__msg header time { margin-left: auto; color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+  .thread__msg .prose { overflow-wrap: anywhere; max-width: none; }
+  .attachments { list-style: none; margin: var(--space-3) 0 0; padding: var(--space-3) 0 0; border-top: 1px dashed var(--line); display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .kb-suggest { padding: var(--space-3) var(--space-4); border-radius: var(--radius); background: var(--info-soft); border: 1px solid color-mix(in oklab, var(--info) 25%, transparent); }
+  .kb-suggest p { margin: 0 0 var(--space-2); }
+
+  /* ---------------------------------------------------------- printable invoice
+     Always printed on paper: literal print colours by design. */
+  body.invoice-print { background: #f4f3ef; color: #111; font-family: var(--font-sans); }
+  .invoice-sheet {
+    max-width: 52rem;
+    margin: var(--space-8) auto;
+    padding: var(--space-10);
+    background: #fff;
+    color: #111;
+    border: 1px solid #e2dfd7;
+  }
+  .invoice-sheet address { display: flex; flex-direction: column; font-style: normal; gap: 2px; }
+  .invoice-sheet__head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-6); margin-bottom: var(--space-8); }
+  .invoice-sheet__brand { font-size: var(--step-2); font-weight: 600; letter-spacing: -0.02em; margin: 0 0 var(--space-2); }
+  .invoice-sheet__meta { text-align: right; font-variant-numeric: tabular-nums; }
+  .invoice-sheet__meta h1 { margin: 0 0 var(--space-2); letter-spacing: 0.08em; font-size: var(--step-2); font-family: var(--font-mono); font-weight: 500; }
+  .invoice-sheet__meta p { margin: 0; }
+  .invoice-sheet__to h2 { font-size: var(--step--2); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: #555; margin: 0 0 var(--space-2); }
+  .invoice-sheet__items { width: 100%; margin-top: var(--space-8); border-collapse: collapse; }
+  .invoice-sheet__items th, .invoice-sheet__items td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid #ddd; text-align: left; }
+  .invoice-sheet__items thead th { font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: #555; }
+  .invoice-sheet__items .num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .invoice-sheet__items tfoot th { text-align: right; font-weight: 500; }
+  .invoice-sheet__items tfoot tr.grand th, .invoice-sheet__items tfoot tr.grand td { font-weight: 600; border-top: 2px solid #111; }
+  .invoice-sheet__note { margin-top: var(--space-8); font-size: var(--step--1); color: #555; }
+  @media print {
+    body.invoice-print { background: #fff; }
+    .invoice-sheet { margin: 0; padding: 0; border: 0; max-width: none; }
+    .invoice-sheet__actions { display: none; }
+    .impersonation-bar, .sidebar, .topbar, .toasts { display: none !important; }
+  }
+}

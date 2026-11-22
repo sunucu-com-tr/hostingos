@@ -1,0 +1,57 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ name }} <span class="badge">{{ locale_label() }}</span></h1>
+  <p><code class="small">{{ key }}</code> · {% if customized %}{{ t("admin_settings.email.state_customized") }}{% else %}{{ t("admin_settings.email.state_default") }}{% endif %}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/settings/email") }}">{{ icon("chevron-left") }}{{ t("admin.common.back") }}</a></div></div>
+<div class="email-editor">
+  <form method="post" action="{{ url(base) }}" class="stack card card__body" id="tpl-form" novalidate>
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::form_errors(errors) %}{% endcall %}
+    {% call ui::field("subject", t("admin_settings.email.subject"), form.subject, error=errors.get("subject"), required=true) %}{% endcall %}
+    <div class="field{% if !errors.get("body_html").is_empty() %} field--error{% endif %}">
+      <label class="field__label" for="f-body_html">{{ t("admin_settings.email.body_html") }}</label>
+      <textarea class="textarea textarea--code" id="f-body_html" name="body_html" rows="16" spellcheck="false">{{ form.body_html }}</textarea>
+      {%- if !errors.get("body_html").is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("body_html") }}</p>{% else %}<p class="field__hint">{{ t("admin_settings.email.body_html_hint") }}</p>{% endif %}
+    </div>
+    <div class="field{% if !errors.get("body_text").is_empty() %} field--error{% endif %}">
+      <label class="field__label" for="f-body_text">{{ t("admin_settings.email.body_text") }}</label>
+      <textarea class="textarea textarea--code" id="f-body_text" name="body_text" rows="8" spellcheck="false">{{ form.body_text }}</textarea>
+      {%- if !errors.get("body_text").is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("body_text") }}</p>{% else %}<p class="field__hint">{{ t("admin_settings.email.body_text_hint") }}</p>{% endif %}
+    </div>
+    <div class="btn-row">
+      <button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button>
+      <button class="btn btn--soft" type="submit" formaction="{{ url(base ~ "/preview") }}" formtarget="email-preview" formnovalidate>{{ icon("eye") }}{{ t("admin_settings.email.preview") }}</button>
+    </div>
+  </form>
+  <div class="stack-lg">
+    <section class="card"><header class="card__head"><div><h2>{{ t("admin_settings.email.preview") }}</h2><p class="muted small">{{ t("admin_settings.email.preview_lead") }}</p></div></header>
+      <div class="card__body"><iframe class="email-preview" name="email-preview" title="{{ t("admin_settings.email.preview") }}" sandbox></iframe></div></section>
+    {% call ui::card(t("admin_settings.email.variables"), t("admin_settings.email.variables_lead")) %}
+    <div class="table-wrap"><table class="table table--dense">
+      <thead><tr><th>{{ t("admin_settings.email.variable") }}</th><th>{{ t("admin_settings.email.sample") }}</th></tr></thead>
+      <tbody>
+      {%- for (path, sample) in variables %}
+      <tr><td><code>&#123;&#123;{{ path }}&#125;&#125;</code></td><td class="small">{{ sample }}</td></tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
+    <p class="field__hint">{{ t("admin_settings.email.syntax_hint") }}</p>
+    {% endcall %}
+    {% call ui::card(t("admin_settings.email.actions")) %}
+    <form method="post" action="{{ url(base ~ "/test") }}" class="stack-sm">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::field("to", t("admin_settings.email.test_to"), "", kind="email", hint=t("admin_settings.email.test_hint")) %}{% endcall %}
+      <button class="btn btn--soft btn--sm" type="submit">{{ icon("send") }}{{ t("admin_settings.email.send_test") }}</button>
+    </form>
+    {%- if customized %}
+    <form method="post" action="{{ url(base ~ "/reset") }}" class="mt-4" data-confirm="{{ t("admin_settings.email.reset_confirm") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--ghost btn--sm" type="submit">{{ icon("refresh") }}{{ t("admin_settings.email.reset") }}</button>
+    </form>
+    {%- endif %}
+    {% endcall %}
+  </div>
+</div>
+{% endblock %}

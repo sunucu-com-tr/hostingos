@@ -1,0 +1,81 @@
+# HostingOS — systemd unit for a bare-binary install (docs/UPDATES.md).
+#
+# Layout (created by docs/deploy/install.sh):
+#   /opt/hostingos/releases/<version>/{hostingos,static,locales}
+#   /opt/hostingos/current -> releases/<version>
+#   /opt/hostingos/state/                   (update marker, lock, backups)
+#   /etc/hostingos/hostingos.env            (configuration, 0640 root:hostingos)
+#
+# Install:
+#   sudo cp hostingos.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now hostingos
+#
+# Self-update: after installing a release the process exits with code 75
+# and systemd starts `current/hostingos` again. The new release confirms
+# its health or rolls back on its own (watchdog marker in state/).
+#
+# Separate background worker (several web nodes): copy this unit to
+# hostingos-worker.service with `ExecStart=... worker`, and run this one
+# with `serve --no-worker`.
+
+[Unit]
+Description=HostingOS hosting automation (web + job worker)
+After=network-online.target postgresql.service
+Wants=network-online.target
+# An update restarts the service a few times in a row (install, trial,
+# possibly rollback); do not give up on that.
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=hostingos
+Group=hostingos
+WorkingDirectory=/opt/hostingos
+EnvironmentFile=/etc/hostingos/hostingos.env
+Environment=HOS_UPDATE_ROOT=/opt/hostingos
+Environment=HOS_LOG_FORMAT=json
+# systemd resolves the `current` link at every start, so a restart runs the
+# newly activated release.
+ExecStart=/opt/hostingos/current/hostingos serve
+Restart=always
+RestartSec=2
+# 75 = "restart me into the active release" (an update or a rollback).
+RestartForceExitStatus=75
+# Graceful shutdown: in-flight requests and jobs get 45 s.
+TimeoutStopSec=90
+KillMode=mixed
+LimitNOFILE=65536
+UMask=0027
+
+# --- Hardening -------------------------------------------------------------
+# The updater writes below /opt/hostingos (releases/, state/); everything else
+# is read-only for the service.
+ProtectSystem=strict
+ReadWritePaths=/opt/hostingos
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

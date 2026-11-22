@@ -1,0 +1,74 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("admin.vm.title") }}{% if !live_status.is_empty() %} {{ sbadge(live_status.as_str()) }}{% endif %}</h1>
+    <p><a href="{{ url("/admin/services/" ~ s.id) }}">{{ o(s.domain) }}</a>{% match vm %}{% when Some(v) %} · <span class="mono">{{ v.name }}</span>{% match v.node %}{% when Some(n) %} · {{ n }}{% when None %}{% endmatch %}{% when None %}{% endmatch %}</p></div>
+  {%- if can("services.manage") && error.is_empty() %}
+  <div class="page-head__actions">
+    {%- for (a, al) in powers %}
+    <form method="post" action="{{ url("/admin/services/" ~ s.id ~ "/vm/power") }}"{% if a == "stop" %} data-confirm="{{ t("admin.vm.stop_confirm") }}"{% endif %}>{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="{{ a }}"><button class="btn btn--soft btn--sm" type="submit">{{ al }}</button></form>
+    {%- endfor %}
+    <a class="btn btn--primary btn--sm" href="{{ url("/admin/services/" ~ s.id ~ "/vm/console/view") }}">{{ icon("terminal") }}{{ t("admin.vm.console") }}</a>
+    <a class="btn btn--soft btn--sm" href="{{ url("/admin/services/" ~ s.id ~ "/vm/manage") }}">{{ icon("sliders") }}{{ t("admin.vm.manage") }}</a>
+  </div>
+  {%- endif %}
+</div>
+{%- if !error.is_empty() %}{% call ui::alert("danger", error) %}{% endcall %}{% endif %}
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    {%- match metrics %}{% when Some(mt) %}
+    {% call ui::card(t("admin.vm.metrics"), datetime(mt.collected_at)) %}
+    <dl class="kv kv--wide">
+      <dt>CPU</dt><dd>{{ pct(mt.cpu_usage_percent) }}</dd>
+      <dt>{{ t("admin.vm.memory") }}</dt><dd>{{ mb(mt.memory_used_mb, mt.memory_total_mb) }}</dd>
+      <dt>{{ t("admin.vm.disk") }}</dt><dd>{{ gb(mt.disk_used_gb, mt.disk_total_gb) }}</dd>
+      <dt>{{ t("admin.vm.uptime") }}</dt><dd>{{ uptime(mt.uptime_secs) }}</dd>
+    </dl>
+    {% endcall %}
+    {%- when None %}{% endmatch %}
+    {%- if can_snapshot %}
+    {% call ui::card(t("admin.vm.snapshots")) %}
+    {%- if snapshots.is_empty() %}<p class="muted">{{ t("admin.vm.no_snapshots") }}</p>{% else %}
+    <div class="table-wrap"><table class="table table--dense">
+      <thead><tr><th>{{ t("admin.common.name") }}</th><th>{{ t("admin.common.date") }}</th><th class="actions"></th></tr></thead>
+      <tbody>{% for sn in snapshots %}<tr><td class="mono">{{ sn.name }}</td><td>{{ dtopt(sn.created_at) }}</td>
+        <td class="actions">{% if can("services.manage") %}
+          <form method="post" action="{{ url("/admin/services/" ~ s.id ~ "/vm/snapshots/action") }}" data-confirm="{{ t("admin.vm.rollback_confirm") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="snapshot" value="{{ sn.id }}"><input type="hidden" name="action" value="rollback"><button class="btn btn--ghost btn--sm" type="submit">{{ t("admin.vm.rollback") }}</button></form>
+          <form method="post" action="{{ url("/admin/services/" ~ s.id ~ "/vm/snapshots/action") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="snapshot" value="{{ sn.id }}"><input type="hidden" name="action" value="delete"><button class="btn btn--ghost btn--sm btn--icon" type="submit" aria-label="{{ t("admin.common.delete") }}">{{ icon("x") }}</button></form>
+        {% endif %}</td></tr>{% endfor %}</tbody>
+    </table></div>{% endif %}
+    {%- if can("services.manage") %}
+    <form class="inline-form mt-4" method="post" action="{{ url("/admin/services/" ~ s.id ~ "/vm/snapshots") }}">{% call ui::csrf() %}{% endcall %}<input class="input input--sm" name="name" placeholder="before-upgrade" aria-label="{{ t("admin.vm.snapshot_name") }}" pattern="[A-Za-z0-9_-]+" required><button class="btn btn--soft btn--sm" type="submit">{{ t("admin.vm.snapshot_create") }}</button></form>
+    {%- endif %}
+    {% endcall %}
+    {%- endif %}
+  </div>
+  <aside class="stack-lg">
+    {%- match vm %}{% when Some(v) %}
+    {% call ui::card(t("admin.vm.inventory")) %}
+    <dl class="kv">
+      <dt>{{ t("admin.vm.external_id") }}</dt><dd class="mono">{{ v.external_id }}</dd>
+      <dt>{{ t("admin.vm.template") }}</dt><dd>{{ o(v.os_template) }}</dd>
+      <dt>CPU</dt><dd>{% match v.cpu_cores %}{% when Some(c) %}{{ c }}{% when None %}—{% endmatch %}</dd>
+      <dt>{{ t("admin.vm.memory") }}</dt><dd>{% match v.memory_mb %}{% when Some(mm) %}{{ mm }} MB{% when None %}—{% endmatch %}</dd>
+      <dt>{{ t("admin.vm.disk") }}</dt><dd>{% match v.disk_gb %}{% when Some(dg) %}{{ dg }} GB{% when None %}—{% endmatch %}</dd>
+      <dt>IPv4</dt><dd class="mono">{% match v.primary_ipv4 %}{% when Some(ip) %}{{ ip }}{% when None %}—{% endmatch %}</dd>
+      <dt>{{ t("admin.vm.synced") }}</dt><dd>{{ dtopt(v.last_synced_at) }}</dd>
+    </dl>
+    {% endcall %}
+    {%- when None %}{% call ui::alert("info", t("admin.vm.no_vm")) %}{% endcall %}{% endmatch %}
+    {%- if can_reinstall && can("services.manage") %}
+    {% call ui::card(t("admin.vm.reinstall"), t("admin.vm.reinstall_lead")) %}
+    <form class="stack" method="post" action="{{ url("/admin/services/" ~ s.id ~ "/vm/reinstall") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <div class="field"><label class="field__label" for="ri-t">{{ t("admin.vm.template") }}</label><select class="select" id="ri-t" name="template">{% for tp in templates %}<option value="{{ tp.id }}">{{ tp.name }}</option>{% endfor %}</select></div>
+      {% call ui::textarea("ssh_keys", t("admin.vm.ssh_keys"), "", rows=3) %}{% endcall %}
+      {% call ui::field("confirm", tv("admin.vm.reinstall_type", "value", confirm_value), "", required=true) %}{% endcall %}
+      <button class="btn btn--danger btn--sm" type="submit">{{ t("admin.vm.reinstall") }}</button>
+    </form>
+    {% endcall %}
+    {%- endif %}
+  </aside>
+</div>
+{% endblock %}

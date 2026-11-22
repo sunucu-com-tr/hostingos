@@ -1,0 +1,30 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+{% include "admin/staff/_head.html" %}
+<div class="between mb-4">
+  <p class="muted">{{ t("admin_settings.roles.lead") }}</p>
+  <a class="btn btn--primary" href="{{ url("/admin/staff/roles/new") }}">{{ icon("plus") }}{{ t("admin_settings.roles.new") }}</a>
+</div>
+<div class="table-wrap"><table class="table table--stack">
+  <thead><tr>
+    <th scope="col">{{ t("admin_settings.roles.name") }}</th>
+    <th scope="col">{{ t("admin_settings.roles.kind") }}</th>
+    <th scope="col">{{ t("admin_settings.roles.permissions") }}</th>
+    <th scope="col">{{ t("admin_settings.roles.members") }}</th>
+  </tr></thead>
+  <tbody>
+  {%- for r in rows %}
+  <tr>
+    <td data-label="{{ t("admin_settings.roles.name") }}"><a class="row-link" href="{{ url("/admin/staff/roles/" ~ r.role.id) }}">{{ r.label }}</a>
+      {%- if r.owner %} {{ badge(t("admin_settings.roles.owner_badge"), "brand") }}{% endif %}
+      {%- match r.role.description %}{% when Some(d) %}<span class="sub small">{{ d }}</span>{% when None %}{% endmatch %}</td>
+    <td data-label="{{ t("admin_settings.roles.kind") }}">{% if r.role.is_system %}{{ badge(t("admin_settings.roles.builtin_badge"), "") }}{% else %}{{ badge(t("admin_settings.roles.custom_badge"), "info") }}{% endif %}</td>
+    <td data-label="{{ t("admin_settings.roles.permissions") }}">{{ r.summary }}</td>
+    <td data-label="{{ t("admin_settings.roles.members") }}">{{ r.members }}</td>
+  </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% endblock %}

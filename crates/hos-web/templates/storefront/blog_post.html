@@ -1,0 +1,40 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<article>
+  <header class="page-hero">
+    <div class="container page-hero__inner article-head">
+      {% call ui::breadcrumbs(crumbs) %}{% endcall %}
+      <h1>{{ title }}</h1>
+      {%- if !lead.is_empty() %}<p class="lead">{{ lead }}</p>{% endif %}
+      <p class="article-meta">
+        <time datetime="{{ iso(published_at) }}">{{ date(published_at) }}</time>
+        {%- if !author.is_empty() %}<span>{{ author }}</span>{% endif %}
+        <span>{{ tn("storefront.blog.minutes", minutes) }}</span>
+        {%- if !md_href.is_empty() %}<a href="{{ md_href }}" rel="alternate" type="text/markdown">{{ t("storefront.content.markdown") }}</a>{% endif %}
+      </p>
+    </div>
+  </header>
+  {%- if !cover.is_empty() %}
+  <div class="container"><img class="cover" src="{{ cover }}" alt="" width="1200" height="630" loading="lazy" decoding="async"></div>
+  {%- endif %}
+  <div class="section section--tight">
+    <div class="container content-layout">
+      {%- if toc.len() > 2 %}
+      <nav class="toc" aria-labelledby="toc-title">
+        <h2 id="toc-title">{{ t("storefront.content.toc") }}</h2>
+        <ol>{% for h in toc %}<li class="lvl-{{ h.level }}"><a href="#{{ h.id }}">{{ h.text }}</a></li>{% endfor %}</ol>
+      </nav>
+      {%- endif %}
+      <div class="stack-lg">
+        <div class="prose">{{ body_html|safe }}</div>
+        {%- if !tags.is_empty() %}
+        <p class="cluster">{% for tg in tags %}<a class="tag" href="{{ url("/blog") }}?tag={{ tg|urlencode }}">#{{ tg }}</a>{% endfor %}</p>
+        {%- endif %}
+        <p><a class="btn btn--ghost" href="{{ back_href }}">{{ icon("chevron-left") }}{{ back_label }}</a></p>
+        {%- if updated_at > published_at %}<p class="small muted">{{ t("storefront.content.updated") }} <time datetime="{{ iso(updated_at) }}">{{ date(updated_at) }}</time></p>{% endif %}
+      </div>
+    </div>
+  </div>
+</article>
+{% endblock %}

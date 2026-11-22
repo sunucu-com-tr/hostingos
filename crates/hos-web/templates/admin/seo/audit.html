@@ -1,0 +1,126 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_content.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ title }}</h1><p>{{ sbadge(a.status.as_str()) }} · <span class="mono small">{{ a.url }}</span></p></div>
+  <div class="page-head__actions">
+    {%- if has_report %}
+    {%- match plan %}{% when Some(p) %}
+    <a class="btn btn--ghost" href="{{ url("/admin/ai/generations/" ~ p.id) }}">{{ icon("sparkles") }}{{ t("admin_content.seo.audits.plan_open") }}</a>
+    {%- when None %}{% endmatch %}
+    {%- if ai_ready %}
+    <form method="post" action="{{ url(base ~ "/plan") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--soft" type="submit">{{ icon("sparkles") }}{{ t("admin_content.seo.audits.plan") }}</button>
+    </form>
+    {%- endif %}
+    {%- endif %}
+    <a class="btn btn--ghost" href="{{ url("/admin/seo/audits") }}">{{ icon("chevron-left") }}{{ t("admin_content.seo.audits.title") }}</a>
+  </div>
+</div>
+{% include "admin/seo/_tabs.html" %}
+
+{%- if running %}
+{% call ui::card(t("admin_content.seo.audits.running_title")) %}
+{{ progress_html|safe }}
+<p class="muted small mt-2">{{ t("admin_content.seo.audits.running_hint") }}</p>
+{% endcall %}
+{%- elif a.status.as_str() == "failed" %}
+<div class="alert alert--error mt-4" role="alert">{{ icon("alert-triangle") }}<div><p>{{ t("admin_content.seo.audits.failed") }}</p>{% match a.error %}{% when Some(e) %}<p class="small">{{ e }}</p>{% when None %}{% endmatch %}</div></div>
+{%- endif %}
+
+{%- if has_report %}
+<div class="grid grid--3 mt-4">
+  {% call ui::card(t("admin_content.seo.audits.score")) %}
+  <div class="seo-score"><span class="score score--{{ tone }}">{{ score }}</span>
+    <div><p class="small">{{ tn("admin_content.seo.overview.pages_audited", page_count) }}</p>
+    {%- if capped %}<p class="small muted">{{ tv("admin_content.seo.audits.capped", "found", found) }}</p>{% endif %}</div></div>
+  {% endcall %}
+  {% call ui::card(t("admin_content.seo.audits.findings")) %}
+  <div class="cluster">
+    {{ badge(count_label(0), "danger") }} {{ badge(count_label(1), "danger") }}
+    {{ badge(count_label(2), "warning") }} {{ badge(count_label(3), "info") }}
+  </div>
+  {% endcall %}
+  {% call ui::card(t("admin_content.seo.audits.compare")) %}
+  {%- match comparison %}{% when Some(c) %}
+  <p>{{ tv("admin_content.seo.audits.previous_score", "score", c.previous_score) }}
+    <strong class="{% if c.delta > 0 %}check-pass{% elif c.delta < 0 %}check-fail{% else %}muted{% endif %}">{% if c.delta > 0 %}+{% endif %}{{ c.delta }}</strong></p>
+  <p class="small">{{ tv2("admin_content.seo.audits.fixed_new", "fixed", c.fixed_total, "new", c.added_total) }}</p>
+  <a class="small" href="{{ url("/admin/seo/audits/" ~ c.previous_id) }}">{{ t("admin_content.seo.audits.open_previous") }}</a>
+  {%- when None %}<p class="muted small">{{ t("admin_content.seo.audits.no_previous") }}</p>{% endmatch %}
+  {% endcall %}
+</div>
+
+{%- match comparison %}{% when Some(c) %}{% if !c.fixed.is_empty() || !c.added.is_empty() %}
+<div class="grid grid--2 mt-6">
+  <section aria-labelledby="fixed-h"><h2 id="fixed-h" class="h4">{{ icon("check-circle") }} {{ t("admin_content.seo.audits.fixed") }}</h2>
+    {%- if c.fixed.is_empty() %}<p class="muted small">—</p>{% else %}
+    <ul class="findings">{% for f in c.fixed %}<li><span class="sev">{{ badge(sev_label(f.severity), "success") }}</span><div><strong>{{ f.message }}</strong>{% if !f.url.is_empty() %}<p class="hint mono">{{ f.url }}</p>{% endif %}</div></li>{% endfor %}</ul>{% endif %}</section>
+  <section aria-labelledby="new-h"><h2 id="new-h" class="h4">{{ icon("alert-triangle") }} {{ t("admin_content.seo.audits.new_issues") }}</h2>
+    {%- if c.added.is_empty() %}<p class="muted small">—</p>{% else %}
+    <ul class="findings">{% for f in c.added %}<li><span class="sev">{{ badge(sev_label(f.severity), f.tone) }}</span><div><strong>{{ f.message }}</strong>{% if !f.url.is_empty() %}<p class="hint mono">{{ f.url }}</p>{% endif %}</div></li>{% endfor %}</ul>{% endif %}</section>
+</div>
+{%- endif %}{% when None %}{% endmatch %}
+
+{%- if !top.is_empty() %}
+<h2 class="mt-6">{{ t("admin_content.seo.audits.top_issues") }}</h2>
+<ul class="findings mt-2">{% for i in top %}<li><span class="sev">{{ badge(sev_label(i.severity), i.tone) }}</span><div><strong>{{ i.message }}</strong><p class="hint">{{ tn("admin_content.seo.audits.affected", i.count) }}</p></div></li>{% endfor %}</ul>
+{%- endif %}
+
+{%- match detail %}{% when Some(d) %}
+<section class="card mt-6" id="page-detail" aria-labelledby="detail-h">
+  <header class="card__head"><div><h2 id="detail-h">{{ t("admin_content.seo.audits.page_detail") }}</h2><p class="mono small">{{ d.url }}</p></div>
+    <span class="score score--{{ d.tone }}">{{ d.score }}</span></header>
+  <div class="card__body stack">
+    <dl class="kv kv--wide">
+      <dt>{{ t("admin_content.seo.stats.title") }}</dt><dd>{{ o(d.stats.title) }}</dd>
+      <dt>{{ t("admin_content.seo.stats.description") }}</dt><dd>{{ o(d.stats.description) }}</dd>
+      <dt>H1</dt><dd>{{ o(d.stats.h1) }} <span class="muted small">({{ d.stats.h1_count }})</span></dd>
+      <dt>{{ t("admin_content.seo.stats.words") }}</dt><dd class="num">{{ num(d.stats.word_count) }}</dd>
+      <dt>{{ t("admin_content.seo.stats.links") }}</dt><dd>{{ tv2("admin_content.seo.stats.links_value", "internal", d.stats.internal_links, "external", d.stats.external_links) }}</dd>
+      <dt>{{ t("admin_content.seo.stats.images") }}</dt><dd>{{ tv2("admin_content.seo.stats.images_value", "total", d.stats.images, "missing", d.stats.images_missing_alt) }}</dd>
+      <dt>{{ t("admin_content.seo.stats.canonical") }}</dt><dd class="mono small">{{ o(d.stats.canonical) }}</dd>
+      <dt>{{ t("admin_content.seo.stats.indexing") }}</dt><dd>{% if d.stats.noindex %}{{ badge("noindex", "warning") }}{% else %}{{ badge(t("admin_content.seo.stats.indexable"), "success") }}{% endif %}</dd>
+      <dt>hreflang</dt><dd class="small">{% for (code, _href) in d.stats.hreflangs %}<span class="mono">{{ code }}</span>{% if !loop.last %}, {% endif %}{% endfor %}{% if d.stats.hreflangs.is_empty() %}—{% endif %}</dd>
+      <dt>JSON-LD</dt><dd class="small">{% if d.stats.json_ld_types.is_empty() %}—{% else %}{{ d.stats.json_ld_types.join(", ") }}{% endif %}</dd>
+      {%- match d.geo_score %}{% when Some(g) %}<dt>GEO</dt><dd><a href="{{ url(d.geo_href) }}">{{ g }}/100</a></dd>{% when None %}{% endmatch %}
+    </dl>
+    {%- if d.findings.is_empty() %}<p class="check-pass">{{ icon("check-circle") }} {{ t("admin_content.seo.audits.page_clean") }}</p>{% else %}
+    <ul class="findings">{% for f in d.findings %}{% include "admin/seo/_finding.html" %}{% endfor %}</ul>{% endif %}
+  </div>
+</section>
+{%- when None %}{% endmatch %}
+
+<h2 class="mt-6">{{ t("admin_content.seo.audits.findings_by_page") }}</h2>
+<nav class="chips mt-2" aria-label="{{ t("admin_content.seo.audits.filter") }}">
+  <a class="chip" href="{{ url(base) }}"{% if severity.is_empty() %} aria-current="true"{% endif %}>{{ t("admin.common.all") }}</a>
+  {%- for (v, l) in severities %}<a class="chip" href="{{ url(base ~ "?severity=" ~ v) }}"{% if *v == severity %} aria-current="true"{% endif %}>{{ l }}</a>{% endfor %}
+</nav>
+{%- if !site_findings.is_empty() %}
+<h3 class="h4">{{ t("admin_content.seo.audits.site_findings") }}</h3>
+<ul class="findings">{% for f in site_findings %}{% include "admin/seo/_finding.html" %}{% endfor %}</ul>
+{%- endif %}
+<h3 class="h4 mt-4">{{ t("admin_content.seo.audits.pages_title") }}</h3>
+{%- if pages.is_empty() %}
+<p class="muted">{{ t("admin_content.seo.audits.no_pages") }}</p>
+{%- else %}
+{%- for p in pages %}
+<details class="page-findings"{% if loop.first && p.score < 80 %} open{% endif %}>
+  <summary><span class="mono small">{{ p.url }}</span><span><strong class="check-{% if p.tone == "good" %}pass{% elif p.tone == "mid" %}warn{% else %}fail{% endif %}">{{ p.score }}</strong> · {{ tn("admin_content.seo.audits.finding_count", p.total_findings) }}</span></summary>
+  {%- if p.findings.is_empty() %}<p class="muted small page-findings__empty">{{ t("admin_content.seo.audits.page_clean") }}</p>{% else %}
+  <ul class="findings">{% for f in p.findings %}{% include "admin/seo/_finding.html" %}{% endfor %}</ul>{% endif %}
+  <p class="small page-findings__more"><a href="{{ url(p.detail_href) }}#page-detail">{{ t("admin_content.seo.audits.open_page") }}</a></p>
+</details>
+{%- endfor %}
+{%- endif %}
+{%- if !skipped.is_empty() %}
+<details class="fieldset mt-6"><summary>{{ tn("admin_content.seo.audits.skipped", skipped.len()) }}</summary>
+  <ul class="side-list mt-2">{% for s in skipped %}<li><span class="mono">{{ s.url }}</span> <span class="muted">HTTP {{ s.status }}</span></li>{% endfor %}</ul>
+</details>
+{%- endif %}
+{%- elif !running && a.status.as_str() != "failed" %}
+{% call ui::empty("bar-chart", t("admin_content.seo.audits.no_report"), "") %}{% endcall %}
+{%- endif %}
+{% endblock %}

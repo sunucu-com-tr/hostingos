@@ -1,0 +1,33 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("admin_support.new.title") }}</h1><p>{{ t("admin_support.new.lead") }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/support/tickets") }}">{{ icon("chevron-left") }}{{ t("admin_support.tickets.title") }}</a></div>
+</div>
+{% call ui::card() %}
+<form class="stack" method="post" action="{{ url("/admin/support/tickets/new") }}">
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::form_errors(errors) %}{% endcall %}
+  {%- match client %}
+  {%- when Some(c) %}
+  <input type="hidden" name="client_id" value="{{ c.id }}">
+  <div class="field"><span class="field__label">{{ t("admin_support.new.client") }}</span>
+    <p><a href="{{ url("/admin/clients/" ~ c.id) }}">{{ c.display_name() }}</a> · <span class="muted">{{ c.email }}</span> · <a class="small" href="{{ url("/admin/support/tickets/new") }}">{{ t("admin_support.new.change_client") }}</a></p></div>
+  {%- when None %}
+  {% call ui::field("client_email", t("admin_support.new.client_email"), form.client_email, kind="email", error=errors.get("client_email"), hint=t("admin_support.new.client_email_hint"), required=true) %}{% endcall %}
+  {%- endmatch %}
+  <div class="form-grid">
+    <div class="field{% if errors.has("department") %} field--error{% endif %}"><label class="field__label" for="f-dep">{{ t("admin_support.ticket.department") }} <span class="field__req" aria-hidden="true">*</span></label>
+      <select class="select" id="f-dep" name="department" required><option value="">—</option>
+        {%- for d in departments %}<option value="{{ d.id }}"{{ sel(d.id.to_string().as_str(), form.department) }}>{{ d.name }}</option>{% endfor %}</select>
+      {%- if errors.has("department") %}<p class="field__error">{{ errors.get("department") }}</p>{% endif %}</div>
+    {% call ui::select("priority", t("admin_support.ticket.priority"), priorities.as_slice(), form.priority.as_str()) %}{% endcall %}
+  </div>
+  {% call ui::field("subject", t("admin_support.new.subject"), form.subject, error=errors.get("subject"), required=true) %}{% endcall %}
+  {% call ui::textarea("body", t("admin_support.ticket.body"), form.body, error=errors.get("body"), hint=t("admin.common.markdown_hint"), rows=10, required=true) %}{% endcall %}
+  <div class="checks">{% call ui::checkbox("notify", t("admin_support.new.notify"), form.notify) %}{% endcall %}</div>
+  <div class="form-actions"><button class="btn btn--primary" type="submit">{{ icon("send") }}{{ t("admin_support.new.submit") }}</button></div>
+</form>
+{% endcall %}
+{% endblock %}

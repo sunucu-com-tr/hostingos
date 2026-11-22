@@ -1,0 +1,19 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ usage.pool.name }}</h1><p class="mono">{{ usage.pool.network }}{% match usage.pool.gateway %}{% when Some(g) %} · gw {{ g }}{% when None %}{% endmatch %} · {{ tv("admin.ip.free_of", "free", usage.free) }} / {{ usage.total }}</p></div>
+  <div class="page-head__actions"><form method="post" action="{{ url("/admin/ip-pools/" ~ usage.pool.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--danger btn--sm" type="submit">{{ icon("x") }}{{ t("admin.common.delete") }}</button></form></div></div>
+{%- if addresses.is_empty() %}
+{% call ui::empty("hard-drive", t("admin.ip.no_addresses"), "") %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense">
+  <thead><tr><th>{{ t("admin.ip.address") }}</th><th>{{ t("admin.common.status") }}</th><th>{{ t("admin.ip.allocation") }}</th><th class="actions"></th></tr></thead>
+  <tbody>{% for a in addresses %}<tr>
+    <td class="mono">{{ a.address }}</td>
+    <td>{{ sbadge(a.status.as_str()) }}</td>
+    <td>{% match a.service_id %}{% when Some(sid) %}<a href="{{ url("/admin/services/" ~ sid) }}">{{ t("admin.integrations.open_service") }}</a> <span class="sub">{{ dtopt(a.assigned_at) }}</span>{% when None %}<span class="muted">—</span>{% endmatch %}</td>
+    <td class="actions">{% if a.status.as_str() != "assigned" %}<form class="inline-form" method="post" action="{{ url("/admin/ip-pools/" ~ usage.pool.id ~ "/addresses/" ~ a.id) }}">{% call ui::csrf() %}{% endcall %}<select class="select select--sm" name="status" aria-label="{{ t("admin.common.status") }}"><option value="free"{{ sel(a.status.as_str(), "free") }}>{{ lbl("admin.status", "free") }}</option><option value="reserved"{{ sel(a.status.as_str(), "reserved") }}>{{ lbl("admin.status", "reserved") }}</option><option value="blocked"{{ sel(a.status.as_str(), "blocked") }}>{{ lbl("admin.status", "blocked") }}</option></select><button class="btn btn--ghost btn--sm" type="submit">{{ t("common.actions.save") }}</button></form>{% endif %}</td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{%- endif %}
+{% endblock %}

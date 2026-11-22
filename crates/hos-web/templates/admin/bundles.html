@@ -1,0 +1,66 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ ctx.title }}</h1><p>{{ t("bundles.admin.lead") }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/bundles") }}" target="_blank" rel="noopener">{{ icon("external-link") }}{{ t("bundles.admin.public_link") }}</a></div>
+</div>
+<div class="admin-grid admin-grid--side">
+  <div>
+  {%- if rows.is_empty() %}
+  {% call ui::empty("layers", t("bundles.admin.empty_title"), t("bundles.admin.empty_text")) %}{% endcall %}
+  {%- else %}
+  <div class="table-wrap"><table class="table table--dense table--stack">
+    <thead><tr><th scope="col">{{ t("bundles.fields.name") }}</th><th scope="col">{{ t("bundles.fields.products") }}</th><th scope="col" class="num">{{ t("bundles.fields.discount") }}</th><th scope="col">{{ t("bundles.fields.status") }}</th></tr></thead>
+    <tbody>{% for (b, items) in rows %}<tr>
+      <td data-label="{{ t("bundles.fields.name") }}"><a class="row-link" href="{{ url("/admin/catalog/bundles/" ~ b.id) }}">{{ b.name }}</a><span class="sub">/{{ b.slug }} · <code>{{ b.coupon_code }}</code></span></td>
+      <td data-label="{{ t("bundles.fields.products") }}">{{ item_names(items) }}</td>
+      <td data-label="{{ t("bundles.fields.discount") }}" class="num nowrap">{{ percent(b) }}{% if b.recurring %}<span class="sub">{{ t("bundles.admin.recurring_short") }}</span>{% endif %}</td>
+      <td data-label="{{ t("bundles.fields.status") }}">{% if b.is_active %}{{ badge(t("bundles.admin.active"), "success") }}{% else %}{{ badge(t("bundles.admin.inactive"), "") }}{% endif %}{% if b.is_active && !b.show_on_storefront %} <span class="badge">{{ t("bundles.admin.unlisted") }}</span>{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {%- endif %}
+  </div>
+  <aside>
+    {% call ui::card(form_title()) %}
+    <form method="post" action="{{ form_action() }}" class="stack">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::field("name", t("bundles.fields.name"), edit_value("name"), required=true) %}{% endcall %}
+      {% call ui::field("slug", t("bundles.fields.slug"), edit_value("slug"), required=true, hint=t("bundles.admin.slug_hint")) %}{% endcall %}
+      {% call ui::textarea("description", t("bundles.fields.description"), edit_value("description"), rows=3) %}{% endcall %}
+      <fieldset class="field"><legend class="field__label">{{ t("bundles.fields.products") }}</legend>
+        <p class="field__hint">{{ t("bundles.admin.products_hint") }}</p>
+        {%- let pops = product_options() %}
+        {%- let cops = cycle_options() %}
+        {%- for (n, pv, cv) in item_rows() %}
+        <div class="bundle-item">
+          <label class="visually-hidden" for="f-item_product_{{ n }}">{{ tv("bundles.admin.product_n", "n", n) }}</label>
+          <select class="select" id="f-item_product_{{ n }}" name="item_product_{{ n }}">
+            <option value="">—</option>
+            {%- for (v, l) in pops.iter() %}<option value="{{ v }}"{{ sel(v, pv) }}>{{ l }}</option>{% endfor %}
+          </select>
+          <label class="visually-hidden" for="f-item_cycle_{{ n }}">{{ tv("bundles.admin.cycle_n", "n", n) }}</label>
+          <select class="select" id="f-item_cycle_{{ n }}" name="item_cycle_{{ n }}">
+            {%- for (v, l) in cops.iter() %}<option value="{{ v }}"{{ sel(v, cv) }}>{{ l }}</option>{% endfor %}
+          </select>
+        </div>
+        {%- endfor %}
+      </fieldset>
+      {% call ui::field("discount_value", t("bundles.fields.discount_percent"), edit_value("value"), required=true, inputmode="decimal", hint=t("bundles.admin.discount_hint")) %}{% endcall %}
+      {% call ui::checkbox("recurring", t("bundles.admin.recurring"), checked=edit_flag("recurring")) %}{% endcall %}
+      {% call ui::checkbox("is_active", t("bundles.admin.active"), checked=edit_flag("active")) %}{% endcall %}
+      {% call ui::checkbox("show_on_storefront", t("bundles.admin.show_on_storefront"), checked=edit_flag("storefront")) %}{% endcall %}
+      {% call ui::field("sort_order", t("bundles.fields.sort_order"), edit_value("sort"), inputmode="numeric") %}{% endcall %}
+      <div class="biz-actions">
+        <button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button>
+        {%- if editing.is_some() %}<a class="btn btn--ghost" href="{{ url("/admin/catalog/bundles") }}">{{ t("common.actions.cancel") }}</a>{% endif %}
+      </div>
+    </form>
+    {%- match editing %}{% when Some((eb, _ei)) %}
+    <form method="post" action="{{ url("/admin/catalog/bundles/" ~ eb.id ~ "/delete") }}" class="mt-4" data-confirm="{{ t("bundles.admin.delete_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--danger btn--sm" type="submit">{{ icon("trash") }}{{ t("admin.common.delete") }}</button></form>
+    {%- when None %}{% endmatch %}
+    {% endcall %}
+  </aside>
+</div>
+{% endblock %}

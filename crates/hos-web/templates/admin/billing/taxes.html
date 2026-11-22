@@ -1,0 +1,67 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.taxes.title") }}</h1><p>{{ t("admin.taxes.lead") }}</p></div>
+  {%- if can("settings.manage") %}<div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/settings/billing") }}">{{ icon("settings") }}{{ t("admin.taxes.settings_link") }}</a></div>{% endif %}</div>
+<div class="admin-grid admin-grid--side">
+  <div>
+  {%- if rows.is_empty() %}
+  {% call ui::empty("percent", t("admin.taxes.empty_title"), t("admin.taxes.empty_text")) %}{% endcall %}
+  {%- else %}
+  <div class="table-wrap"><table class="table table--dense table--stack">
+    <thead><tr><th>{{ t("admin.common.name") }}</th><th>{{ t("admin.taxes.level") }}</th><th>{{ t("admin.taxes.scope") }}</th><th class="num">{{ t("admin.taxes.rate") }}</th><th>{{ t("admin.common.status") }}</th><th class="actions"></th></tr></thead>
+    <tbody>
+    {%- for r in rows %}
+    <tr>
+      <td data-label="{{ t("admin.common.name") }}"><strong>{{ r.name }}</strong>{% if r.is_compound %}<span class="sub">{{ t("admin.taxes.compound") }}</span>{% endif %}</td>
+      <td data-label="{{ t("admin.taxes.level") }}">{{ r.level }}</td>
+      <td data-label="{{ t("admin.taxes.scope") }}">{% match r.country_code %}{% when Some(cc) %}{{ cc }}{% match r.region %}{% when Some(rg) %} / {{ rg }}{% when None %}{% endmatch %}{% when None %}{{ t("admin.taxes.all_countries") }}{% endmatch %}</td>
+      <td data-label="{{ t("admin.taxes.rate") }}" class="num">%{{ dec(r.rate) }}</td>
+      <td data-label="{{ t("admin.common.status") }}">{% if r.is_active %}{{ badge(t("admin.common.active"), "success") }}{% else %}{{ badge(t("admin.common.inactive"), "") }}{% endif %}</td>
+      <td class="actions">{% if can("billing.manage") %}<button type="button" class="btn btn--ghost btn--sm" data-dialog-open="tax-{{ r.id }}">{{ t("admin.common.edit") }}</button>{% endif %}</td>
+    </tr>
+    {%- endfor %}
+    </tbody>
+  </table></div>
+  {%- endif %}
+  </div>
+  {%- if can("billing.manage") %}
+  <aside>
+  {% call ui::card(t("admin.taxes.new")) %}
+  <form class="stack" method="post" action="{{ url("/admin/billing/taxes") }}">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::field("name", t("admin.common.name"), "", required=true, placeholder="KDV") %}{% endcall %}
+    {% call ui::field("rate", t("admin.taxes.rate"), "", required=true, inputmode="decimal", placeholder="20") %}{% endcall %}
+    <div class="form-grid">
+      {% call ui::field("country_code", t("admin.clients.country"), "", placeholder="TR", hint=t("admin.taxes.country_hint")) %}{% endcall %}
+      {% call ui::field("region", t("admin.clients.state"), "") %}{% endcall %}
+    </div>
+    <div class="field"><label class="field__label" for="t-level">{{ t("admin.taxes.level") }}</label><select class="select" id="t-level" name="level"><option value="1">1</option><option value="2">2</option></select></div>
+    {% call ui::checkbox("is_compound", t("admin.taxes.compound_label")) %}{% endcall %}
+    <button class="btn btn--primary" type="submit">{{ icon("plus") }}{{ t("admin.common.create") }}</button>
+  </form>
+  {% endcall %}
+  </aside>
+  {%- endif %}
+</div>
+{%- if can("billing.manage") %}
+{%- for r in rows %}
+{% call ui::modal("tax-" ~ r.id, r.name.clone()) %}
+<form class="stack" method="post" action="{{ url("/admin/billing/taxes/" ~ r.id) }}">
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::field("name", t("admin.common.name"), r.name, required=true) %}{% endcall %}
+  {% call ui::field("rate", t("admin.taxes.rate"), dec(r.rate), required=true, inputmode="decimal") %}{% endcall %}
+  <div class="form-grid">
+    {% call ui::field("country_code", t("admin.clients.country"), r.country_code.clone().unwrap_or_default()) %}{% endcall %}
+    {% call ui::field("region", t("admin.clients.state"), r.region.clone().unwrap_or_default()) %}{% endcall %}
+  </div>
+  <div class="field"><label class="field__label" for="tl-{{ r.id }}">{{ t("admin.taxes.level") }}</label><select class="select" id="tl-{{ r.id }}" name="level"><option value="1"{% if r.level == 1 %} selected{% endif %}>1</option><option value="2"{% if r.level == 2 %} selected{% endif %}>2</option></select></div>
+  {% call ui::checkbox("is_compound", t("admin.taxes.compound_label"), r.is_compound) %}{% endcall %}
+  {% call ui::checkbox("is_active", t("admin.common.active"), r.is_active) %}{% endcall %}
+  <div class="btn-row"><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button>
+    <button class="btn btn--danger" type="submit" formaction="{{ url("/admin/billing/taxes/" ~ r.id ~ "/delete") }}">{{ t("admin.common.delete") }}</button></div>
+</form>
+{% endcall %}
+{%- endfor %}
+{%- endif %}
+{% endblock %}

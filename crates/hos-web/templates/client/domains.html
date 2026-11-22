@@ -1,0 +1,36 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head">
+  <div><h1>{{ t("client.domains.title") }}</h1><p>{{ t("client.domains.lead") }}</p></div>
+  <div class="btn-row"><a class="btn btn--primary" href="{{ url("/domains") }}">{{ icon("search") }}{{ t("client.domains.register_new") }}</a><a class="btn btn--soft" href="{{ url("/cart") }}#add-domain-title">{{ t("client.domains.transfer_in") }}</a></div>
+</div>
+<form class="toolbar" method="get" action="{{ url("/client/domains") }}" role="search">
+  <label class="visually-hidden" for="f-q">{{ t("client.common.search") }}</label>
+  <input class="input" id="f-q" type="search" name="q" value="{{ q }}" placeholder="{{ t("client.domains.search") }}">
+  <button type="submit" class="btn btn--ghost">{{ icon("search") }}{{ t("client.common.filter") }}</button>
+</form>
+<div class="card">
+{%- if rows.is_empty() %}
+  <div class="card__body">{% call ui::empty("globe", t("client.domains.empty"), t("client.domains.empty_text")) %}<a class="btn btn--primary btn--sm" href="{{ url("/domains") }}">{{ t("client.domains.register_new") }}</a>{% endcall %}</div>
+{%- else %}
+  <div class="table-wrap">
+    <table class="table table--stack">
+      <thead><tr><th scope="col">{{ t("client.domains.name") }}</th><th scope="col">{{ t("client.domains.expires") }}</th><th scope="col">{{ t("client.domains.auto_renew") }}</th><th scope="col">{{ t("client.invoices.status") }}</th><th scope="col"><span class="visually-hidden">{{ t("client.common.actions") }}</span></th></tr></thead>
+      <tbody>
+      {%- for d in rows %}
+        <tr>
+          <td data-label="{{ t("client.domains.name") }}"><a href="{{ url("/client/domains/") }}{{ d.id }}"><strong>{{ domain_label(d.name) }}</strong></a></td>
+          <td data-label="{{ t("client.domains.expires") }}">{{ date_opt(d.expires_at) }}{% if days(d) <= 30 && days(d) >= 0 %} {{ badge(tn("client.domains.days_left", days(d)), "warning") }}{% endif %}</td>
+          <td data-label="{{ t("client.domains.auto_renew") }}">{% if d.auto_renew %}{{ badge(t("client.common.on"), "success") }}{% else %}{{ badge(t("client.common.off"), "") }}{% endif %}</td>
+          <td data-label="{{ t("client.invoices.status") }}">{{ st(d.status.as_str()) }}</td>
+          <td><a class="btn btn--ghost btn--sm" href="{{ url("/client/domains/") }}{{ d.id }}">{{ t("client.common.manage") }}</a></td>
+        </tr>
+      {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- endif %}
+</div>
+{% call ui::pagination(pager) %}{% endcall %}
+{% endblock %}

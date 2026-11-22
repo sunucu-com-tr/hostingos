@@ -1,0 +1,16 @@
+{#- Generation table rows (`rows: Vec<GenView>`). -#}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th scope="col">{{ t("admin_content.ai.col_task") }}</th><th scope="col">{{ t("admin.common.status") }}</th><th scope="col">{{ t("admin_content.ai.col_user") }}</th><th scope="col">{{ t("admin_content.ai.col_model") }}</th><th scope="col" class="num">{{ t("admin_content.ai.col_tokens") }}</th><th scope="col">{{ t("admin.common.date") }}</th></tr></thead>
+  <tbody>
+  {%- for r in rows %}
+    <tr>
+      <td data-label="{{ t("admin_content.ai.col_task") }}"><a class="row-link" href="{{ url("/admin/ai/generations/" ~ r.g.id) }}">{{ r.task }}</a>{% match r.g.locale %}{% when Some(l) %} <span class="muted small">{{ l.as_str()|upper }}</span>{% when None %}{% endmatch %}</td>
+      <td data-label="{{ t("admin.common.status") }}">{{ sbadge(r.g.status.as_str()) }}</td>
+      <td data-label="{{ t("admin_content.ai.col_user") }}">{{ r.user }}</td>
+      <td data-label="{{ t("admin_content.ai.col_model") }}" class="mono small">{{ r.g.model }}</td>
+      <td data-label="{{ t("admin_content.ai.col_tokens") }}" class="num">{{ num(r.g.input_tokens.unwrap_or(0) + r.g.output_tokens.unwrap_or(0)) }}</td>
+      <td data-label="{{ t("admin.common.date") }}">{{ datetime(r.g.created_at) }}</td>
+    </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>

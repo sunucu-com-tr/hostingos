@@ -1,0 +1,22 @@
+<div id="import-progress" class="stack"{% if run.active() %} hx-get="{{ url("/admin/tools/import/" ~ run.id ~ "/progress") }}" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %} aria-live="polite">
+  <div class="between">
+    <p class="strong">{{ badge(lbl("import.status", run.status), run.tone()) }} {% if !current.is_empty() %}{{ tv("import.progress.current", "entity", lbl("import.entity", current)) }}{% endif %}</p>
+    <p class="small muted tabular">{{ num(done) }} / {{ num(total) }}</p>
+  </div>
+  <progress class="bar" max="{% if total > 0 %}{{ total }}{% else %}1{% endif %}" value="{{ done }}" aria-label="{{ t("import.progress.label") }}">{{ done }}</progress>
+  {%- if !lines.is_empty() %}
+  <div class="table-wrap"><table class="table table--dense table--stack">
+    <thead><tr><th>{{ t("import.col.entity") }}</th><th>{{ t("admin.common.status") }}</th><th class="num">{{ t("import.col.read") }}</th><th class="num">{{ t("import.col.created") }}</th><th class="num">{{ t("import.col.updated") }}</th><th class="num">{{ t("import.col.adopted") }}</th><th class="num">{{ t("import.col.skipped") }}</th><th class="num">{{ t("import.col.errors") }}</th></tr></thead>
+    <tbody>{% for l in lines %}<tr>
+      <td data-label="{{ t("import.col.entity") }}">{{ lbl("import.entity", l.key) }}{% if !l.note.is_empty() %}<span class="sub">{{ l.note }}</span>{% endif %}</td>
+      <td data-label="{{ t("admin.common.status") }}">{{ lbl("import.entity_status", l.status) }}{% if l.status == "running" %} · {{ l.percent }}%{% endif %}</td>
+      <td data-label="{{ t("import.col.read") }}" class="num">{{ l.read }} / {{ l.total }}</td>
+      <td data-label="{{ t("import.col.created") }}" class="num">{{ l.created }}</td>
+      <td data-label="{{ t("import.col.updated") }}" class="num">{{ l.updated }}</td>
+      <td data-label="{{ t("import.col.adopted") }}" class="num">{{ l.adopted }}</td>
+      <td data-label="{{ t("import.col.skipped") }}" class="num">{{ l.skipped }}</td>
+      <td data-label="{{ t("import.col.errors") }}" class="num{% if l.errors > 0 %} text-danger{% endif %}">{{ l.errors }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {%- endif %}
+</div>

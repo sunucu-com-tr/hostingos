@@ -1,0 +1,208 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow"><a href="{{ url("/admin/tools/import") }}">{{ t("import.title") }}</a></p>
+    <h1>{{ run.label }}</h1>
+    <p>{{ lbl("import.kind", run.kind) }} · {{ lbl("import.phase", run.phase) }} · {{ badge(lbl("import.status", run.status), run.tone()) }}</p>
+  </div>
+  <div class="page-head__actions">
+    {%- if run.active() %}
+    <form method="post" action="{{ url("/admin/tools/import/" ~ run.id ~ "/cancel") }}" data-confirm="{{ t("import.run.cancel_confirm") }}">{% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--danger" type="submit">{{ icon("x") }}{{ t("import.run.cancel") }}</button></form>
+    {%- endif %}
+    {%- if !lines.is_empty() %}
+    <a class="btn btn--soft" href="{{ url("/admin/tools/import/" ~ run.id ~ "/report.csv") }}">{{ icon("download") }}{{ t("import.report.csv") }}</a>
+    <a class="btn btn--ghost" href="{{ url("/admin/tools/import/" ~ run.id ~ "/report.json") }}">{{ icon("code") }}{{ t("import.report.json") }}</a>
+    {%- endif %}
+  </div>
+</div>
+{% call ui::steps(steps, step) %}{% endcall %}
+{%- match run.error %}{% when Some(e) %}<div class="mt-4">{% call ui::alert("error", e) %}{% endcall %}</div>{% when None %}{% endmatch %}
+
+<div class="admin-grid admin-grid--side mt-6">
+<div class="stack-lg">
+{%- if run.active() %}
+{% call ui::card(t("import.progress.title")) %}
+<div hx-get="{{ url("/admin/tools/import/" ~ run.id ~ "/progress") }}" hx-trigger="load" hx-swap="outerHTML">{% call ui::skeleton(4) %}{% endcall %}</div>
+{% endcall %}
+{%- elif !lines.is_empty() %}
+{% call ui::card(t("import.result.title"), lbl("import.result.lead", run.phase)) %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th>{{ t("import.col.entity") }}</th><th class="num">{{ t("import.col.read") }}</th><th class="num">{{ t("import.col.created") }}</th><th class="num">{{ t("import.col.updated") }}</th><th class="num">{{ t("import.col.adopted") }}</th><th class="num">{{ t("import.col.skipped") }}</th><th class="num">{{ t("import.col.errors") }}</th></tr></thead>
+  <tbody>{% for l in lines %}<tr>
+    <td data-label="{{ t("import.col.entity") }}">{{ lbl("import.entity", l.key) }}{% if l.status == "off" || l.status == "unsupported" %}<span class="sub">{{ lbl("import.entity_status", l.status) }}{% if !l.note.is_empty() %}: {{ l.note }}{% endif %}</span>{% elif !l.note.is_empty() %}<span class="sub">{{ l.note }}</span>{% endif %}</td>
+    <td data-label="{{ t("import.col.read") }}" class="num">{{ l.read }}</td>
+    <td data-label="{{ t("import.col.created") }}" class="num">{{ l.created }}</td>
+    <td data-label="{{ t("import.col.updated") }}" class="num">{{ l.updated }}</td>
+    <td data-label="{{ t("import.col.adopted") }}" class="num">{{ l.adopted }}</td>
+    <td data-label="{{ t("import.col.skipped") }}" class="num">{{ l.skipped }}</td>
+    <td data-label="{{ t("import.col.errors") }}" class="num{% if l.errors > 0 %} text-danger{% endif %}">{{ l.errors }}</td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{% endcall %}
+{%- endif %}
+
+{%- match analysis %}{% when Some(a) %}{% if run.status == "draft" %}
+{% call ui::card(t("import.preview.conflicts"), t("import.preview.conflicts_lead")) %}
+{%- if a.conflicts.is_empty() %}<p class="check-pass">{{ icon("check-circle") }}{{ t("import.preview.no_conflicts") }}</p>
+{%- else %}
+<ul class="stack-sm">{% for c in a.conflicts %}<li><span class="check-warn">{{ icon("alert-triangle") }}</span> <span class="mono small">{{ c.code }}</span> {{ c.message }}</li>{% endfor %}</ul>
+{%- endif %}
+{%- if !a.limits.is_empty() %}
+<h3 class="h4 mt-6">{{ t("import.preview.limits") }}</h3>
+<dl class="kv">{% for l in a.limits %}<dt>{{ lbl("import.limit", l.key) }}</dt><dd class="{% if l.fits() %}check-pass{% else %}check-fail{% endif %}">{{ l.used }} + {{ l.incoming }}{% match l.max %}{% when Some(m) %} / {{ m }}{% when None %} / ∞{% endmatch %}</dd>{% endfor %}</dl>
+{%- endif %}
+{% endcall %}
+{% endif %}{% when None %}{% endmatch %}
+
+{%- if run.status == "draft" %}
+<form method="post" action="{{ url("/admin/tools/import/" ~ run.id ~ "/options") }}" class="ax-form">
+  {% call ui::csrf() %}{% endcall %}
+  {%- if !maps.is_empty() %}
+  <section class="form-section form-section--first">
+    <div class="form-section__intro"><h2>{{ t("import.map.title") }}</h2><p>{{ t("import.map.lead") }}</p></div>
+    <div class="form-section__body">
+      <div class="table-wrap"><table class="table table--dense table--stack">
+        <thead><tr><th>{{ t("import.map.source") }}</th><th>{{ t("import.map.target") }}</th></tr></thead>
+        <tbody>{% for m in maps %}<tr>
+          <td data-label="{{ t("import.map.source") }}"><span class="strong">{{ m.source }}</span>{% if !m.detail.is_empty() %}<span class="sub">{{ m.detail }}</span>{% endif %}</td>
+          <td data-label="{{ t("import.map.target") }}"><label class="visually-hidden" for="m-{{ loop.index }}">{{ m.source }}</label>
+            <select class="select select--sm" id="m-{{ loop.index }}" name="{{ m.field }}">{% for (v, l) in m.options %}<option value="{{ v }}"{{ sel(v, m.selected) }}>{{ l }}</option>{% endfor %}</select></td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+  </section>
+  {%- endif %}
+  <section class="form-section{% if maps.is_empty() %} form-section--first{% endif %}">
+    <div class="form-section__intro"><h2>{{ t("import.options.entities") }}</h2><p>{{ t("import.options.entities_lead") }}</p></div>
+    <div class="form-section__body">
+      <div class="checks checks--grid">{% for e in entities %}<label class="check"><input type="checkbox" name="entity" value="{{ e.key }}"{{ chk(e.checked) }}> <span>{{ lbl("import.entity", e.key) }} <span class="muted small">· {{ lbl("import.group", e.group) }}</span></span></label>{% endfor %}</div>
+    </div>
+  </section>
+  <section class="form-section">
+    <div class="form-section__intro"><h2>{{ t("import.options.title") }}</h2><p>{{ t("import.options.lead") }}</p></div>
+    <div class="form-section__body">
+      <div class="checks">
+        {% call ui::checkbox("pause_automation", t("import.options.pause_automation"), options.pause_automation) %}{% endcall %}
+        {% call ui::checkbox("verified_emails", t("import.options.verified_emails"), options.verified_emails) %}{% endcall %}
+        {% call ui::checkbox("service_passwords", t("import.options.service_passwords"), options.service_passwords) %}{% endcall %}
+        {% call ui::checkbox("server_credentials", t("import.options.server_credentials"), options.server_credentials) %}{% endcall %}
+      </div>
+      <div class="form-grid mt-4">
+        {% call ui::field("grace_days", t("import.options.grace_days"), options.grace_days.to_string(), kind="number", hint=t("import.options.grace_days_hint")) %}{% endcall %}
+        {% call ui::field("activity_log_limit", t("import.options.activity_log_limit"), options.activity_log_limit.to_string(), kind="number") %}{% endcall %}
+        {% call ui::field("attachment_max_mb", t("import.options.attachment_max_mb"), (options.attachment_max_bytes / 1048576).to_string(), kind="number") %}{% endcall %}
+        <div class="field"><label class="field__label" for="f-content_locale">{{ t("import.options.content_locale") }}</label>
+          <select class="select" id="f-content_locale" name="content_locale">
+            <option value="">{{ t("import.options.locale_auto") }}</option>
+            <option value="tr"{% if options.content_locale.as_deref() == Some("tr") %} selected{% endif %}>Türkçe</option>
+            <option value="en"{% if options.content_locale.as_deref() == Some("en") %} selected{% endif %}>English</option>
+          </select></div>
+      </div>
+    </div>
+  </section>
+  {%- if run.dry_run_at.is_some() %}
+  <section class="form-section">
+    <div class="form-section__intro"><h2>{{ t("import.run.start_title") }}</h2><p>{{ t("import.run.start_lead") }}</p></div>
+    <div class="form-section__body">
+      {% call ui::alert("warning", t("import.run.cutover_warning")) %}{% endcall %}
+      <div class="checks mt-4">{% call ui::checkbox("confirm_cutover", t("import.run.confirm_cutover")) %}{% endcall %}</div>
+      {%- if let Some(l) = live %}
+      {% call ui::alert("error", l) %}{% endcall %}
+      <div class="checks mt-4">{% call ui::checkbox("confirm_live", t("import.run.confirm_live")) %}{% endcall %}</div>
+      {%- endif %}
+    </div>
+  </section>
+  {%- endif %}
+  <div class="form-actions">
+    {%- if run.has_secrets %}
+    <button class="btn btn--ghost" type="submit" name="action" value="save">{{ t("common.actions.save") }}</button>
+    <button class="btn btn--soft" type="submit" name="action" value="preview">{{ icon("eye") }}{% if run.dry_run_at.is_some() %}{{ t("import.run.preview_again") }}{% else %}{{ t("import.run.preview") }}{% endif %}</button>
+    {%- if run.dry_run_at.is_some() %}
+    <button class="btn btn--primary" type="submit" name="action" value="start">{{ icon("rocket") }}{{ t("import.run.start") }}</button>
+    {%- endif %}
+    {%- else %}
+    <p class="muted">{{ t("import.run.secrets_gone") }}</p>
+    {%- endif %}
+  </div>
+</form>
+{%- endif %}
+
+{%- if !messages.is_empty() || !levels.is_empty() %}
+{% call ui::card(t("import.report.title"), t("import.report.lead")) %}
+<nav class="chips" aria-label="{{ t("import.report.filter") }}">
+  <a class="chip{% if level.is_empty() %} chip--active{% endif %}" href="{{ url("/admin/tools/import/" ~ run.id) }}">{{ t("admin.common.all") }}</a>
+  {%- for (lv, n) in levels %}<a class="chip{% if *lv == level %} chip--active{% endif %}" href="{{ url("/admin/tools/import/" ~ run.id ~ "?level=" ~ lv) }}">{{ lbl("import.level", lv) }} <span class="chip__count">{{ n }}</span></a>{% endfor %}
+</nav>
+<div class="table-wrap mt-4"><table class="table table--dense table--stack">
+  <thead><tr><th>{{ t("import.col.level") }}</th><th>{{ t("import.col.entity") }}</th><th>{{ t("import.col.source_id") }}</th><th>{{ t("import.col.message") }}</th></tr></thead>
+  <tbody>{% for m in messages %}<tr>
+    <td data-label="{{ t("import.col.level") }}">{{ badge(lbl("import.level", m.level), level_tone(m.level)) }}</td>
+    <td data-label="{{ t("import.col.entity") }}" class="small">{{ m.entity }}</td>
+    <td data-label="{{ t("import.col.source_id") }}" class="mono small">{{ o(m.source_id) }}</td>
+    <td data-label="{{ t("import.col.message") }}" class="small"><span class="mono">{{ m.code }}</span> {{ m.message }}</td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{% endcall %}
+{%- endif %}
+</div>
+
+<aside class="stack-lg">
+{% call ui::card(t("import.connection.title")) %}
+<dl class="kv">
+  <dt>{{ t("import.connection.kind") }}</dt><dd>{{ lbl("import.kind", run.kind) }}</dd>
+  {%- if !version.is_empty() %}<dt>{{ t("import.connection.version") }}</dt><dd>{{ version }}</dd>{% endif %}
+  <dt>{{ t("import.connection.credentials") }}</dt><dd>{% if run.has_secrets %}{{ t("import.connection.stored") }}{% else %}{{ t("import.connection.wiped") }}{% endif %}</dd>
+  <dt>{{ t("import.col.created") }}</dt><dd>{{ datetime(run.created_at) }}</dd>
+  <dt>{{ t("import.connection.preview_at") }}</dt><dd>{{ dtopt(run.dry_run_at) }}</dd>
+  <dt>{{ t("import.col.finished") }}</dt><dd>{{ dtopt(run.finished_at) }}</dd>
+</dl>
+{%- if !probe.is_empty() %}<ul class="small muted mt-4">{% for n in probe %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
+{%- if run.status == "draft" && run.has_secrets %}
+<form method="post" action="{{ url("/admin/tools/import/" ~ run.id ~ "/forget") }}" class="mt-4" data-confirm="{{ t("import.connection.forget_confirm") }}">{% call ui::csrf() %}{% endcall %}
+  <button class="btn btn--ghost btn--sm" type="submit">{{ icon("lock") }}{{ t("import.connection.forget") }}</button></form>
+{%- endif %}
+{% endcall %}
+
+{%- if !unsupported.is_empty() %}
+{% call ui::card(t("import.unsupported.title"), t("import.unsupported.lead")) %}
+<dl class="kv">{% for (k, reason, n) in unsupported %}<dt>{{ k }} <span class="muted small">({{ n }})</span></dt><dd class="small">{{ reason }}</dd>{% endfor %}</dl>
+{% endcall %}
+{%- endif %}
+
+{%- match cutover %}{% when Some(stats) %}
+{% call ui::card(t("import.cutover.title"), t("import.cutover.lead")) %}
+<ul class="stack-sm small">
+  <li class="{% if automation_active %}check-pass{% else %}check-warn{% endif %}">{% if automation_active %}{{ t("import.cutover.automation_on") }}{% else %}{{ t("import.cutover.automation_off") }}{% endif %}</li>
+  <li class="check-warn">{{ tv2("import.cutover.grace", "count", stats.services_in_grace, "date", dopt(stats.grace_until)) }}</li>
+  <li class="{% if stats.open_invoices > 0 %}check-warn{% else %}check-pass{% endif %}">{{ tv("import.cutover.open_invoices", "count", stats.open_invoices) }}</li>
+  <li class="{% if stats.services_overdue > 0 %}check-warn{% else %}check-pass{% endif %}">{{ tv("import.cutover.overdue", "count", stats.services_overdue) }}</li>
+  <li class="{% if stats.services_to_terminate > 0 %}check-fail{% else %}check-pass{% endif %}">{{ tv("import.cutover.terminate", "count", stats.services_to_terminate) }}</li>
+</ul>
+{%- if !automation_active %}
+<form method="post" action="{{ url("/admin/tools/import/automation") }}" class="mt-4" data-confirm="{{ t("import.cutover.resume_confirm") }}">{% call ui::csrf() %}{% endcall %}
+  <button class="btn btn--primary btn--sm" type="submit">{{ icon("zap") }}{{ t("import.cutover.resume") }}</button></form>
+{%- endif %}
+{%- if !post.is_empty() %}<dl class="kv mt-4 small">{% for (k, v) in post %}<dt>{{ lbl("import.post", k) }}</dt><dd>{{ v }}</dd>{% endfor %}</dl>{% endif %}
+{% endcall %}
+{% when None %}{% endmatch %}
+
+{%- if run.phase == "import" && (run.status == "completed" || run.status == "failed" || run.status == "cancelled") %}
+{% call ui::card(t("import.rollback.title"), t("import.rollback.lead")) %}
+{%- if !blocked.is_empty() %}<ul class="small stack-sm mb-4">{% for b in blocked %}<li class="check-fail">{{ b }}</li>{% endfor %}</ul>{% endif %}
+<form method="post" action="{{ url("/admin/tools/import/" ~ run.id ~ "/rollback") }}" class="stack" data-confirm="{{ t("import.rollback.confirm_dialog") }}">{% call ui::csrf() %}{% endcall %}
+  {% call ui::checkbox("confirm", t("import.rollback.confirm")) %}{% endcall %}
+  <button class="btn btn--danger btn--sm" type="submit">{{ icon("history") }}{{ t("import.rollback.button") }}</button>
+</form>
+{% endcall %}
+{%- endif %}
+{%- if !rolled_back.is_empty() %}
+{% call ui::card(t("import.rollback.done_title")) %}
+<dl class="kv small">{% for (k, v) in rolled_back %}<dt>{{ k }}</dt><dd>{{ v }}</dd>{% endfor %}</dl>
+{% endcall %}
+{%- endif %}
+</aside>
+</div>
+{% endblock %}

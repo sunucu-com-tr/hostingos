@@ -1,0 +1,27 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("affiliates.admin.title") }}</h1><p>{{ t("affiliates.admin.review_lead") }}</p></div></div>
+<div class="mt-2">{% call ui::tabs(tabs.as_slice(), url("/admin/affiliates/review")) %}{% endcall %}</div>
+<div class="mt-4">
+{%- if rows.is_empty() %}
+{% call ui::empty("shield", t("affiliates.admin.review_empty"), "") %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th scope="col">{{ t("affiliates.fields.date") }}</th><th scope="col">{{ t("affiliates.fields.referral") }}</th><th scope="col">{{ t("affiliates.fields.affiliate") }}</th><th scope="col">{{ t("affiliates.fields.flag") }}</th><th scope="col" class="num">{{ t("affiliates.admin.held") }}</th><th scope="col"><span class="visually-hidden">{{ t("affiliates.fields.actions") }}</span></th></tr></thead>
+  <tbody>{% for r in rows %}<tr>
+    <td data-label="{{ t("affiliates.fields.date") }}" class="nowrap">{{ date(r.created_at) }}</td>
+    <td data-label="{{ t("affiliates.fields.referral") }}"><a href="{{ url("/admin/clients/" ~ r.client_id) }}">{{ r.client_name }}</a></td>
+    <td data-label="{{ t("affiliates.fields.affiliate") }}"><a class="mono" href="{{ url("/admin/affiliates/" ~ r.affiliate_id) }}">{{ r.affiliate_code }}</a></td>
+    <td data-label="{{ t("affiliates.fields.flag") }}">{{ badge(lbl("affiliates.flag", r.flag.as_str()), "warning") }}</td>
+    <td data-label="{{ t("affiliates.admin.held") }}" class="num">{% match r.currency %}{% when Some(cur) %}{{ m(r.held, cur) }}{% when None %}—{% endmatch %}</td>
+    <td class="num biz-cellact">{%- if can("affiliates.manage") %}
+      <form method="post" action="{{ url("/admin/affiliates/referrals/" ~ r.id ~ "/release") }}" data-confirm="{{ t("affiliates.admin.release_confirm") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="decision" value="approve"><button class="btn btn--soft btn--sm" type="submit">{{ icon("check") }}{{ t("affiliates.admin.release") }}</button></form>
+      <form method="post" action="{{ url("/admin/affiliates/referrals/" ~ r.id ~ "/release") }}" data-confirm="{{ t("affiliates.admin.reverse_confirm") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="decision" value="reject"><button class="btn btn--ghost btn--sm" type="submit">{{ icon("x") }}{{ t("affiliates.admin.reverse") }}</button></form>
+    {%- endif %}</td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{%- endif %}
+</div>
+{% endblock %}

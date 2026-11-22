@@ -1,0 +1,33 @@
+{#- Editorial template (premium, minimal): a large serif headline across the
+    page, a two-column standfirst with the domain search, and a typographic
+    index of extensions instead of a widget. One drawn ornament (circle and
+    hairline arcs). Included by storefront/home.html. -#}
+<section class="hero hero--editorial">
+  <div class="container hero__inner">
+    <p class="hero__kicker"><span>{{ site_name }}</span><span aria-hidden="true">—</span><span>{{ t("storefront.home.groups_eyebrow") }}</span></p>
+    <h1>{{ hero_title }}</h1>
+    <div class="hero__columns">
+      <div class="hero__main">
+        <p class="hero__lead">{{ hero_lead }}</p>
+        <div class="hero__search">{% call cat::domain_search("") %}{% endcall %}</div>
+        {% include "themes/_hero_actions.html" %}
+      </div>
+      <div class="hero__aside">
+        <svg class="hero-art hero-art--editorial" viewBox="0 0 360 360" width="360" height="360" aria-hidden="true" focusable="false">
+          <circle cx="180" cy="180" r="120" class="art-fill-brand"/>
+          <circle cx="180" cy="180" r="150" class="art-hair"/>
+          <circle cx="180" cy="180" r="174" class="art-hair art-hair--faint"/>
+          <path d="M30 180h300M180 30v300" class="art-hair art-hair--faint"/>
+          <circle cx="282" cy="96" r="14" class="art-fill-accent"/>
+        </svg>
+        {%- if !tlds.is_empty() %}
+        <dl class="tld-index" aria-label="{{ t("storefront.home.tld_prices") }}">
+          {%- for c in tlds %}
+          <div><dt>.{{ c.tld }}</dt><dd>{% match c.price %}{% when Some(p) %}{{ money(p) }}{% when None %}—{% endmatch %}</dd></div>
+          {%- endfor %}
+        </dl>
+        {%- endif %}
+      </div>
+    </div>
+  </div>
+</section>

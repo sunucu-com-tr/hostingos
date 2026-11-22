@@ -1,0 +1,56 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ title }}</h1>{% if id.is_some() %}<p>{{ tv("admin.coupons.used_times", "count", uses) }}</p>{% endif %}</div></div>
+{%- if !error.is_empty() %}{% call ui::alert("danger", error) %}{% endcall %}{% endif %}
+<form class="stack-lg" method="post" action="{% match id %}{% when Some(i) %}{{ url("/admin/billing/coupons/" ~ i) }}{% when None %}{{ url("/admin/billing/coupons") }}{% endmatch %}">
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::card(t("admin.coupons.section_discount")) %}
+  <div class="form-grid">
+    {%- if id.is_none() %}
+    {% call ui::field("code", t("admin.coupons.code"), form.code, required=true, hint=t("admin.coupons.code_hint")) %}{% endcall %}
+    {%- else %}
+    <div class="field"><span class="field__label">{{ t("admin.coupons.code") }}</span><p class="mono"><strong>{{ form.code }}</strong></p></div>
+    {%- endif %}
+    {% call ui::field("description", t("admin.common.description"), form.description) %}{% endcall %}
+    <div class="field"><label class="field__label" for="c-type">{{ t("admin.coupons.type") }}</label>
+      <select class="select" id="c-type" name="discount_type">{% for (v, l) in types %}<option value="{{ v }}"{{ sel(v, form.discount_type) }}>{{ l }}</option>{% endfor %}</select></div>
+    {% call ui::field("value", t("admin.coupons.value"), form.value, inputmode="decimal", hint=t("admin.coupons.value_hint")) %}{% endcall %}
+    <div class="field"><label class="field__label" for="c-cur">{{ t("admin.common.currency") }}</label>
+      <select class="select" id="c-cur" name="currency"><option value="">{{ t("admin.coupons.any_currency") }}</option>{% for c in currencies %}<option value="{{ c.code }}"{{ sel(c.code.as_str(), form.currency) }}>{{ c.code }}</option>{% endfor %}</select>
+      <p class="field__hint">{{ t("admin.coupons.currency_hint") }}</p></div>
+    {% call ui::field("min_order", t("admin.coupons.min_order"), form.min_order, inputmode="decimal") %}{% endcall %}
+  </div>
+  <div class="checks mt-4">
+    {% call ui::checkbox("applies_to_setup", t("admin.coupons.applies_to_setup"), form.applies_to_setup) %}{% endcall %}
+    {% call ui::checkbox("recurring", t("admin.coupons.recurring_label"), form.recurring) %}{% endcall %}
+  </div>
+  <div class="form-grid mt-4">
+    {% call ui::field("recurring_limit", t("admin.coupons.recurring_limit"), form.recurring_limit, inputmode="numeric", hint=t("admin.coupons.recurring_limit_hint")) %}{% endcall %}
+  </div>
+  {% endcall %}
+  {% call ui::card(t("admin.coupons.section_scope")) %}
+  <fieldset class="fieldset"><legend>{{ t("admin.coupons.products") }}</legend>
+    <p class="field__hint">{{ t("admin.coupons.products_hint") }}</p>
+    <div class="checks checks--grid">{% for (pid, pname) in products %}<label class="check"><input type="checkbox" name="product_ids" value="{{ pid }}"{% if has_product(pid) %} checked{% endif %}> {{ pname }}</label>{% endfor %}</div>
+  </fieldset>
+  <fieldset class="fieldset mt-4"><legend>{{ t("admin.coupons.cycles") }}</legend>
+    <p class="field__hint">{{ t("admin.coupons.cycles_hint") }}</p>
+    <div class="checks checks--grid">{% for (cv, cl) in cycles %}<label class="check"><input type="checkbox" name="cycles" value="{{ cv }}"{% if has_cycle(cv) %} checked{% endif %}> {{ cl }}</label>{% endfor %}</div>
+  </fieldset>
+  {% endcall %}
+  {% call ui::card(t("admin.coupons.section_limits")) %}
+  <div class="form-grid">
+    {% call ui::field("max_uses", t("admin.coupons.max_uses"), form.max_uses, inputmode="numeric", hint=t("admin.coupons.max_uses_hint")) %}{% endcall %}
+    {% call ui::field("starts_at", t("admin.coupons.starts_at"), form.starts_at, kind="datetime-local") %}{% endcall %}
+    {% call ui::field("expires_at", t("admin.coupons.expires_at"), form.expires_at, kind="datetime-local") %}{% endcall %}
+  </div>
+  <div class="checks mt-4">
+    {% call ui::checkbox("new_clients_only", t("admin.coupons.new_clients_only"), form.new_clients_only) %}{% endcall %}
+    {% call ui::checkbox("once_per_client", t("admin.coupons.once_per_client"), form.once_per_client) %}{% endcall %}
+    {% call ui::checkbox("is_active", t("admin.common.active"), form.is_active) %}{% endcall %}
+  </div>
+  {% endcall %}
+  <div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button><a class="btn btn--ghost" href="{{ url("/admin/billing/coupons") }}">{{ t("common.actions.cancel") }}</a></div>
+</form>
+{% endblock %}

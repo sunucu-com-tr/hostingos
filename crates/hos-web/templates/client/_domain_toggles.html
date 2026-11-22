@@ -1,0 +1,21 @@
+{#- Auto renew / lock / privacy switches (each its own POST form). -#}
+<form class="setting-row" method="post" action="{{ url("/client/domains/") }}{{ d.id }}/autorenew">
+  {% call ui::csrf() %}{% endcall %}
+  <input type="hidden" name="enabled" value="{% if d.auto_renew %}0{% else %}1{% endif %}">
+  <div><strong>{{ t("client.domains.auto_renew") }}</strong><p class="small muted">{{ t("client.domains.auto_renew_hint") }}</p></div>
+  <div class="cluster">{% if d.auto_renew %}{{ badge(t("client.common.on"), "success") }}{% else %}{{ badge(t("client.common.off"), "") }}{% endif %}<button type="submit" class="btn btn--ghost btn--sm">{% if d.auto_renew %}{{ t("client.common.turn_off") }}{% else %}{{ t("client.common.turn_on") }}{% endif %}</button></div>
+</form>
+<form class="setting-row" method="post" action="{{ url("/client/domains/") }}{{ d.id }}/lock">
+  {% call ui::csrf() %}{% endcall %}
+  <input type="hidden" name="enabled" value="{% if d.lock %}0{% else %}1{% endif %}">
+  <div><strong>{{ t("client.domains.lock") }}</strong><p class="small muted">{{ t("client.domains.lock_hint") }}</p></div>
+  <div class="cluster">{% if d.lock %}{{ badge(t("client.common.on"), "success") }}{% else %}{{ badge(t("client.common.off"), "") }}{% endif %}<button type="submit" class="btn btn--ghost btn--sm">{% if d.lock %}{{ t("client.common.turn_off") }}{% else %}{{ t("client.common.turn_on") }}{% endif %}</button></div>
+</form>
+{%- if supports_privacy %}
+<form class="setting-row" method="post" action="{{ url("/client/domains/") }}{{ d.id }}/privacy">
+  {% call ui::csrf() %}{% endcall %}
+  <input type="hidden" name="enabled" value="{% if d.privacy %}0{% else %}1{% endif %}">
+  <div><strong>{{ t("client.domains.privacy") }}</strong><p class="small muted">{{ t("client.domains.privacy_hint") }}</p></div>
+  <div class="cluster">{% if d.privacy %}{{ badge(t("client.common.on"), "success") }}{% else %}{{ badge(t("client.common.off"), "") }}{% endif %}<button type="submit" class="btn btn--ghost btn--sm">{% if d.privacy %}{{ t("client.common.turn_off") }}{% else %}{{ t("client.common.turn_on") }}{% endif %}</button></div>
+</form>
+{%- endif %}

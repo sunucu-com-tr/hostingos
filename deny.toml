@@ -1,0 +1,78 @@
+# cargo-deny policy (https://embarkstudios.github.io/cargo-deny/).
+#
+# CI (.github/workflows/ci.yml, job "dependency audit") runs
+#
+#   cargo deny --locked check licenses bans sources
+#
+# Security advisories are checked by `cargo audit` in the same job
+# (.cargo/audit.toml holds its documented exceptions); the [advisories]
+# section below mirrors those exceptions for anyone who runs
+# `cargo deny check` locally.
+#
+# The graph covers every target platform and the default features, like the
+# release build. Dev-dependencies are not part of the licence check
+# (cargo-deny's default): they are never shipped.
+
+[licenses]
+# HostingOS itself is AGPL-3.0-only (workspace Cargo.toml). Every licence
+# allowed here is permissive and can be combined with the AGPL-3.0. Where a
+# crate offers a choice (`MIT OR Apache-2.0`, `Unlicense OR MIT`, ...) one
+# allowed alternative is enough. Before adding a licence, check that it is
+# compatible with distributing the combined work under the AGPL-3.0 and say
+# why in a comment.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    # arrayref.
+    "BSD-2-Clause",
+    # subtle, alloc-no-stdlib, alloc-stdlib, tiny-skia-path; part of
+    # encoding_rs, brotli, matchit, aws-lc-sys.
+    "BSD-3-Clause",
+    # rustls-webpki, untrusted, scraper, ego-tree; part of ring, aws-lc-rs.
+    "ISC",
+    # ICU4X crates and the Unicode tables of unicode-ident and friends.
+    "Unicode-3.0",
+    # foldhash (zlib-rs where it is in the graph).
+    "Zlib",
+    # quoted_printable.
+    "0BSD",
+]
+# Licences allowed only for the crates named here, so that a new dependency
+# under one of them gets a review instead of passing silently.
+exceptions = [
+    # Mozilla's CA root list (data). Permissive; no copyleft.
+    { crate = "webpki-roots", allow = ["CDLA-Permissive-2.0"] },
+    { crate = "webpki-root-certs", allow = ["CDLA-Permissive-2.0"] },
+    # Servo's CSS parser and selector matching (pulled in by scraper).
+    # File-level copyleft; none of these source files carries the
+    # "Incompatible With Secondary Licenses" notice (MPL-2.0 Exhibit B), so
+    # MPL-2.0 §3.3 allows distributing them in a larger work under the
+    # AGPL-3.0. They are used unmodified from crates.io.
+    { crate = "cssparser", allow = ["MPL-2.0"] },
+    { crate = "cssparser-macros", allow = ["MPL-2.0"] },
+    { crate = "selectors", allow = ["MPL-2.0"] },
+    { crate = "dtoa-short", allow = ["MPL-2.0"] },
+]
+confidence-threshold = 0.9
+# The workspace crates are not published (`publish = false`); their own
+# licence (AGPL-3.0-only) is not part of this check.
+private = { ignore = true }
+
+[bans]
+multiple-versions = "warn"
+wildcards = "warn"
+# Workspace crates depend on each other by path only.
+allow-wildcard-paths = true
+
+[sources]
+# crates.io only; no git or alternative registries.
+unknown-registry = "deny"
+unknown-git = "deny"
+
+[advisories]
+ignore = [
+    # Same exception and reasoning as .cargo/audit.toml: `rsa` is only in
+    # Cargo.lock through sqlx's optional MySQL driver, which is never built.
+    { id = "RUSTSEC-2023-0071", reason = "rsa is only reachable through sqlx-mysql, which is not compiled (see .cargo/audit.toml)" },
+    { id = "RUSTSEC-2026-0459", reason = "libsqlite3-sys is only reachable through sqlx-sqlite, which is not compiled (see .cargo/audit.toml)" },
+]

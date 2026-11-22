@@ -1,0 +1,49 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ t("platform.plans.title") }}</h1>
+    <p>{{ t("platform.plans.lead") }}</p>
+  </div>
+  <div class="btn-row"><a class="btn btn--primary" href="/platform/plans/new">{{ icon("plus") }}{{ t("platform.plans.new") }}</a></div>
+</div>
+{% call ui::card() %}
+{%- if plans.is_empty() %}
+{% call ui::empty("layers", t("platform.plans.empty")) %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--stack">
+  <thead><tr>
+    <th scope="col">{{ t("platform.plans.col_plan") }}</th>
+    <th scope="col" class="num">{{ t("platform.plans.col_monthly") }}</th>
+    <th scope="col" class="num">{{ t("platform.plans.col_annual") }}</th>
+    <th scope="col">{{ t("platform.plans.col_limits") }}</th>
+    <th scope="col" class="num">{{ t("platform.plans.col_subscriptions") }}</th>
+    <th scope="col"></th>
+  </tr></thead>
+  <tbody>
+  {%- for p in plans %}
+    <tr>
+      <td data-label="{{ t("platform.plans.col_plan") }}"><a href="/platform/plans/{{ p.plan.id }}"><strong>{{ p.plan.name }}</strong></a> <code class="muted small">{{ p.plan.code }}</code>
+        <br>{% if p.plan.is_active %}{{ badge(t("platform.plans.active"), "success") }}{% else %}{{ badge(t("platform.plans.inactive"), "") }}{% endif %} {% if p.plan.is_public %}{{ badge(t("platform.plans.public"), "info") }}{% endif %} <span class="muted small">{{ tv("platform.plans.trial", "days", p.plan.trial_days) }}</span>
+        {%- if !p.features.is_empty() %}<br><span class="muted small">{{ p.features }}</span>{% endif %}</td>
+      <td data-label="{{ t("platform.plans.col_monthly") }}" class="num tabular">{{ money_in(p.plan.price_monthly, p.plan.currency) }}</td>
+      <td data-label="{{ t("platform.plans.col_annual") }}" class="num tabular">{{ money_in(p.plan.price_annual, p.plan.currency) }}</td>
+      <td data-label="{{ t("platform.plans.col_limits") }}" class="small">{{ p.limits }}</td>
+      <td data-label="{{ t("platform.plans.col_subscriptions") }}" class="num tabular">{{ num(p.subscriptions) }}</td>
+      <td>
+        <div class="btn-row">
+          <a class="btn btn--ghost btn--sm" href="/platform/plans/{{ p.plan.id }}">{{ icon("settings") }}{{ t("platform.common.edit") }}</a>
+          {%- if p.subscriptions == 0 %}
+          <form method="post" action="/platform/plans/{{ p.plan.id }}/delete" data-confirm="{{ t("platform.plans.delete_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ icon("x") }}{{ t("platform.common.delete") }}</button></form>
+          {%- endif %}
+        </div>
+      </td>
+    </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{%- endif %}
+{% endcall %}
+{% endblock %}

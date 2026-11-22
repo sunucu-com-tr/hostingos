@@ -1,0 +1,73 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ user.display_name() }}{% if is_me %} {{ badge(t("admin_settings.staff.you"), "") }}{% endif %}</h1><p>{{ user.email }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/staff") }}">{{ icon("chevron-left") }}{{ t("admin.common.back") }}</a></div>
+</div>
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    {% call ui::card(t("admin_settings.staff.roles"), t("admin_settings.staff.roles_lead")) %}
+    <form method="post" action="{{ url("/admin/staff/" ~ user.id ~ "/roles") }}" class="stack">
+      {% call ui::csrf() %}{% endcall %}
+      <fieldset class="stack-sm">
+        <legend class="visually-hidden">{{ t("admin_settings.staff.roles") }}</legend>
+        {%- for r in roles %}
+        <label class="check">
+          <input type="checkbox" name="role_ids" value="{{ r.id }}"{% if r.checked %} checked{% endif %}{% if r.locked %} disabled{% endif %}>
+          <span>{{ r.label }}{% if r.owner %} {{ badge(t("admin_settings.roles.owner_badge"), "brand") }}{% endif %}{% if r.locked %} <span class="muted small">({{ t("admin_settings.staff.role_locked") }})</span>{% endif %}</span>
+        </label>
+        {%- if r.locked && r.checked %}<input type="hidden" name="role_ids" value="{{ r.id }}">{% endif %}
+        {%- endfor %}
+      </fieldset>
+      <p class="field__hint">{{ t("admin_settings.staff.roles_hint") }}</p>
+      <div><button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button></div>
+    </form>
+    {% endcall %}
+
+    {% call ui::card(t("admin_settings.staff.effective"), t("admin_settings.staff.effective_lead")) %}
+    {%- if effective.is_empty() %}
+    <p class="muted small">{{ t("admin_settings.staff.effective_none") }}</p>
+    {%- else %}
+    <ul class="tag-list">
+      {%- for p in effective %}<li>{{ badge(p, "") }}</li>{% endfor %}
+    </ul>
+    {%- endif %}
+    {% endcall %}
+  </div>
+  <aside class="stack-lg">
+    {% call ui::card(t("admin_settings.staff.account")) %}
+    <dl class="dl">
+      <dt>{{ t("admin.common.status") }}</dt><dd>{{ sbadge(user.status.as_str()) }}</dd>
+      <dt>{{ t("admin_settings.staff.twofa") }}</dt><dd>{% if user.totp_enabled %}{{ badge(t("admin_settings.staff.twofa_on"), "success") }}{% else %}{{ badge(t("admin_settings.staff.twofa_off"), "") }}{% endif %}</dd>
+      <dt>{{ t("admin_settings.staff.last_login") }}</dt><dd>{{ dtopt(user.last_login_at) }}{% match user.last_login_ip %}{% when Some(ip) %}<span class="sub mono small">{{ ip }}</span>{% when None %}{% endmatch %}</dd>
+      <dt>{{ t("admin_settings.staff.sessions") }}</dt><dd>{{ sessions }}</dd>
+      <dt>{{ t("admin_settings.staff.member_since") }}</dt><dd>{{ date(user.created_at) }}</dd>
+    </dl>
+    {% endcall %}
+    {%- if !is_me %}
+    {% call ui::card(t("admin_settings.staff.actions")) %}
+    {%- if outranks %}
+    <p class="muted small">{{ t("admin_settings.staff.errors.outranked") }}</p>
+    {%- else %}
+    <div class="stack-sm">
+      {%- if user.status.as_str() == "disabled" %}
+      <form method="post" action="{{ url("/admin/staff/" ~ user.id ~ "/activate") }}">{% call ui::csrf() %}{% endcall %}
+        <button class="btn btn--soft btn--sm" type="submit">{{ icon("check-circle") }}{{ t("admin_settings.staff.activate") }}</button></form>
+      {%- else %}
+      <form method="post" action="{{ url("/admin/staff/" ~ user.id ~ "/deactivate") }}" data-confirm="{{ t("admin_settings.staff.deactivate_confirm") }}">{% call ui::csrf() %}{% endcall %}
+        <button class="btn btn--danger btn--sm" type="submit">{{ icon("x-circle") }}{{ t("admin_settings.staff.deactivate") }}</button></form>
+      {%- endif %}
+      {%- if user.totp_enabled %}
+      <form method="post" action="{{ url("/admin/staff/" ~ user.id ~ "/reset-2fa") }}" data-confirm="{{ t("admin_settings.staff.reset_2fa_confirm") }}">{% call ui::csrf() %}{% endcall %}
+        <button class="btn btn--ghost btn--sm" type="submit">{{ icon("shield") }}{{ t("admin_settings.staff.reset_2fa") }}</button></form>
+      {%- endif %}
+    </div>
+    <p class="field__hint">{{ t("admin_settings.staff.deactivate_hint") }}</p>
+    {%- endif %}
+    {% endcall %}
+    {%- endif %}
+  </aside>
+</div>
+{% endblock %}

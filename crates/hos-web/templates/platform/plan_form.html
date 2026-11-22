@@ -1,0 +1,47 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ ctx.title }}</h1></div></div>
+{% call ui::form_errors(errors) %}{% endcall %}
+<form class="stack-lg" method="post" action="{{ action }}" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::card(t("platform.plans.section_basics")) %}
+  <div class="form-row">
+    {% call ui::field("code", t("platform.plans.code"), form.code, error=errors.get("code"), required=true, hint=t("platform.plans.code_hint")) %}{% endcall %}
+    {% call ui::field("name", t("platform.plans.name"), form.name, error=errors.get("name"), required=true) %}{% endcall %}
+    {% call ui::field("sort_order", t("platform.plans.sort_order"), form.sort_order, kind="number", error=errors.get("sort_order")) %}{% endcall %}
+  </div>
+  {% call ui::textarea("description", t("platform.plans.description"), form.description, rows=3) %}{% endcall %}
+  <div class="cluster">
+    {% call ui::checkbox("is_active", t("platform.plans.active"), is_active) %}{% endcall %}
+    {% call ui::checkbox("is_public", t("platform.plans.public_hint"), is_public) %}{% endcall %}
+  </div>
+  {% endcall %}
+  {% call ui::card(t("platform.plans.section_price")) %}
+  <div class="form-row">
+    {% call ui::field("currency", t("platform.plans.currency"), form.currency, error=errors.get("currency"), required=true) %}{% endcall %}
+    {% call ui::field("price_monthly", t("platform.plans.col_monthly"), form.price_monthly, error=errors.get("price_monthly"), inputmode="decimal") %}{% endcall %}
+    {% call ui::field("price_annual", t("platform.plans.col_annual"), form.price_annual, error=errors.get("price_annual"), inputmode="decimal") %}{% endcall %}
+    {% call ui::field("trial_days", t("platform.tenant_new.trial_days"), form.trial_days, kind="number", error=errors.get("trial_days")) %}{% endcall %}
+  </div>
+  {% endcall %}
+  {% call ui::card(t("platform.plans.col_limits"), t("platform.plans.limits_hint")) %}
+  <div class="form-row">
+    {% call ui::field("max_clients", t("platform.limits.max_clients"), form.max_clients, kind="number", error=errors.get("max_clients")) %}{% endcall %}
+    {% call ui::field("max_services", t("platform.limits.max_services"), form.max_services, kind="number", error=errors.get("max_services")) %}{% endcall %}
+    {% call ui::field("max_staff", t("platform.limits.max_staff"), form.max_staff, kind="number", error=errors.get("max_staff")) %}{% endcall %}
+    {% call ui::field("custom_domains", t("platform.limits.custom_domains"), form.custom_domains, kind="number", error=errors.get("custom_domains")) %}{% endcall %}
+    {% call ui::field("integrations", t("platform.limits.integrations"), form.integrations, kind="number", error=errors.get("integrations")) %}{% endcall %}
+  </div>
+  {% endcall %}
+  {% call ui::card(t("platform.features.title")) %}
+  {% call ui::textarea("features", t("platform.plans.features"), form.features, rows=3, hint=tv("platform.plans.features_hint", "known", known_features)) %}{% endcall %}
+  {% endcall %}
+  <div class="btn-row">
+    <button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button>
+    <a class="btn btn--ghost" href="/platform/plans">{{ t("common.actions.cancel") }}</a>
+    {%- if editing %}<span class="muted small">{{ t("platform.plans.edit_note") }}</span>{% endif %}
+  </div>
+</form>
+{% endblock %}

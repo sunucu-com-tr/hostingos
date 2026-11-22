@@ -1,0 +1,36 @@
+{#- Progress of an update run; polled by htmx while it is active. Needs: run (RunView). -#}
+{% import "components/ui.html" as ui %}
+<section class="card pf-update-run" id="update-run"
+  {%- if run.active %} hx-get="/platform/updates/runs/{{ run.id }}/status" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}
+  aria-live="polite">
+  <header class="card__head"><div>
+    <h2>{{ badge(run_status(run.status), run_tone(run.status)) }}{% if run.active && !run.step.is_empty() %} <span class="muted small">{{ step_label(run.step) }}</span>{% endif %}</h2>
+    {%- if run.active %}<p class="muted small">{{ t("updates.run.live") }}</p>{% endif %}
+  </div></header>
+  <div class="card__body stack">
+    {%- if !run.message.is_empty() %}
+    {%- if run.status == "succeeded" %}
+    {% call ui::alert("success", run.message) %}{% endcall %}
+    {%- elif run.status == "failed" || run.status == "rolled_back" %}
+    {% call ui::alert("error", run.message) %}{% endcall %}
+    {%- else %}
+    {% call ui::alert("info", run.message) %}{% endcall %}
+    {%- endif %}
+    {%- endif %}
+    {%- if run.status == "restarting" %}<p class="muted small">{{ t("updates.run.restarting_hint") }}</p>{% endif %}
+    {%- if run.status == "rolled_back" %}<p class="muted small">{{ t("updates.run.rolled_back_hint") }}</p>{% endif %}
+    <dl class="dl">
+      <dt>{{ t("updates.history.versions") }}</dt><dd class="mono">{{ run.from_version }} → {{ run.to_version }}</dd>
+      {%- if !run.node.is_empty() %}<dt>{{ t("updates.run.node") }}</dt><dd><code>{{ run.node }}</code></dd>{% endif %}
+      {%- if !run.backup.is_empty() %}<dt>{{ t("updates.run.backup") }}</dt><dd><code>{{ run.backup }}</code></dd>{% endif %}
+      {%- match run.finished_at %}{% when Some(f) %}<dt>{{ t("updates.run.finished") }}</dt><dd><time datetime="{{ iso(f) }}">{{ datetime(f) }}</time></dd>{% when None %}{% endmatch %}
+    </dl>
+    {%- if !run.log.is_empty() %}
+    <ol class="pf-update-log" aria-label="{{ t("updates.run.log") }}">
+      {%- for l in run.log %}
+      <li><span class="pf-update-log__at mono">{{ l.at }}</span> <strong>{{ step_label(l.step) }}</strong>{% if !l.detail.is_empty() %} <span class="muted">{{ l.detail }}</span>{% endif %}</li>
+      {%- endfor %}
+    </ol>
+    {%- endif %}
+  </div>
+</section>

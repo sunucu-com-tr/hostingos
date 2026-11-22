@@ -1,0 +1,22 @@
+{#- Accept / decline forms. Needs: can_answer, action_base, token, quote. -#}
+{%- if can_answer && quote.status.as_str() == "sent" %}
+<section class="biz-answer" aria-labelledby="answer-title">
+  <h2 id="answer-title" class="biz-h3">{{ t("quotes.public.answer_title") }}</h2>
+  <div class="biz-answer__grid">
+    <form method="post" action="{{ action_base }}/accept" class="biz-answer__card">
+      {% call ui::csrf() %}{% endcall %}
+      {%- if !token.is_empty() %}<input type="hidden" name="token" value="{{ token }}">{% endif %}
+      <p>{{ tv("quotes.public.accept_text", "total", m(quote.total, quote.currency)) }}</p>
+      <label class="check"><input type="checkbox" name="agree" value="1" required> {{ t("quotes.public.agree") }}</label>
+      <button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("quotes.actions.accept") }}</button>
+    </form>
+    <form method="post" action="{{ action_base }}/decline" class="biz-answer__card" data-confirm="{{ t("quotes.public.decline_confirm") }}">
+      {% call ui::csrf() %}{% endcall %}
+      {%- if !token.is_empty() %}<input type="hidden" name="token" value="{{ token }}">{% endif %}
+      <div class="field"><label class="field__label" for="decline-reason">{{ t("quotes.public.decline_reason") }}</label>
+        <textarea class="textarea" id="decline-reason" name="reason" rows="3" maxlength="1000"></textarea></div>
+      <button class="btn btn--soft" type="submit">{{ icon("x") }}{{ t("quotes.actions.decline") }}</button>
+    </form>
+  </div>
+</section>
+{%- endif %}

@@ -1,0 +1,42 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}"><link rel="stylesheet" href="{{ asset("css/vm.css") }}">{% if relay %}<script type="module" src="{{ asset("js/console.js") }}"></script>{% endif %}{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div><h1>{{ t("client.vm.console") }}</h1><p>{% if !hostname.is_empty() %}<span class="mono">{{ hostname }}</span>{% endif %}</p></div>
+  <div class="btn-row"><a class="btn btn--ghost" href="{{ url("/client/services/") }}{{ s.id }}/server">{{ t("client.common.back") }}</a></div>
+</div>
+{%- if !error.is_empty() %}{% call ui::alert("warning", error) %}{% endcall %}
+{%- elif relay %}
+<section class="console" data-console data-state="connecting" data-token-url="{{ token_url }}" data-csrf="{{ csrf }}"
+  data-msg-connecting="{{ t("client.vm.console_connecting") }}" data-msg-connected="{{ t("client.vm.console_connected") }}"
+  data-msg-disconnected="{{ t("client.vm.console_disconnected") }}" data-msg-failed="{{ t("client.vm.console_failed") }}">
+  <div class="console__bar">
+    <span class="console__status" data-console-status role="status">{{ t("client.vm.console_connecting") }}</span>
+    <span class="cluster">
+      <button type="button" class="btn btn--ghost btn--sm" data-console-action="ctrlaltdel" disabled>Ctrl+Alt+Del</button>
+      <button type="button" class="btn btn--ghost btn--sm" data-console-action="scale" aria-pressed="false" disabled>{{ t("client.vm.console_scale") }}</button>
+      <button type="button" class="btn btn--ghost btn--sm" data-console-action="fullscreen" disabled>{{ t("client.vm.console_fullscreen") }}</button>
+      <button type="button" class="btn btn--soft btn--sm" data-console-action="reconnect">{{ icon("refresh") }}{{ t("client.vm.console_reconnect") }}</button>
+    </span>
+  </div>
+  <div class="console__screen" data-console-screen></div>
+  <details class="console__clip">
+    <summary class="small">{{ t("client.vm.console_clipboard") }}</summary>
+    <div class="stack-sm">
+      <label class="visually-hidden" for="console-clip">{{ t("client.vm.console_clipboard") }}</label>
+      <textarea class="textarea mono" id="console-clip" rows="3" maxlength="4096" data-console-clipboard></textarea>
+      <div><button type="button" class="btn btn--ghost btn--sm" data-console-action="paste" disabled>{{ t("client.vm.console_send_clipboard") }}</button></div>
+    </div>
+  </details>
+  <p class="small muted console__note">{{ t("client.vm.console_note") }} <a href="https://github.com/novnc/noVNC" rel="noopener noreferrer">noVNC</a> (MPL-2.0).</p>
+</section>
+{%- else %}
+<section class="card">
+  <div class="card__body stack">
+    <p>{{ t("client.vm.console_provider") }}</p>
+    <form method="post" action="{{ url("/client/services/") }}{{ s.id }}/server/console" target="_blank">{% call ui::csrf() %}{% endcall %}<button type="submit" class="btn btn--primary">{{ icon("external-link") }}{{ t("client.vm.console_open") }}</button></form>
+  </div>
+</section>
+{%- endif %}
+{% endblock %}

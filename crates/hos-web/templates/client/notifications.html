@@ -1,0 +1,16 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+{% include "client/_account_head.html" %}
+<form class="card form-narrow" method="post" action="{{ url("/client/account/notifications") }}">
+  <div class="card__body stack">
+    {% call ui::csrf() %}{% endcall %}
+    <p class="muted">{{ t("client.notifications.lead") }}</p>
+    {% call ui::checkbox("marketing", t("client.notifications.marketing"), marketing) %}{% endcall %}
+    <p class="small muted">{{ t("client.notifications.transactional") }}</p>
+    {%- if !overdue %}<p class="small muted">{{ t("client.notifications.overdue_off") }}</p>{% endif %}
+    <p class="small"><a href="{{ url("/client/account/contacts") }}">{{ t("client.notifications.contacts_link") }}</a></p>
+  </div>
+  <div class="card__foot"><button type="submit" class="btn btn--primary">{{ t("client.common.save") }}</button></div>
+</form>
+{% endblock %}

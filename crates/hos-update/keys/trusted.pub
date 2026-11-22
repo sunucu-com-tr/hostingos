@@ -1,0 +1,18 @@
+# HostingOS release signing keys — minisign (Ed25519) PUBLIC keys.
+#
+# Every release manifest and artefact must carry a minisign signature made
+# by one of the keys below (or by a key that a manifest signed with one of
+# them announced in `next_keys`, see docs/UPDATES.md "Key rotation").
+#
+# Format: one key per line, the base64 public key (the second line of a
+# `minisign.pub` file, 56 characters starting with "RW"), optionally followed
+# by whitespace and a label. Lines starting with `#` and blank lines are
+# ignored. The build fails on a malformed line.
+#
+# This file is compiled into the binary (crates/hos-update/build.rs).
+#
+# It is EMPTY on purpose: no signing key has been generated yet. With no key,
+# HostingOS still checks for and announces new releases (marked "unverified")
+# but refuses to install them. To enable installs, generate a key pair as
+# described in docs/RELEASING.md and add the public key here. Never commit
+# the secret key.

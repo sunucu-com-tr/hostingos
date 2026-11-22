@@ -1,0 +1,89 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_content.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ task_title }}</h1><p>{{ task_text }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/ai") }}">{{ icon("chevron-left") }}{{ t("admin_content.ai.title") }}</a></div>
+</div>
+<nav class="chips" aria-label="{{ t("admin_content.ai.pick_task") }}">
+  {%- for k in task_keys() %}
+  <a class="chip" href="{{ url("/admin/ai/new?task=" ~ k) }}"{% if *k == task.as_str() %} aria-current="true"{% endif %}>{{ task_label(k) }}</a>
+  {%- endfor %}
+</nav>
+{%- if !ready %}
+{% include "admin/ai/_not_ready.html" %}
+{%- else %}
+{% call ui::card() %}
+<form class="stack" method="post" action="{{ url("/admin/ai/generate") }}">
+  {% call ui::csrf() %}{% endcall %}
+  <input type="hidden" name="task" value="{{ task }}">
+  {% call ui::form_errors(errors) %}{% endcall %}
+
+  {%- if needs_target || optional_target %}
+  <div class="field{% if errors.has("entity") %} field--error{% endif %}"><label class="field__label" for="f-entity">{{ t("admin_content.ai.target") }}{% if needs_target %} <span class="field__req" aria-hidden="true">*</span>{% endif %}</label>
+    {%- if targets.is_empty() %}
+    <p class="muted small">{{ t("admin_content.ai.no_targets") }}</p>
+    {%- else %}
+    <select class="select" id="f-entity" name="entity"{% if needs_target %} required{% endif %}>
+      <option value="">{% if needs_target %}{{ t("admin_content.ai.target_pick") }}{% else %}{{ t("admin_content.ai.target_none") }}{% endif %}</option>
+      {%- for og in targets %}
+      <optgroup label="{{ og.label }}">
+        {%- for (v, l) in og.options %}<option value="{{ v }}"{{ sel(v, form.entity) }}>{{ l }}</option>{% endfor %}
+      </optgroup>
+      {%- endfor %}
+    </select>
+    {%- endif %}
+    {%- if errors.has("entity") %}<p class="field__error">{{ errors.get("entity") }}</p>{% else %}<p class="field__hint">{{ target_hint() }}</p>{% endif %}</div>
+  {%- endif %}
+
+  {%- if task == "faq" || task == "blog_post" || task == "kb_article" || task == "keywords" %}
+  {% call ui::field("topic", topic_label(), form.topic, error=errors.get("topic"), required=(task != "keywords")) %}{% endcall %}
+  {%- endif %}
+
+  {%- if task == "faq" || task == "blog_post" || task == "kb_article" %}
+  <div class="field"><label class="field__label" for="f-product">{{ t("admin_content.ai.field_product") }}</label>
+    <select class="select" id="f-product" name="product"><option value="">{{ t("admin_content.ai.target_none") }}</option>
+      {%- for (v, l) in products %}<option value="{{ v }}"{{ sel(v, form.product) }}>{{ l }}</option>{% endfor %}
+    </select>
+    <p class="field__hint">{{ t("admin_content.ai.field_product_hint") }}</p></div>
+  {%- endif %}
+
+  <div class="form-grid">
+    {%- if task != "meta" && task != "geo_rewrite" && task != "translate" %}
+    {% call ui::select("locale", t("admin.common.language"), locales.as_slice(), form.locale.as_str()) %}{% endcall %}
+    {%- endif %}
+    {%- if task == "product_description" || task == "blog_post" %}
+    {% call ui::select("tone", t("admin_content.ai.field_tone"), tones.as_slice(), form.tone.as_str()) %}{% endcall %}
+    {% call ui::field("audience", t("admin_content.ai.field_audience"), form.audience, placeholder=t("admin_content.ai.field_audience_ph")) %}{% endcall %}
+    {%- endif %}
+    {%- if task == "faq" || task == "keywords" %}
+    {% call ui::field("n", t("admin_content.ai.field_count"), form.n, inputmode="numeric", placeholder="6") %}{% endcall %}
+    {%- endif %}
+    {%- if task == "blog_post" %}
+    {% call ui::field("words", t("admin_content.ai.field_words"), form.words, inputmode="numeric", placeholder="1200") %}{% endcall %}
+    {%- endif %}
+  </div>
+
+  {%- if task == "meta" || task == "blog_post" %}
+  {% call ui::field("keywords", t("admin_content.meta.keywords"), form.keywords, hint=t("admin_content.meta.keywords_hint")) %}{% endcall %}
+  {%- endif %}
+  {%- if task == "keywords" %}
+  {% call ui::field("seeds", t("admin_content.ai.field_seeds"), form.seeds, hint=t("admin_content.meta.keywords_hint")) %}{% endcall %}
+  {%- endif %}
+  {%- if task == "blog_post" %}
+  {% call ui::textarea("outline", t("admin_content.ai.field_outline"), form.outline, hint=t("admin_content.ai.field_outline_hint"), rows=4) %}{% endcall %}
+  {%- endif %}
+  {%- if task == "faq" %}
+  {% call ui::textarea("context", t("admin_content.ai.field_context"), form.context, hint=t("admin_content.ai.field_context_hint"), rows=5) %}{% endcall %}
+  {%- endif %}
+  {%- if task == "kb_article" %}
+  {% call ui::textarea("notes", t("admin_content.ai.field_notes"), form.notes, hint=t("admin_content.ai.field_notes_hint"), rows=6) %}{% endcall %}
+  {%- endif %}
+
+  <div class="alert alert--info" role="note">{{ icon("info") }}<div><p>{{ t("admin_content.ai.facts_note") }}</p><p class="small muted">{{ t("admin_content.ai.review_note") }}</p></div></div>
+  <div class="form-actions"><button class="btn btn--primary" type="submit">{{ icon("sparkles") }}{{ t("admin_content.ai.generate") }}</button></div>
+</form>
+{% endcall %}
+{%- endif %}
+{% endblock %}

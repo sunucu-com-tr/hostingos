@@ -1,0 +1,51 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("admin_support.canned.title") }}</h1><p>{{ t("admin_support.canned.lead") }}</p></div>
+  {%- if editing.is_some() %}<div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/support/canned") }}">{{ icon("plus") }}{{ t("admin_support.canned.new") }}</a></div>{% endif %}
+</div>
+<div class="admin-grid admin-grid--side">
+  <div>
+  {%- if rows.is_empty() %}
+  {% call ui::empty("list", t("admin_support.canned.empty_title"), t("admin_support.canned.empty_text")) %}{% endcall %}
+  {%- else %}
+  <div class="table-wrap"><table class="table table--dense table--stack">
+    <thead><tr><th scope="col">{{ t("admin_support.canned.name") }}</th><th scope="col">{{ t("admin.common.language") }}</th><th scope="col">{{ t("admin_support.canned.category") }}</th><th scope="col" class="actions"><span class="visually-hidden">{{ t("admin.common.edit") }}</span></th></tr></thead>
+    <tbody>
+    {%- for r in rows %}
+      <tr{% if is_editing(r.id) %} class="is-current"{% endif %}>
+        <td data-label="{{ t("admin_support.canned.name") }}"><a class="row-link" href="{{ url("/admin/support/canned/" ~ r.id) }}">{{ r.title }}</a><span class="sub">{{ r.body|truncate(90) }}</span></td>
+        <td data-label="{{ t("admin.common.language") }}">{{ r.locale.as_str()|upper }}</td>
+        <td data-label="{{ t("admin_support.canned.category") }}">{{ o(r.category) }}</td>
+        <td class="actions">
+          <form class="inline-form" method="post" action="{{ url("/admin/support/canned/" ~ r.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">
+            {% call ui::csrf() %}{% endcall %}
+            <a class="btn btn--ghost btn--sm" href="{{ url("/admin/support/canned/" ~ r.id) }}">{{ t("admin.common.edit") }}</a>
+            <button class="btn btn--ghost btn--sm" type="submit">{{ t("admin.common.delete") }}</button>
+          </form></td>
+      </tr>
+    {%- endfor %}
+    </tbody>
+  </table></div>
+  {%- endif %}
+  </div>
+  {% call ui::card(form_title()) %}
+  <form class="stack" method="post" action="{{ url(form_action()) }}">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::form_errors(errors) %}{% endcall %}
+    {% call ui::field("title", t("admin_support.canned.name"), form.title, error=errors.get("title"), required=true) %}{% endcall %}
+    <div class="form-grid">
+      <div class="field"><label class="field__label" for="f-locale">{{ t("admin.common.language") }}</label>
+        <select class="select" id="f-locale" name="locale">
+          <option value="tr"{{ sel("tr", form.locale) }}>{{ t("admin.common.lang_tr") }}</option>
+          <option value="en"{{ sel("en", form.locale) }}>{{ t("admin.common.lang_en") }}</option>
+        </select></div>
+      {% call ui::field("category", t("admin_support.canned.category"), form.category) %}{% endcall %}
+    </div>
+    {% call ui::textarea("body", t("admin_support.ticket.body"), form.body, error=errors.get("body"), hint=t("admin_support.canned.body_hint"), rows=10, required=true) %}{% endcall %}
+    <div class="form-actions"><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button></div>
+  </form>
+  {% endcall %}
+</div>
+{% endblock %}

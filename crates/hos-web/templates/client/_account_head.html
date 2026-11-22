@@ -1,0 +1,3 @@
+{#- Account section heading + tabs (`tabs`, `active`). -#}
+<div class="page-head"><div><h1>{{ t("client.account.title") }}</h1><p>{{ t("client.account.lead") }}</p></div></div>
+{% call ui::tabs(tabs.as_slice(), active.as_str()) %}{% endcall %}

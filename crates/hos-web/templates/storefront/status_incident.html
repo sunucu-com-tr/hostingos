@@ -1,0 +1,27 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}"><link rel="alternate" type="application/atom+xml" href="{{ url("/status/feed.xml") }}">{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container biz-narrow">
+    <p><a href="{{ url("/status") }}">{{ icon("arrow-left") }} {{ t("netstatus.public.back") }}</a></p>
+    <article class="incident">
+      <h1 class="biz-h3">{{ v.incident.title }}</h1>
+      <p class="incident__meta">
+        <span>{{ lbl("netstatus.kind", v.incident.kind.as_str()) }}</span>
+        <span>{{ t("netstatus.fields.impact") }}: {{ lbl("netstatus.impact", v.incident.impact.as_str()) }}</span>
+        {%- match v.incident.scheduled_start %}
+        {%- when Some(s) %}<span>{{ t("netstatus.fields.starts") }}: <time datetime="{{ s.to_rfc3339() }}">{{ datetime(s) }}</time>{% match v.incident.scheduled_end %}{% when Some(e) %} – <time datetime="{{ e.to_rfc3339() }}">{{ datetime(e) }}</time>{% when None %}{% endmatch %}</span>
+        {%- when None %}<span><time datetime="{{ v.incident.started_at.to_rfc3339() }}">{{ datetime(v.incident.started_at) }}</time></span>
+        {%- endmatch %}
+        {%- if !v.components.is_empty() %}<span>{{ t("netstatus.fields.affected") }}: {{ v.components.join(", ") }}</span>{% endif %}
+      </p>
+      <ol class="incident__timeline">
+      {%- for u in updates %}
+        <li><strong>{{ istatus(u.status.as_str()) }}</strong> <time datetime="{{ u.created_at.to_rfc3339() }}">{{ datetime(u.created_at) }}</time><div class="prose">{{ md(u.body) }}</div></li>
+      {%- endfor %}
+      </ol>
+    </article>
+  </div>
+</section>
+{% endblock %}

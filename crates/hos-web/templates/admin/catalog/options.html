@@ -1,0 +1,30 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.options.title") }}</h1><p>{{ t("admin.options.lead") }}</p></div></div>
+<div class="admin-grid admin-grid--side">
+  <div>
+  {%- if groups.is_empty() %}
+  {% call ui::empty("layers", t("admin.options.empty_title"), t("admin.options.empty_text")) %}{% endcall %}
+  {%- else %}
+  <div class="table-wrap"><table class="table table--dense table--stack">
+    <thead><tr><th>{{ t("admin.common.name") }}</th><th class="num">{{ t("admin.options.options") }}</th><th class="num">{{ t("admin.options.products") }}</th></tr></thead>
+    <tbody>{% for g in groups %}<tr>
+      <td data-label="{{ t("admin.common.name") }}"><a class="row-link" href="{{ url("/admin/catalog/options/" ~ g.id) }}">{{ g.name }}</a>{% match g.description %}{% when Some(dsc) %}<span class="sub">{{ dsc }}</span>{% when None %}{% endmatch %}</td>
+      <td data-label="{{ t("admin.options.options") }}" class="num">{{ g.option_count }}</td>
+      <td data-label="{{ t("admin.options.products") }}" class="num">{{ g.product_count }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {%- endif %}
+  </div>
+  <aside>
+  {% call ui::card(t("admin.options.new_group")) %}
+  <form class="stack" method="post" action="{{ url("/admin/catalog/options") }}">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::field("name", t("admin.common.name"), "", required=true, placeholder=t("admin.options.name_placeholder")) %}{% endcall %}
+    {% call ui::field("description", t("admin.common.description"), "") %}{% endcall %}
+    <button class="btn btn--primary" type="submit">{{ icon("plus") }}{{ t("admin.common.create") }}</button>
+  </form>
+  {% endcall %}
+  </aside>
+</div>
+{% endblock %}

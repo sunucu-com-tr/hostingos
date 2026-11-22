@@ -1,0 +1,197 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_content.css") }}">
+<script src="{{ asset("js/admin_content.js") }}" defer></script>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ title }}</h1><p>{{ kind_lead() }}</p></div>
+  <div class="page-head__actions">
+    {%- for v in versions %}{% if !v.live_url.is_empty() %}
+    <a class="btn btn--ghost" href="{{ v.live_url }}" target="_blank" rel="noopener">{{ icon("external-link") }}{{ t("admin_content.editor.view_live") }} ({{ v.locale|upper }})</a>
+    {%- endif %}{% endfor %}
+    <a class="btn btn--ghost" href="{{ url(base) }}">{{ icon("chevron-left") }}{{ t("admin.common.back") }}</a>
+  </div>
+</div>
+
+{%- if !suggest_from.is_empty() %}
+<div class="alert alert--info" role="status">{{ icon("info") }}<div>
+  <p><strong>{{ t("admin_content.editor.redirect_title") }}</strong></p>
+  <p>{{ t("admin_content.editor.redirect_text") }} <span class="mono">{{ suggest_from }}</span> → <span class="mono">{{ suggest_to }}</span></p>
+  {%- if can("seo.manage") %}
+  <form class="inline-form mt-2" method="post" action="{{ url("/admin/seo/redirects") }}">
+    {% call ui::csrf() %}{% endcall %}
+    <input type="hidden" name="from_path" value="{{ suggest_from }}">
+    <input type="hidden" name="to_path" value="{{ suggest_to }}">
+    <input type="hidden" name="status_code" value="301">
+    <input type="hidden" name="note" value="{{ t("admin_content.editor.redirect_note") }}">
+    <input type="hidden" name="back" value="{{ action }}">
+    <button class="btn btn--primary btn--sm" type="submit">{{ icon("arrow-right") }}{{ t("admin_content.editor.redirect_create") }}</button>
+  </form>
+  {%- else %}
+  <p class="muted small">{{ t("admin_content.editor.redirect_ask") }}</p>
+  {%- endif %}
+</div></div>
+{%- endif %}
+
+<form class="stack" method="post" action="{{ url(action) }}" data-content-editor>
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::form_errors(errors) %}{% endcall %}
+
+  {% call ui::card(t("admin_content.editor.shared_title"), t("admin_content.editor.shared_lead")) %}
+  <div class="form-grid">
+    {%- if is_post %}
+    <div class="field span-all">{% call ui::field("cover", t("admin_content.editor.cover"), shared.cover, kind="url", error=errors.get("cover"), hint=t("admin_content.editor.cover_hint"), placeholder="https://") %}{% endcall %}</div>
+    {% call ui::field("author_name", t("admin_content.editor.author_name"), shared.author_name, hint=t("admin_content.editor.author_hint")) %}{% endcall %}
+    {%- endif %}
+    {%- if is_kb %}
+    <div class="field{% if errors.has("kb_category") %} field--error{% endif %}"><label class="field__label" for="f-kbcat">{{ t("admin_support.kb.category") }}</label>
+      <select class="select" id="f-kbcat" name="kb_category"><option value="">{{ t("admin_support.kb.no_category") }}</option>
+        {%- for c in categories %}<option value="{{ c.id }}"{{ sel(c.id.to_string().as_str(), shared.kb_category) }}>{{ c.name }}</option>{% endfor %}</select>
+      {%- if errors.has("kb_category") %}<p class="field__error">{{ errors.get("kb_category") }}</p>{% endif %}</div>
+    <div class="field"><label class="field__label" for="f-kbkind">{{ t("admin_support.kb.kind") }}</label>
+      <select class="select" id="f-kbkind" name="kb_kind">
+        <option value="article"{{ sel("article", shared.kb_kind) }}>{{ t("admin_support.kb.kind_article") }}</option>
+        <option value="faq"{{ sel("faq", shared.kb_kind) }}>{{ t("admin_support.kb.kind_faq") }}</option>
+      </select></div>
+    {% call ui::field("sort_order", t("admin_content.editor.sort_order"), shared.sort_order, inputmode="numeric") %}{% endcall %}
+    {%- endif %}
+    {%- if is_page %}
+    {% call ui::field("nav_order", t("admin_content.editor.nav_order"), shared.nav_order, inputmode="numeric", hint=t("admin_content.editor.nav_order_hint")) %}{% endcall %}
+    {%- endif %}
+  </div>
+  <div class="checks">
+    {%- if is_post || is_kb %}{% call ui::checkbox("featured", t("admin_content.editor.featured"), shared.featured) %}{% endcall %}{% endif %}
+    {%- if is_news %}{% call ui::checkbox("pinned", t("admin_content.editor.pinned"), shared.pinned) %}{% endcall %}{% endif %}
+    {%- if is_page %}
+    {% call ui::checkbox("show_in_nav", t("admin_content.editor.show_in_nav"), shared.show_in_nav) %}{% endcall %}
+    {% call ui::checkbox("show_in_footer", t("admin_content.editor.show_in_footer"), shared.show_in_footer) %}{% endcall %}
+    {%- endif %}
+  </div>
+  {%- if is_page %}<p class="field__hint">{{ t("admin_content.editor.page_hint") }}</p>{% endif %}
+  {% endcall %}
+
+  <div class="lang-cols">
+  {%- for v in versions %}
+  <section class="card lang-col" data-serp-scope aria-labelledby="v-{{ v.locale }}-h">
+    <header class="card__head lang-col__head">
+      <div><h2 id="v-{{ v.locale }}-h">{{ v.locale_label }}</h2>
+        <p class="muted small">{% if v.id.is_some() %}{{ sbadge(v.status) }}{% else %}{{ t("admin_content.editor.not_created") }}{% endif %}</p></div>
+      {%- if ai_ready %}
+      <div class="btn-row">
+        {%- if v.id.is_some() %}
+        <a class="btn btn--ghost btn--sm" href="{{ url("/admin/ai/new?task=meta&entity=" ~ entity_of(v)) }}">{{ icon("sparkles") }}{{ t("admin_content.editor.ai_meta") }}</a>
+        <a class="btn btn--ghost btn--sm" href="{{ url("/admin/ai/new?task=geo_rewrite&entity=" ~ entity_of(v)) }}">{{ icon("zap") }}{{ t("admin_content.editor.ai_geo") }}</a>
+        {%- elif other_exists(v.locale) %}
+        <button class="btn btn--soft btn--sm" type="submit" form="ai-tr-{{ v.locale }}">{{ icon("globe") }}{{ t("admin_content.editor.ai_translate") }}</button>
+        {%- endif %}
+      </div>
+      {%- endif %}
+    </header>
+    <div class="card__body stack">
+      {%- if v.id.is_none() %}<p class="muted small">{{ t("admin_content.editor.new_version_hint") }}</p>{% endif %}
+      {%- let p = v.locale.clone() %}
+      <div class="field{% if !err(v, "title").is_empty() %} field--error{% endif %}">
+        <label class="field__label" for="f-{{ p }}-title">{{ t("admin_content.editor.title") }}</label>
+        <input class="input" id="f-{{ p }}-title" name="{{ p }}_title" value="{{ v.title }}" maxlength="200" data-slug-source>
+        {%- if !err(v, "title").is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ err(v, "title") }}</p>{% endif %}
+      </div>
+      <div class="field{% if !err(v, "slug").is_empty() %} field--error{% endif %}">
+        <label class="field__label" for="f-{{ p }}-slug">{{ t("admin_content.editor.slug") }}</label>
+        <div class="input-group"><span class="input-group__addon mono">{{ url_prefix(v) }}</span>
+          <input class="input mono" id="f-{{ p }}-slug" name="{{ p }}_slug" value="{{ v.slug }}" maxlength="120" pattern="[a-z0-9]+(-[a-z0-9]+)*" data-slug-target data-url-prefix="{{ url_prefix(v) }}"{% if !err(v, "slug").is_empty() %} aria-invalid="true"{% endif %}></div>
+        {%- if !err(v, "slug").is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ err(v, "slug") }}</p>
+        {%- else %}<p class="field__hint">{{ t("admin_content.editor.slug_hint") }}</p>{% endif %}
+      </div>
+      <div class="form-grid">
+        <div class="field"><label class="field__label" for="f-{{ p }}-status">{{ t("admin.common.status") }}</label>
+          <select class="select" id="f-{{ p }}-status" name="{{ p }}_status">
+            {%- for (sv, sl) in statuses %}<option value="{{ sv }}"{{ sel(sv, v.status) }}>{{ sl }}</option>{% endfor %}
+          </select></div>
+        <div class="field{% if !err(v, "published_at").is_empty() %} field--error{% endif %}"><label class="field__label" for="f-{{ p }}-pub">{{ t("admin_content.editor.published_at") }}</label>
+          <input class="input" id="f-{{ p }}-pub" type="datetime-local" name="{{ p }}_published_at" value="{{ v.published_at }}">
+          {%- if !err(v, "published_at").is_empty() %}<p class="field__error">{{ err(v, "published_at") }}</p>{% else %}<p class="field__hint">{{ t("admin_content.editor.published_at_hint") }}</p>{% endif %}</div>
+      </div>
+      {%- if has_excerpt %}
+      <div class="field"><label class="field__label" for="f-{{ p }}-excerpt">{{ t("admin_content.editor.excerpt") }}</label>
+        <textarea class="textarea" id="f-{{ p }}-excerpt" name="{{ p }}_excerpt" rows="2" maxlength="600" data-serp-excerpt>{{ v.excerpt }}</textarea></div>
+      {%- endif %}
+      {%- if is_post %}
+      <div class="form-grid">
+        {% call ui::field(p ~ "_category", t("admin_content.editor.category"), v.category) %}{% endcall %}
+        {% call ui::field(p ~ "_tags", t("admin_content.editor.tags"), v.tags, hint=t("admin_content.editor.tags_hint")) %}{% endcall %}
+      </div>
+      {%- endif %}
+      <div class="field{% if !err(v, "body").is_empty() %} field--error{% endif %}"><label class="field__label" for="f-{{ p }}-body">{{ t("admin_content.editor.body") }}</label>
+        <div class="md-editor md-editor--stacked">
+          <textarea class="textarea textarea--code" id="f-{{ p }}-body" name="{{ p }}_body" rows="18" data-serp-body hx-post="{{ url("/admin/preview/markdown") }}" hx-trigger="keyup changed delay:600ms, load" hx-target="#f-{{ p }}-body-preview" hx-swap="innerHTML">{{ v.body }}</textarea>
+          <div><p class="md-preview__label">{{ t("admin_content.editor.preview") }}</p><div class="md-preview prose" id="f-{{ p }}-body-preview" aria-live="polite"></div></div>
+        </div>
+        {%- if !err(v, "body").is_empty() %}<p class="field__error">{{ err(v, "body") }}</p>{% else %}<p class="field__hint">{{ t("admin.common.markdown_hint") }}</p>{% endif %}</div>
+
+      {%- if !is_news %}
+      <details class="fieldset"{% if !v.meta.is_empty() || !err(v, "meta_title").is_empty() || !err(v, "meta_description").is_empty() || !err(v, "canonical").is_empty() || !err(v, "og_image").is_empty() %} open{% endif %}>
+        <summary>{{ icon("search") }} {{ t("admin_content.meta.title") }}</summary>
+        <div class="stack mt-4">
+          <div class="cserp serp" data-cserp data-suffix="{{ title_suffix }}" aria-label="{{ t("admin_content.meta.serp_label") }}">
+            <div class="serp__url">{{ v.serp_url }}</div>
+            <p class="serp__title">{% if v.meta.title.is_empty() %}{{ v.title }}{{ title_suffix }}{% else %}{{ v.meta.title }}{% endif %}</p>
+            <p class="serp__desc">{% if v.meta.description.is_empty() %}{{ v.excerpt }}{% else %}{{ v.meta.description }}{% endif %}</p>
+          </div>
+          {%- let mt_err = err(v, "meta_title") %}
+          <div class="field{% if !mt_err.is_empty() %} field--error{% endif %}">
+            <div class="between"><label class="field__label" for="f-{{ p }}-mt">{{ t("admin_content.meta.meta_title") }}</label><span class="counter" data-counter-for="f-{{ p }}-mt"></span></div>
+            <input class="input" id="f-{{ p }}-mt" name="{{ p }}_meta_title" value="{{ v.meta.title }}" maxlength="120" data-count-max="60" data-cserp-title placeholder="{{ t("admin_content.meta.title_placeholder") }}">
+            {%- if !mt_err.is_empty() %}<p class="field__error">{{ mt_err }}</p>{% else %}<p class="field__hint">{{ t("admin_content.meta.title_hint") }}</p>{% endif %}</div>
+          {%- let md_err = err(v, "meta_description") %}
+          <div class="field{% if !md_err.is_empty() %} field--error{% endif %}">
+            <div class="between"><label class="field__label" for="f-{{ p }}-md">{{ t("admin_content.meta.meta_description") }}</label><span class="counter" data-counter-for="f-{{ p }}-md"></span></div>
+            <textarea class="textarea" id="f-{{ p }}-md" name="{{ p }}_meta_description" rows="2" maxlength="320" data-count-max="160" data-cserp-desc>{{ v.meta.description }}</textarea>
+            {%- if !md_err.is_empty() %}<p class="field__error">{{ md_err }}</p>{% else %}<p class="field__hint">{{ t("admin_content.meta.description_hint") }}</p>{% endif %}</div>
+          <div class="form-grid">
+            {% call ui::field(p ~ "_canonical", t("admin_content.meta.canonical"), v.meta.canonical, kind="url", error=err(v, "canonical"), hint=t("admin_content.meta.canonical_hint"), placeholder="https://") %}{% endcall %}
+            {% call ui::field(p ~ "_og_image", t("admin_content.meta.og_image"), v.meta.og_image, kind="url", error=err(v, "og_image"), hint=t("admin_content.meta.og_image_hint"), placeholder="https://") %}{% endcall %}
+          </div>
+          {% call ui::field(p ~ "_keywords", t("admin_content.meta.keywords"), v.meta.keywords, error=err(v, "keywords"), hint=t("admin_content.meta.keywords_hint")) %}{% endcall %}
+          <div class="checks">
+            {% call ui::checkbox(p ~ "_noindex", t("admin_content.meta.noindex"), v.meta.noindex) %}{% endcall %}
+            {% call ui::checkbox(p ~ "_nofollow", t("admin_content.meta.nofollow"), v.meta.nofollow) %}{% endcall %}
+          </div>
+        </div>
+      </details>
+      {%- endif %}
+    </div>
+  </section>
+  {%- endfor %}
+  </div>
+
+  <div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button>
+    <a class="btn btn--ghost" href="{{ url(base) }}">{{ t("admin.common.back") }}</a></div>
+</form>
+
+{%- if ai_ready %}
+{%- for v in versions %}{% if v.id.is_none() && other_exists(v.locale) %}
+<form id="ai-tr-{{ v.locale }}" method="post" action="{{ url("/admin/ai/translate") }}" hidden>
+  {% call ui::csrf() %}{% endcall %}
+  <input type="hidden" name="entity" value="{{ other_entity(v.locale) }}">
+</form>
+{%- endif %}{% endfor %}
+{%- endif %}
+
+{%- match group %}{% when Some(g) %}
+<section class="card mt-6" aria-labelledby="danger-h">
+  <header class="card__head"><div><h2 id="danger-h">{{ t("admin_content.editor.danger_title") }}</h2><p class="muted small">{{ t("admin_content.editor.danger_text") }}</p></div></header>
+  <div class="card__body btn-row">
+    {%- for v in versions %}{% if v.id.is_some() && other_exists(v.locale) %}
+    <form method="post" action="{{ url(base ~ "/" ~ g ~ "/" ~ v.locale ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--ghost btn--sm" type="submit">{{ t("admin_content.editor.delete_version") }} ({{ v.locale|upper }})</button>
+    </form>
+    {%- endif %}{% endfor %}
+    <form method="post" action="{{ url(base ~ "/" ~ g ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--danger btn--sm" type="submit">{{ t("admin_content.editor.delete_all") }}</button>
+    </form>
+  </div>
+</section>
+{%- when None %}{% endmatch %}
+{% endblock %}

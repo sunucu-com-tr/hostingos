@@ -1,0 +1,40 @@
+{% extends "layouts/auth.html" %}
+{% import "components/ui.html" as ui %}
+{% block main_class %} auth-main--wide{% endblock %}
+{% block card %}
+<header class="auth-card__head">
+  <span class="icon-tile">{{ icon("shield") }}</span>
+  <h1>{{ t("auth.two_factor.setup_title") }}</h1>
+  <p>{% if enabled %}{{ t("auth.two_factor.enabled_lead") }}{% else %}{{ t("auth.two_factor.setup_lead") }}{% endif %}</p>
+</header>
+{%- if enabled %}
+{% call ui::alert("success", tn("auth.two_factor.recovery_left", recovery_left)) %}{% endcall %}
+<form class="form" method="post" action="{{ url("/auth/2fa/disable") }}" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {%- if has_password %}
+  {% call ui::field("password", t("auth.two_factor.confirm_password"), "", kind="password", error=errors.get("password"), required=true, autocomplete="current-password") %}{% endcall %}
+  {%- else %}
+  {% call ui::field("code", t("auth.two_factor.code"), "", error=errors.get("code"), required=true, autocomplete="one-time-code", inputmode="numeric") %}{% endcall %}
+  {%- endif %}
+  <button type="submit" class="btn btn--danger btn--block">{{ t("auth.two_factor.disable") }}</button>
+</form>
+{%- else %}
+<ol class="steps">
+  <li aria-current="step">{{ t("auth.two_factor.step_scan") }}</li>
+  <li>{{ t("auth.two_factor.step_confirm") }}</li>
+  <li>{{ t("auth.two_factor.step_codes") }}</li>
+</ol>
+<div class="qr">{{ qr|safe }}</div>
+<details>
+  <summary class="small">{{ t("auth.two_factor.manual") }}</summary>
+  <p class="mt-2"><code class="mono" id="totp-secret">{{ secret }}</code>
+  <button type="button" class="btn btn--ghost btn--sm" data-copy="#totp-secret" data-copied="{{ t("common.actions.copied") }}">{{ icon("copy") }}{{ t("common.actions.copy") }}</button></p>
+</details>
+<form class="form" method="post" action="{{ url("/auth/2fa/setup") }}" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::field("code", t("auth.two_factor.code"), "", error=errors.get("code"), required=true, autocomplete="one-time-code", inputmode="numeric", autofocus=true) %}{% endcall %}
+  <button type="submit" class="btn btn--primary btn--block btn--lg">{{ t("auth.two_factor.enable") }}</button>
+</form>
+{%- endif %}
+<p><a href="{{ back_href }}">{{ icon("chevron-left") }}{{ t("auth.two_factor.back") }}</a></p>
+{% endblock %}

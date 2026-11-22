@@ -1,0 +1,122 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}"><link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div>
+    <h1>{{ product.name }}</h1>
+    <p>{{ st(s.status.as_str()) }}{% match s.domain %}{% when Some(d) %} <span class="mono">{{ domain_label(d) }}</span>{% when None %}{% endmatch %}</p>
+  </div>
+  <div class="btn-row">
+    {%- if server %}<a class="btn btn--primary" href="{{ url("/client/services/") }}{{ s.id }}/server">{{ icon("terminal") }}{{ t("client.services.manage_server") }}</a>{% endif %}
+    {%- if has_panel && active() %}
+    <form method="post" action="{{ url("/client/services/") }}{{ s.id }}/sso" target="_blank">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="target" value="control_panel"><button type="submit" class="btn btn--primary">{{ icon("external-link") }}{{ t("client.services.open_panel") }}</button></form>
+    <form method="post" action="{{ url("/client/services/") }}{{ s.id }}/sso" target="_blank">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="target" value="webmail"><button type="submit" class="btn btn--soft">{{ icon("mail") }}{{ t("client.services.open_webmail") }}</button></form>
+    {%- endif %}
+    <a class="btn btn--ghost" href="{{ url("/client/tickets/new") }}?related=service:{{ s.id }}">{{ icon("life-buoy") }}{{ t("client.services.get_help") }}</a>
+  </div>
+</div>
+{%- if s.status.as_str() == "suspended" %}{% call ui::alert("error", t("client.services.suspended_note")) %}{% endcall %}{% endif %}
+{%- if s.status.as_str() == "pending" || s.status.as_str() == "provisioning" %}{% call ui::alert("info", t("client.services.pending_note")) %}{% endcall %}{% endif %}
+{%- if cancel_requested() %}{% call ui::alert("warning", t("client.services.cancel_pending")) %}{% endcall %}{% endif %}
+<div class="grid grid--2">
+  <section class="card">
+    <header class="card__head"><h2>{{ t("client.services.billing") }}</h2></header>
+    <div class="card__body">
+      <dl class="dl">
+        <div><dt>{{ t("client.services.registered") }}</dt><dd>{{ day(s.registration_date) }}</dd></div>
+        <div><dt>{{ t("client.services.cycle") }}</dt><dd>{{ cycle(s.billing_cycle) }}</dd></div>
+        <div><dt>{{ t("client.services.first_payment") }}</dt><dd>{{ money_in(s.first_payment_amount, s.currency) }}</dd></div>
+        {%- if recurring() %}<div><dt>{{ t("client.services.recurring") }}</dt><dd>{{ money_in(s.recurring_amount, s.currency) }} {{ per(s.billing_cycle) }}</dd></div>
+        <div><dt>{{ t("client.services.next_due") }}</dt><dd>{{ day_opt(s.next_due_date) }}</dd></div>{% endif %}
+      </dl>
+    </div>
+    {%- if can_upgrade || can_cancel() %}
+    <div class="card__foot btn-row">
+      {%- if can_upgrade %}<a class="btn btn--soft btn--sm" href="{{ url("/client/services/") }}{{ s.id }}/upgrade">{{ icon("zap") }}{{ t("client.services.change_plan") }}</a>{% endif %}
+      {%- if can_cancel() %}<button type="button" class="btn btn--ghost btn--sm" data-dialog-open="cancel-dialog">{{ t("client.services.cancel") }}</button>{% endif %}
+    </div>
+    {%- endif %}
+  </section>
+  <section class="card">
+    <header class="card__head"><h2>{{ t("client.services.access") }}</h2></header>
+    <div class="card__body">
+      <dl class="dl">
+        {%- match s.server_hostname %}{% when Some(h) %}<div><dt>{{ t("client.services.server") }}</dt><dd class="mono">{{ h }}</dd></div>{% when None %}{% endmatch %}
+        {%- if !ips.is_empty() %}<div><dt>{{ t("client.services.ips") }}</dt><dd class="mono">{% for ip in ips %}{{ ip }}{% if !loop.last %}, {% endif %}{% endfor %}</dd></div>{% endif %}
+        {%- match s.username %}{% when Some(u) %}
+        <div><dt>{{ t("client.services.username") }}</dt><dd class="mono">{{ u }}</dd></div>
+        <div><dt>{{ t("client.services.password") }}</dt><dd>
+          <span id="svc-password"><span class="mono" aria-hidden="true">••••••••</span>
+          <button type="button" class="btn btn--link btn--sm" hx-get="{{ url("/client/services/") }}{{ s.id }}/password" hx-target="#svc-password" hx-swap="outerHTML">{{ icon("eye") }}{{ t("client.services.show") }}</button></span>
+        </dd></div>
+        {%- when None %}{% endmatch %}
+      </dl>
+      {%- if s.username.is_none() && ips.is_empty() && s.server_hostname.is_none() %}<p class="muted">{{ t("client.services.no_access") }}</p>{% endif %}
+    </div>
+  </section>
+</div>
+{%- if !usage.is_empty() %}
+<section class="card mt-8">
+  <header class="card__head"><div><h2>{{ t("client.services.usage") }}</h2><p class="muted small">{{ tv("client.services.usage_at", "date", usage_at) }}</p></div></header>
+  <div class="card__body grid grid--2">
+    {%- for g in usage %}
+    <div class="stack-sm">
+      <div class="between"><span>{{ g.label }}</span><span class="small muted">{{ g.text }}</span></div>
+      {%- match g.percent %}{% when Some(p) %}<progress class="bar" max="100" value="{{ p }}">%{{ p }}</progress>{% when None %}{% endmatch %}
+    </div>
+    {%- endfor %}
+  </div>
+</section>
+{%- endif %}
+{%- if !addons.is_empty() %}
+<section class="card mt-8">
+  <header class="card__head"><h2>{{ t("client.services.addons") }}</h2></header>
+  <div class="card__body">
+    <ul class="row-list">
+    {%- for a in addons %}<li><span><strong>{{ a.name }}</strong><span class="muted small">{{ a.price }}{% match a.next_due %}{% when Some(d) %} · {{ day(d) }}{% when None %}{% endmatch %}</span></span>{{ st(a.status) }}</li>{% endfor %}
+    </ul>
+  </div>
+</section>
+{%- endif %}
+{%- if !offers.is_empty() %}
+<section class="card mt-8" aria-labelledby="addon-offers">
+  <header class="card__head"><div><h2 id="addon-offers">{{ t("client.services.addon_offers") }}</h2><p class="muted small">{{ t("client.services.addon_offers_text") }}</p></div></header>
+  <div class="card__body">
+    <ul class="row-list">
+    {%- for o in offers %}
+      <li><span><strong>{{ o.name }}</strong>{% if let Some(d) = o.description %}<span class="muted small">{{ d }}</span>{% endif %}<span class="small">{{ o.price }}</span></span>
+        <form method="post" action="{{ url("/client/services/") }}{{ s.id }}/addons">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="addon" value="{{ o.id }}"><button type="submit" class="btn btn--soft btn--sm">{{ icon("plus") }}{{ t("client.services.addon_order") }}</button></form></li>
+    {%- endfor %}
+    </ul>
+  </div>
+</section>
+{%- endif %}
+<section class="card mt-8">
+  <header class="card__head"><h2>{{ t("client.services.history") }}</h2></header>
+  <div class="card__body">
+  {%- if events.is_empty() %}<p class="muted">{{ t("client.services.no_history") }}</p>{% else %}
+    <ol class="timeline">
+    {%- for e in events %}
+      <li><time datetime="{{ iso(e.created_at) }}">{{ datetime(e.created_at) }}</time><span>{% match e.to_status %}{% when Some(ts) %}{{ st(ts) }} {% when None %}{% endmatch %}{{ event_text(e) }}</span></li>
+    {%- endfor %}
+    </ol>
+  {%- endif %}
+  </div>
+</section>
+{%- if can_cancel() %}
+{% call ui::modal("cancel-dialog", t("client.services.cancel_title")) %}
+<form class="stack" method="post" action="{{ url("/client/services/") }}{{ s.id }}/cancel">
+  {% call ui::csrf() %}{% endcall %}
+  <fieldset class="stack-sm">
+    <legend class="field__label">{{ t("client.services.cancel_when") }}</legend>
+    <label class="check"><input type="radio" name="kind" value="end_of_period" checked> <span>{{ t("client.services.cancel_end") }}</span></label>
+    <label class="check"><input type="radio" name="kind" value="immediate"> <span>{{ t("client.services.cancel_now") }}</span></label>
+  </fieldset>
+  {% call ui::textarea("reason", t("client.services.cancel_reason"), "", rows=3) %}{% endcall %}
+  <label class="check"><input type="checkbox" name="confirm" value="1" required> <span>{{ t("client.services.cancel_confirm") }}</span></label>
+  <div class="btn-row"><button type="submit" class="btn btn--danger">{{ t("client.services.cancel_submit") }}</button><button type="button" class="btn btn--ghost" data-dialog-close>{{ t("client.common.back") }}</button></div>
+</form>
+{% endcall %}
+{%- endif %}
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+{% include "client/_account_head.html" %}
+<form class="card form-narrow" method="post" action="{{ url("/client/account") }}" novalidate>
+  <div class="card__body stack">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::form_errors(errors) %}{% endcall %}
+    <p class="small muted">{{ tv("client.account.email_note", "email", email) }}</p>
+    <div class="form-row">
+      {% call ui::field("first_name", t("cart.checkout.first_name"), form.first_name, error=errors.get("first_name"), required=true, autocomplete="given-name") %}{% endcall %}
+      {% call ui::field("last_name", t("cart.checkout.last_name"), form.last_name, error=errors.get("last_name"), required=true, autocomplete="family-name") %}{% endcall %}
+    </div>
+    {% call ui::field("phone", t("cart.checkout.phone"), form.phone, kind="tel", autocomplete="tel") %}{% endcall %}
+    <div class="form-row">
+      {% call ui::select("locale", t("client.account.language"), locales, form.locale.as_str()) %}{% endcall %}
+      {% call ui::select("timezone", t("client.account.timezone"), timezones, form.timezone.as_str(), error=errors.get("timezone")) %}{% endcall %}
+    </div>
+    <p class="small muted">{{ t("client.account.currency_note") }}</p>
+  </div>
+  <div class="card__foot"><button type="submit" class="btn btn--primary">{{ t("client.common.save") }}</button></div>
+</form>
+{% endblock %}

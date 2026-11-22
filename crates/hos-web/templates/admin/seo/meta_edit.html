@@ -1,0 +1,54 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_content.css") }}">
+<script src="{{ asset("js/admin_content.js") }}" defer></script>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ heading }}</h1><p>{{ kind_label }} · {{ t("admin_content.seo.meta.edit_lead") }}</p></div>
+  <div class="page-head__actions">
+    {%- if ai_ready && !ai_entity.is_empty() %}<a class="btn btn--ghost" href="{{ url("/admin/ai/new?task=meta&entity=" ~ ai_entity) }}">{{ icon("sparkles") }}{{ t("admin_content.editor.ai_meta") }}</a>{% endif %}
+    <a class="btn btn--ghost" href="{{ url("/admin/seo/meta") }}">{{ icon("chevron-left") }}{{ t("admin_content.seo.meta.title") }}</a>
+  </div>
+</div>
+{% include "admin/seo/_tabs.html" %}
+<form class="stack mt-4" method="post" action="{{ url(action) }}">
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::form_errors(errors) %}{% endcall %}
+  <div class="lang-cols">
+  {%- for v in versions %}
+  {%- let p = v.locale.clone() %}
+  <section class="card lang-col" data-serp-scope aria-labelledby="m-{{ p }}-h">
+    <header class="card__head"><div><h2 id="m-{{ p }}-h">{{ v.label }}</h2>{% if !v.url.is_empty() %}<p class="mono small muted">{{ v.url }}</p>{% endif %}</div></header>
+    <div class="card__body stack">
+      <input type="hidden" value="{{ v.default_title }}" data-slug-source>
+      <input type="hidden" value="{{ v.default_desc }}" data-serp-excerpt>
+      <div class="cserp serp" data-cserp data-suffix="{{ suffix }}" aria-label="{{ t("admin_content.meta.serp_label") }}">
+        <div class="serp__url">{{ v.url }}</div>
+        <p class="serp__title">{% if v.meta.title.is_empty() %}{{ v.default_title }}{{ suffix }}{% else %}{{ v.meta.title }}{% endif %}</p>
+        <p class="serp__desc">{% if v.meta.description.is_empty() %}{{ v.default_desc }}{% else %}{{ v.meta.description }}{% endif %}</p>
+      </div>
+      {%- let mt_err = err(v, "meta_title") %}
+      <div class="field{% if !mt_err.is_empty() %} field--error{% endif %}">
+        <div class="between"><label class="field__label" for="f-{{ p }}-mt">{{ t("admin_content.meta.meta_title") }}</label><span class="counter" data-counter-for="f-{{ p }}-mt"></span></div>
+        <input class="input" id="f-{{ p }}-mt" name="{{ p }}_meta_title" value="{{ v.meta.title }}" maxlength="120" data-count-max="60" data-cserp-title placeholder="{{ v.default_title }}">
+        {%- if !mt_err.is_empty() %}<p class="field__error">{{ mt_err }}</p>{% else %}<p class="field__hint">{{ t("admin_content.meta.title_hint") }}</p>{% endif %}</div>
+      {%- let md_err = err(v, "meta_description") %}
+      <div class="field{% if !md_err.is_empty() %} field--error{% endif %}">
+        <div class="between"><label class="field__label" for="f-{{ p }}-md">{{ t("admin_content.meta.meta_description") }}</label><span class="counter" data-counter-for="f-{{ p }}-md"></span></div>
+        <textarea class="textarea" id="f-{{ p }}-md" name="{{ p }}_meta_description" rows="3" maxlength="320" data-count-max="160" data-cserp-desc>{{ v.meta.description }}</textarea>
+        {%- if !md_err.is_empty() %}<p class="field__error">{{ md_err }}</p>{% else %}<p class="field__hint">{{ t("admin_content.meta.description_hint") }}</p>{% endif %}</div>
+      {% call ui::field(p ~ "_canonical", t("admin_content.meta.canonical"), v.meta.canonical, kind="url", error=err(v, "canonical"), hint=t("admin_content.meta.canonical_hint"), placeholder="https://") %}{% endcall %}
+      {% call ui::field(p ~ "_og_image", t("admin_content.meta.og_image"), v.meta.og_image, kind="url", error=err(v, "og_image"), hint=t("admin_content.meta.og_image_hint"), placeholder="https://") %}{% endcall %}
+      {% call ui::field(p ~ "_keywords", t("admin_content.meta.keywords"), v.meta.keywords, error=err(v, "keywords"), hint=t("admin_content.meta.keywords_hint")) %}{% endcall %}
+      <div class="checks">
+        {% call ui::checkbox(p ~ "_noindex", t("admin_content.meta.noindex"), v.meta.noindex) %}{% endcall %}
+        {% call ui::checkbox(p ~ "_nofollow", t("admin_content.meta.nofollow"), v.meta.nofollow) %}{% endcall %}
+      </div>
+    </div>
+  </section>
+  {%- endfor %}
+  </div>
+  <p class="field__hint">{{ t("admin_content.seo.meta.empty_hint") }}</p>
+  <div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button></div>
+</form>
+{% endblock %}

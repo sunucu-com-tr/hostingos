@@ -1,0 +1,9 @@
+{#- VPS management tabs; set `tab` before including. -#}
+<nav class="tabs vm-tabs" aria-label="{{ t("client.vm.title") }}">
+  <a href="{{ url("/client/services/") }}{{ s.id }}/server"{% if tab == "overview" %} aria-current="page"{% endif %}>{{ icon("server") }}{{ t("client.vm.tab.overview") }}</a>
+  <a href="{{ url("/client/services/") }}{{ s.id }}/server/graphs"{% if tab == "graphs" %} aria-current="page"{% endif %}>{{ icon("bar-chart") }}{{ t("client.vm.tab.graphs") }}</a>
+  <a href="{{ url("/client/services/") }}{{ s.id }}/server/backups"{% if tab == "backups" %} aria-current="page"{% endif %}>{{ icon("history") }}{{ t("client.vm.tab.backups") }}</a>
+  <a href="{{ url("/client/services/") }}{{ s.id }}/server/network"{% if tab == "network" %} aria-current="page"{% endif %}>{{ icon("globe") }}{{ t("client.vm.tab.network") }}</a>
+  <a href="{{ url("/client/services/") }}{{ s.id }}/server/recovery"{% if tab == "recovery" %} aria-current="page"{% endif %}>{{ icon("life-buoy") }}{{ t("client.vm.tab.recovery") }}</a>
+  <a href="{{ url("/client/services/") }}{{ s.id }}/server/activity"{% if tab == "activity" %} aria-current="page"{% endif %}>{{ icon("activity") }}{{ t("client.vm.tab.activity") }}</a>
+</nav>

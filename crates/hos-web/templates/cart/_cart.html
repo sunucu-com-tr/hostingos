@@ -1,0 +1,111 @@
+{#- Cart contents + summary (htmx target #cart). -#}
+{% import "components/ui.html" as ui %}
+<div id="cart" class="cart-layout">
+  <div class="stack">
+  {%- if view.is_empty() %}
+    <div class="card"><div class="card__body">
+    {% call ui::empty("cart", t("cart.empty_title"), t("cart.empty_text")) %}
+      <div class="btn-row"><a class="btn btn--primary" href="{{ url("/") }}">{{ t("cart.browse") }}</a><a class="btn btn--soft" href="{{ url("/domains") }}">{{ t("cart.search_domain") }}</a></div>
+    {% endcall %}
+    </div></div>
+  {%- else %}
+    {%- if !view.error.is_empty() %}{% call ui::alert("error", view.error) %}{% endcall %}{% endif %}
+    <div class="card">
+      <div class="table-wrap">
+        <table class="table table--stack cart-table">
+          <thead><tr><th scope="col">{{ t("cart.col_item") }}</th><th scope="col">{{ t("cart.col_period") }}</th><th scope="col" class="num">{{ t("cart.col_price") }}</th><th scope="col"><span class="visually-hidden">{{ t("cart.col_actions") }}</span></th></tr></thead>
+          <tbody>
+          {%- for l in view.lines %}
+            <tr{% if l.child %} class="cart-child"{% endif %}>
+              <td data-label="{{ t("cart.col_item") }}">
+                <div class="cart-item">{{ icon(l.icon) }}<div>
+                  <strong>{{ l.title }}</strong>
+                  {%- for d in l.details %}<span class="muted small">{{ d }}</span>{% endfor %}
+                </div></div>
+              </td>
+              <td data-label="{{ t("cart.col_period") }}">
+                {%- if !l.choice_field.is_empty() %}
+                <form method="post" action="{{ url("/cart/items/") }}{{ l.id }}" hx-post="{{ url("/cart/items/") }}{{ l.id }}" hx-target="#cart" hx-swap="outerHTML">
+                  {% call ui::csrf() %}{% endcall %}
+                  <label class="visually-hidden" for="c-{{ l.id }}">{{ t("cart.col_period") }}</label>
+                  <select class="select select--sm" id="c-{{ l.id }}" name="{{ l.choice_field }}" data-autosubmit>
+                    {%- for (v, label) in l.choices %}<option value="{{ v }}"{% if *v == l.selected %} selected{% endif %}>{{ label }}</option>{% endfor %}
+                  </select>
+                  <noscript><button type="submit" class="btn btn--ghost btn--sm">{{ t("cart.update") }}</button></noscript>
+                </form>
+                {%- else %}<span class="muted small">—</span>{% endif %}
+              </td>
+              <td class="num" data-label="{{ t("cart.col_price") }}">
+                <strong>{{ l.amount }}</strong>
+                {%- if !l.setup.is_empty() %}<span class="muted small">{{ tv("cart.line.setup", "amount", l.setup) }}</span>{% endif %}
+                {%- if !l.discount.is_empty() %}<span class="text-success small">−{{ l.discount }}</span>{% endif %}
+                {%- if !l.renews.is_empty() %}<span class="muted small">{{ tv("cart.line.renews", "amount", l.renews) }}</span>{% endif %}
+              </td>
+              <td class="cart-actions">
+                <form method="post" action="{{ url("/cart/items/") }}{{ l.id }}/remove" hx-post="{{ url("/cart/items/") }}{{ l.id }}/remove" hx-target="#cart" hx-swap="outerHTML">
+                  {% call ui::csrf() %}{% endcall %}
+                  <button type="submit" class="btn btn--ghost btn--icon btn--sm" aria-label="{{ tv("cart.remove", "name", l.title) }}" title="{{ t("cart.remove_short") }}">{{ icon("x") }}</button>
+                </form>
+              </td>
+            </tr>
+          {%- endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="card__foot between">
+        <form method="post" action="{{ url("/cart/empty") }}" hx-post="{{ url("/cart/empty") }}" hx-target="#cart" hx-swap="outerHTML" data-confirm="{{ t("cart.empty_confirm") }}">
+          {% call ui::csrf() %}{% endcall %}
+          <button type="submit" class="btn btn--ghost btn--sm">{{ t("cart.empty_cart") }}</button>
+        </form>
+        {%- if view.currencies.len() > 1 %}
+        <form class="cluster" method="post" action="{{ url("/cart/currency") }}" hx-post="{{ url("/cart/currency") }}" hx-target="#cart" hx-swap="outerHTML">
+          {% call ui::csrf() %}{% endcall %}
+          <label class="small muted" for="cart-currency">{{ t("cart.currency") }}</label>
+          <select class="select select--sm" id="cart-currency" name="currency" data-autosubmit>
+            {%- for (code, label) in view.currencies %}<option value="{{ code }}"{% if *code == view.currency %} selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <noscript><button type="submit" class="btn btn--ghost btn--sm">{{ t("cart.update") }}</button></noscript>
+        </form>
+        {%- endif %}
+      </div>
+    </div>
+  {%- endif %}
+  </div>
+  {%- if !view.is_empty() %}
+  <aside class="sticky">
+    <section class="card cart-summary" aria-labelledby="cart-summary-title">
+      <header class="card__head"><h2 id="cart-summary-title">{{ t("cart.summary.title") }}</h2></header>
+      <div class="card__body stack">
+        {%- match view.totals %}{% when Some(tt) %}
+        {% include "cart/_totals.html" %}
+        {%- when None %}
+        <p class="muted">{{ t("cart.summary.unpriced") }}</p>
+        {%- endmatch %}
+        <div class="stack-sm">
+          {%- if view.coupon.is_empty() %}
+          <form class="input-group" method="post" action="{{ url("/cart/coupon") }}" hx-post="{{ url("/cart/coupon") }}" hx-target="#cart" hx-swap="outerHTML">
+            {% call ui::csrf() %}{% endcall %}
+            <label class="visually-hidden" for="f-coupon">{{ t("cart.coupon.label") }}</label>
+            <input class="input" id="f-coupon" name="code" type="text" placeholder="{{ t("cart.coupon.placeholder") }}" autocomplete="off" maxlength="64" required>
+            <button type="submit" class="btn btn--soft">{{ t("cart.coupon.apply") }}</button>
+          </form>
+          {%- else %}
+          <div class="between">
+            <span>{{ icon("tag") }} <span class="mono">{{ view.coupon }}</span></span>
+            <form method="post" action="{{ url("/cart/coupon/remove") }}" hx-post="{{ url("/cart/coupon/remove") }}" hx-target="#cart" hx-swap="outerHTML">
+              {% call ui::csrf() %}{% endcall %}
+              <button type="submit" class="btn btn--link btn--sm">{{ t("cart.coupon.remove") }}</button>
+            </form>
+          </div>
+          {%- if !view.coupon_error.is_empty() %}<p class="small text-danger">{{ view.coupon_error }}</p>{% endif %}
+          {%- endif %}
+        </div>
+        {%- if view.can_checkout %}
+        <a class="btn btn--primary btn--block btn--lg" href="{{ url("/checkout") }}">{{ icon("lock") }}{{ t("cart.to_checkout") }}</a>
+        {%- endif %}
+        <p class="small muted">{{ t("cart.secure_note") }}</p>
+      </div>
+    </section>
+  </aside>
+  {%- endif %}
+</div>

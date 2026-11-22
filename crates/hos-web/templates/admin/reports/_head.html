@@ -1,0 +1,3 @@
+{#- Report page head + tab bar (needs `s: Shell`). -#}
+<div class="page-head"><div><h1>{{ t("admin_settings.reports.title") }}</h1><p>{{ t("admin_settings.reports.lead") }}</p></div></div>
+{% call ui::tabs(s.tabs.as_slice(), s.active) %}{% endcall %}

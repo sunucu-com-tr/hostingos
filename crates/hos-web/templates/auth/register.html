@@ -1,0 +1,33 @@
+{% extends "layouts/auth.html" %}
+{% import "components/ui.html" as ui %}
+{% block main_class %} auth-main--wide{% endblock %}
+{% block card %}
+<header class="auth-card__head">
+  <h1>{{ t("auth.register.title") }}</h1>
+  <p>{{ tv("auth.register.lead", "site", site_name) }}</p>
+</header>
+{%- if !open %}
+{% call ui::alert("info", t("auth.register.closed")) %}{% endcall %}
+<p><a class="btn btn--soft" href="{{ url("/auth/login") }}">{{ t("auth.login.title") }}</a></p>
+{%- else %}
+{% include "auth/_oauth.html" %}
+{% call ui::form_errors(errors) %}{% endcall %}
+<form class="form" method="post" action="{{ url("/auth/register") }}" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::honeypot() %}{% endcall %}
+  {%- if !next.is_empty() %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  <div class="form-row">
+    {% call ui::field("first_name", t("auth.fields.first_name"), form.first_name, error=errors.get("first_name"), required=true, autocomplete="given-name", autofocus=true) %}{% endcall %}
+    {% call ui::field("last_name", t("auth.fields.last_name"), form.last_name, error=errors.get("last_name"), required=true, autocomplete="family-name") %}{% endcall %}
+  </div>
+  {% call ui::field("email", t("auth.fields.email"), form.email, kind="email", error=errors.get("email"), required=true, autocomplete="email") %}{% endcall %}
+  {% call ui::field("password", t("auth.fields.password"), "", kind="password", error=errors.get("password"), hint=t("auth.register.password_hint"), required=true, autocomplete="new-password") %}{% endcall %}
+  <div class="field{% if errors.has("terms") %} field--error{% endif %}">
+    <label class="check"><input type="checkbox" name="terms" value="1"{% if form.terms.is_some() %} checked{% endif %}> <span>{% if terms_href.is_empty() %}{{ t("auth.register.terms") }}{% else %}<a href="{{ terms_href }}" target="_blank" rel="noopener">{{ t("auth.register.terms") }}</a>{% endif %}</span></label>
+    {%- if errors.has("terms") %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("terms") }}</p>{% endif %}
+  </div>
+  <button type="submit" class="btn btn--primary btn--block btn--lg">{{ t("auth.register.submit") }}</button>
+</form>
+{%- endif %}
+<p class="muted small">{{ t("auth.register.have_account") }} <a href="{{ url("/auth/login") }}">{{ t("auth.login.title") }}</a></p>
+{% endblock %}

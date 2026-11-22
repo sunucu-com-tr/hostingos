@@ -1,0 +1,45 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ t("platform.subscriptions.title") }}</h1>
+    <p>{{ t("platform.subscriptions.lead") }}</p>
+  </div>
+</div>
+{% call ui::card() %}
+<form class="form-row" method="get" action="/platform/subscriptions">
+  {% call ui::select("status", t("platform.subscription.status"), statuses, status.as_str()) %}{% endcall %}
+  <div class="field"><span class="field__label">&nbsp;</span><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("platform.common.filter") }}</button></div>
+</form>
+<p class="muted small mt-2">{{ tn("platform.subscriptions.count", total) }}</p>
+{%- if rows.is_empty() %}
+{% call ui::empty("credit-card", t("platform.subscriptions.empty")) %}{% endcall %}
+{%- else %}
+<div class="table-wrap mt-4"><table class="table table--stack">
+  <thead><tr>
+    <th scope="col">{{ t("platform.tenants.col_tenant") }}</th>
+    <th scope="col">{{ t("platform.tenants.col_plan") }}</th>
+    <th scope="col">{{ t("platform.subscription.status") }}</th>
+    <th scope="col" class="num">{{ t("platform.subscription.price") }}</th>
+    <th scope="col">{{ t("platform.tenant.trial_ends") }}</th>
+    <th scope="col">{{ t("platform.subscription.period_end") }}</th>
+  </tr></thead>
+  <tbody>
+  {%- for r in rows %}
+    <tr>
+      <td data-label="{{ t("platform.tenants.col_tenant") }}"><a href="/platform/tenants/{{ r.subscription.tenant_id }}"><strong>{{ r.tenant_name }}</strong></a> <code class="muted small">{{ r.tenant_slug }}</code></td>
+      <td data-label="{{ t("platform.tenants.col_plan") }}">{{ r.plan_name }} <code class="muted small">{{ r.plan_code }}</code></td>
+      <td data-label="{{ t("platform.subscription.status") }}">{{ badge(sub_status(r.subscription.status), sub_tone(r.subscription.status)) }}</td>
+      <td data-label="{{ t("platform.subscription.price") }}" class="num tabular">{{ money_in(r.subscription.price, r.subscription.currency) }}{{ per(r.subscription.billing_cycle) }}</td>
+      <td data-label="{{ t("platform.tenant.trial_ends") }}">{{ date_opt(r.subscription.trial_ends_at) }}</td>
+      <td data-label="{{ t("platform.subscription.period_end") }}">{{ date_opt(r.subscription.current_period_end) }}</td>
+    </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% call ui::pagination(pager) %}{% endcall %}
+{%- endif %}
+{% endcall %}
+{% endblock %}

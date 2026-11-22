@@ -1,0 +1,38 @@
+{#- A quote as the recipient sees it (client area and the secret link).
+    Needs: quote, number, items, taxes, can_answer, action_base, token. -#}
+<article class="biz-doc" aria-labelledby="quote-title">
+  <header class="biz-doc__head">
+    <div>
+      <p class="eyebrow">{{ t("quotes.public.eyebrow") }}</p>
+      <h1 id="quote-title">{{ number }} {{ qbadge() }}</h1>
+      <p class="biz-doc__subject">{{ quote.subject }}</p>
+    </div>
+    <dl class="biz-doc__meta">
+      <div><dt>{{ t("quotes.fields.date") }}</dt><dd>{{ datetime(quote.created_at) }}</dd></div>
+      <div><dt>{{ t("quotes.fields.valid_until") }}</dt><dd>{{ d(quote.valid_until) }}</dd></div>
+    </dl>
+  </header>
+  <div class="table-wrap"><table class="table biz-doc__lines">
+    <caption class="visually-hidden">{{ t("quotes.public.lines_caption") }}</caption>
+    <thead><tr><th scope="col">{{ t("quotes.fields.description") }}</th><th scope="col" class="num">{{ t("quotes.fields.quantity") }}</th><th scope="col" class="num">{{ t("quotes.fields.unit_price") }}</th><th scope="col" class="num">{{ t("quotes.fields.amount") }}</th></tr></thead>
+    <tbody>
+    {%- for it in items %}
+    <tr>
+      <td data-label="{{ t("quotes.fields.description") }}">{{ it.description }}{% match it.billing_cycle %}{% when Some(cy) %}<span class="biz-sub">{{ cycle(cy) }}</span>{% when None %}{% endmatch %}{% if !it.discount_percent.is_zero() %}<span class="biz-sub">{{ tv("quotes.public.discount_line", "percent", dec(it.discount_percent)) }}</span>{% endif %}</td>
+      <td data-label="{{ t("quotes.fields.quantity") }}" class="num mono">{{ dec(it.quantity) }}</td>
+      <td data-label="{{ t("quotes.fields.unit_price") }}" class="num mono">{{ m(it.unit_price, quote.currency) }}</td>
+      <td data-label="{{ t("quotes.fields.amount") }}" class="num mono">{{ m(it.amount, quote.currency) }}</td>
+    </tr>
+    {%- endfor %}
+    </tbody>
+  </table></div>
+  <dl class="biz-totals">
+    <div><dt>{{ t("quotes.fields.subtotal") }}</dt><dd class="mono">{{ m(quote.subtotal, quote.currency) }}</dd></div>
+    {%- if !quote.discount_total.is_zero() %}<div><dt>{{ t("quotes.fields.discount_total") }}</dt><dd class="mono">−{{ m(quote.discount_total, quote.currency) }}</dd></div>{% endif %}
+    {%- for tx in taxes %}<div><dt>{{ tx.name }} (%{{ tx.rate }})</dt><dd class="mono">{{ m(tx.amount, quote.currency) }}</dd></div>{% endfor %}
+    <div class="biz-totals__grand"><dt>{{ t("quotes.fields.total") }}</dt><dd class="mono">{{ m(quote.total, quote.currency) }}</dd></div>
+  </dl>
+  {%- match quote.notes %}{% when Some(n) %}
+  <section class="biz-doc__notes" aria-label="{{ t("quotes.fields.notes") }}"><h2 class="biz-h3">{{ t("quotes.fields.notes") }}</h2><div class="prose">{{ md(n) }}</div></section>
+  {%- when None %}{% endmatch %}
+</article>

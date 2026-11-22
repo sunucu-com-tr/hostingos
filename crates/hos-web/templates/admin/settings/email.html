@@ -1,0 +1,63 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+{% include "admin/settings/_head.html" %}
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    {% call ui::card(t("admin_settings.email.templates_title"), t("admin_settings.email.templates_lead")) %}
+    <div class="table-wrap"><table class="table table--dense table--stack">
+      <thead><tr><th>{{ t("admin_settings.email.template") }}</th><th>{{ t("admin.common.lang_tr") }}</th><th>{{ t("admin.common.lang_en") }}</th></tr></thead>
+      <tbody>
+      {%- for r in templates %}
+      <tr>
+        <td data-label="{{ t("admin_settings.email.template") }}"><strong>{{ r.name }}</strong><span class="sub mono small">{{ r.key }}</span></td>
+        {%- for (l, custom) in r.locales %}
+        <td data-label="{{ l|upper }}"><a class="btn btn--ghost btn--sm" href="{{ url("/admin/settings/email/templates/" ~ r.key ~ "/" ~ l) }}">{{ icon("file-text") }}{{ t("admin.common.edit") }}</a>
+          {% if *custom %}{{ badge(t("admin_settings.email.customized"), "brand") }}{% else %}{{ badge(t("admin_settings.email.default"), "") }}{% endif %}</td>
+        {%- endfor %}
+      </tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
+    {% endcall %}
+
+    {% call ui::card(t("admin_settings.email.log"), t("admin_settings.email.log_lead")) %}
+    {%- if log.is_empty() %}
+    {% call ui::empty("mail", t("admin_settings.email.log_empty")) %}{% endcall %}
+    {%- else %}
+    <div class="table-wrap"><table class="table table--dense table--stack">
+      <thead><tr><th>{{ t("admin.common.date") }}</th><th>{{ t("admin_settings.email.to") }}</th><th>{{ t("admin_settings.email.subject") }}</th><th>{{ t("admin.common.status") }}</th></tr></thead>
+      <tbody>
+      {%- for e in log %}
+      <tr>
+        <td data-label="{{ t("admin.common.date") }}" class="nowrap">{{ datetime(e.created_at) }}</td>
+        <td data-label="{{ t("admin_settings.email.to") }}">{{ e.to_address }}</td>
+        <td data-label="{{ t("admin_settings.email.subject") }}">{{ e.subject }}<span class="sub small">{{ template_name(e.template_key) }}</span>
+          {%- match e.error %}{% when Some(err) %}<span class="sub small text-danger">{{ err }}</span>{% when None %}{% endmatch %}</td>
+        <td data-label="{{ t("admin.common.status") }}">{{ sbadge(e.status.as_str()) }}</td>
+      </tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
+    {%- endif %}
+    {% endcall %}
+  </div>
+  <aside class="stack-lg">
+    {% call ui::card(t("admin_settings.email.sender"), t("admin_settings.email.sender_lead")) %}
+    <form method="post" action="{{ url("/admin/settings/email") }}" class="stack" novalidate>
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::form_errors(errors) %}{% endcall %}
+      {% call ui::field("from_name", t("admin_settings.email.from_name"), sender.from_name) %}{% endcall %}
+      {% call ui::field("from_address", t("admin_settings.email.from_address"), sender.from_address, kind="email", error=errors.get("from_address"), hint=t("admin_settings.email.from_address_hint")) %}{% endcall %}
+      {% call ui::field("reply_to", t("admin_settings.email.reply_to"), sender.reply_to, kind="email", error=errors.get("reply_to")) %}{% endcall %}
+      <button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button>
+    </form>
+    {% endcall %}
+    {%- if !has_mailer %}
+    {% call ui::alert("warning", t("admin_settings.email.no_mailer")) %}{% endcall %}
+    {%- if can("integrations.manage") %}<a class="btn btn--ghost btn--sm" href="{{ url("/admin/integrations") }}">{{ icon("plug") }}{{ t("admin.menu.integrations") }}</a>{% endif %}
+    {%- endif %}
+  </aside>
+</div>
+{% endblock %}

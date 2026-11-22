@@ -1,0 +1,23 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ title }}</h1><p>{{ t("admin_support.departments.lead") }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/support/departments") }}">{{ icon("chevron-left") }}{{ t("admin.common.back") }}</a></div>
+</div>
+{% call ui::card() %}
+<form class="stack" method="post" action="{{ url("/admin/support/departments/" ~ id) }}">
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::form_errors(errors) %}{% endcall %}
+  {% include "admin/support/_department_fields.html" %}
+  <div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button></div>
+</form>
+{% endcall %}
+<section class="card mt-6"><div class="card__body between">
+  <p class="muted small">{{ t("admin_support.departments.delete_hint") }}</p>
+  <form method="post" action="{{ url("/admin/support/departments/" ~ id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">
+    {% call ui::csrf() %}{% endcall %}
+    <button class="btn btn--danger btn--sm" type="submit">{{ t("admin.common.delete") }}</button>
+  </form>
+</div></section>
+{% endblock %}

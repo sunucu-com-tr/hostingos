@@ -1,0 +1,12 @@
+<li class="incident">
+  <h3><a href="{{ url("/status/incidents/" ~ v.incident.id) }}">{{ v.incident.title }}</a></h3>
+  <p class="incident__meta">
+    <span>{{ istatus(v) }}</span>
+    {%- match v.incident.scheduled_start %}
+    {%- when Some(s) %}<span>{{ t("netstatus.fields.starts") }}: <time datetime="{{ s.to_rfc3339() }}">{{ datetime(s) }}</time>{% match v.incident.scheduled_end %}{% when Some(e) %} – <time datetime="{{ e.to_rfc3339() }}">{{ datetime(e) }}</time>{% when None %}{% endmatch %}</span>
+    {%- when None %}<span><time datetime="{{ v.incident.started_at.to_rfc3339() }}">{{ datetime(v.incident.started_at) }}</time></span>
+    {%- endmatch %}
+    {%- if !v.components.is_empty() %}<span>{{ t("netstatus.fields.affected") }}: {{ v.components.join(", ") }}</span>{% endif %}
+  </p>
+  {%- match v.latest %}{% when Some(u) %}<div class="prose mt-2">{{ md(u.body) }}</div>{% when None %}{% endmatch %}
+</li>

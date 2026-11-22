@@ -1,0 +1,54 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/_macros.html" as ax %}
+{% block content %}
+{%- let filtered = !q.is_empty() || !product.is_empty() || !server.is_empty() %}
+<div class="page-head">
+  <div><h1>{{ t("admin.services.title") }}</h1><p>{{ tn("admin.services.count", pager.total) }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/services/cancellations") }}">{{ icon("log-out") }}{{ t("admin.services.cancellations") }}</a><a class="btn btn--ghost" href="{{ url("/admin/orders/provisioning") }}">{{ icon("settings") }}{{ t("admin.orders.queue_title") }}</a></div>
+</div>
+<nav class="chips" aria-label="{{ t("admin.common.status") }}">
+  <a class="chip" href="{{ url("/admin/services") }}"{% if status.is_empty() %} aria-current="true"{% endif %}>{{ t("admin.common.all") }}</a>
+  {%- for (v, l, n) in counts %}<a class="chip" href="{{ url("/admin/services?status=" ~ v) }}"{% if status == *v %} aria-current="true"{% endif %}>{{ l }} <span class="chip__count">{{ n }}</span></a>{% endfor %}
+</nav>
+<form class="filters" method="get" action="{{ url("/admin/services") }}" role="search">
+  <div class="field field--grow">{{ icon("search") }}<label class="visually-hidden" for="f-q">{{ t("admin.common.search") }}</label><input class="input" id="f-q" type="search" name="q" value="{{ q }}" placeholder="{{ t("admin.services.search_placeholder") }}"></div>
+  <div class="field"><label class="field__label" for="f-s">{{ t("admin.common.status") }}</label>
+    <select class="select" id="f-s" name="status" data-autosubmit><option value="">{{ t("admin.common.all") }}</option>{% for (v, l) in statuses %}<option value="{{ v }}"{{ sel(v, status) }}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="field"><label class="field__label" for="f-p">{{ t("admin.services.col_product") }}</label>
+    <select class="select" id="f-p" name="product" data-autosubmit><option value="">{{ t("admin.common.all") }}</option>{% for (pid, pn) in products %}<option value="{{ pid }}"{{ sel(pid.to_string().as_str(), product) }}>{{ pn }}</option>{% endfor %}</select></div>
+  <div class="field"><label class="field__label" for="f-sv">{{ t("admin.services.server") }}</label>
+    <select class="select" id="f-sv" name="server" data-autosubmit><option value="">{{ t("admin.common.all") }}</option>{% for i in servers %}<option value="{{ i.id }}"{{ sel(i.id.to_string().as_str(), server) }}>{{ i.name }}</option>{% endfor %}</select></div>
+  <div class="filters__actions"><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("admin.common.filter") }}</button></div>
+</form>
+{%- if filtered %}
+<div class="ax-chips" role="group" aria-label="{{ t("admin.shell.filters") }}">
+  {%- if !q.is_empty() %}<a class="ax-chip" href="{{ url("/admin/services?status=" ~ (status|urlencode) ~ "&product=" ~ (product|urlencode) ~ "&server=" ~ (server|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.common.search") }}:</span><span class="ax-chip__value">{{ q }}</span>{{ icon("x") }}</a>{% endif %}
+  {%- for (pid, pn) in products %}{% if pid.to_string().as_str() == product.as_str() %}<a class="ax-chip" href="{{ url("/admin/services?status=" ~ (status|urlencode) ~ "&q=" ~ (q|urlencode) ~ "&server=" ~ (server|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.services.col_product") }}:</span><span class="ax-chip__value">{{ pn }}</span>{{ icon("x") }}</a>{% endif %}{% endfor %}
+  {%- for i in servers %}{% if i.id.to_string().as_str() == server.as_str() %}<a class="ax-chip" href="{{ url("/admin/services?status=" ~ (status|urlencode) ~ "&q=" ~ (q|urlencode) ~ "&product=" ~ (product|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.services.server") }}:</span><span class="ax-chip__value">{{ i.name }}</span>{{ icon("x") }}</a>{% endif %}{% endfor %}
+  <a class="ax-chips__clear" href="{{ url("/admin/services?status=" ~ (status|urlencode)) }}">{{ t("admin.shell.clear_all") }}</a>
+</div>
+{%- endif %}
+{%- if rows.is_empty() %}
+{% call ui::empty("server", t("admin.services.empty_title"), t("admin.services.empty_text")) %}
+{%- if filtered || !status.is_empty() %}<a class="btn btn--soft" href="{{ url("/admin/services") }}">{{ icon("x") }}{{ t("admin.shell.clear_all") }}</a>{% endif %}
+{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr>{% include "admin/_sort_head.html" %}<th scope="col">{{ t("admin.common.status") }}</th><th scope="col" class="col-actions"><span class="visually-hidden">{{ t("admin.common.actions") }}</span></th></tr></thead>
+  <tbody>
+  {%- for r in rows %}
+  <tr>
+    <td data-label="{{ t("admin.services.col_product") }}"><a class="row-link" href="{{ url("/admin/services/" ~ r.service.id) }}">{{ r.product_name }}</a><span class="sub mono">{{ o(r.service.domain) }}</span></td>
+    <td data-label="{{ t("admin.orders.col_client") }}"><a href="{{ url("/admin/clients/" ~ r.service.client_id) }}">{{ r.client_name }}</a></td>
+    <td data-label="{{ t("admin.services.col_amount") }}" class="num">{{ m(r.service.recurring_amount, r.service.currency) }}<span class="sub">{{ cycle(r.service.billing_cycle) }}</span></td>
+    <td data-label="{{ t("admin.services.col_due") }}" class="nowrap">{{ dopt(r.service.next_due_date) }}</td>
+    <td data-label="{{ t("admin.clients.col_created") }}" class="muted nowrap">{{ d(r.service.registration_date) }}</td>
+    <td data-label="{{ t("admin.common.status") }}">{{ sbadge(r.service.status.as_str()) }}</td>
+  <td class="col-actions">{% call ax::row_menu(t("admin.common.actions")) %}<a role="menuitem" href="{{ url("/admin/services/" ~ r.service.id) }}">{{ icon("server") }}<span>{{ t("admin.common.open") }}</span></a><a role="menuitem" href="{{ url("/admin/clients/" ~ r.service.client_id) }}">{{ icon("user") }}<span>{{ t("admin.orders.col_client") }}</span></a><a role="menuitem" href="{{ url("/admin/services/" ~ r.service.id) }}" target="_blank" rel="noopener">{{ icon("external-link") }}<span>{{ t("admin.common.new_tab") }}</span></a>{% endcall %}</td></tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% call ax::pager(pager) %}{% endcall %}
+{%- endif %}
+{% endblock %}

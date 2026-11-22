@@ -1,0 +1,66 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1 class="mono">{{ d.name }} {{ sbadge(d.status.as_str()) }}</h1>
+    <p><a href="{{ url("/admin/clients/" ~ client.id) }}">{{ client.display_name() }}</a> · {{ lbl("admin.domains.types", d.registration_type.as_str()) }} · {{ t("admin.domains.col_expires") }} {{ dtopt(d.expires_at) }}</p></div>
+  <div class="page-head__actions">
+    <form method="post" action="{{ url("/admin/domains/" ~ d.id ~ "/command") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="sync"><button class="btn btn--soft" type="submit"{% if registrar.is_none() %} disabled{% endif %}>{{ icon("refresh") }}{{ t("admin.domains.sync") }}</button></form>
+  </div>
+</div>
+{%- match d.sync_error %}{% when Some(er) %}{% call ui::alert("warning", tv("admin.domains.last_error", "error", er)) %}{% endcall %}{% when None %}{% endmatch %}
+{%- if !epp.is_empty() %}{% call ui::alert("info", tv("admin.domains.epp_is", "code", epp)) %}{% endcall %}{% endif %}
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    {% call ui::card(t("admin.domains.commands")) %}
+    <div class="btn-row">
+      {%- if d.status.as_str() == "pending" || d.status.as_str() == "pending_registration" %}
+      <form method="post" action="{{ url("/admin/domains/" ~ d.id ~ "/command") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="register"><button class="btn btn--primary btn--sm" type="submit">{{ t("admin.domains.register") }}</button></form>
+      {%- endif %}
+      {%- if d.status.as_str() == "pending" || d.status.as_str() == "pending_transfer" %}
+      <form method="post" action="{{ url("/admin/domains/" ~ d.id ~ "/command") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="transfer"><button class="btn btn--soft btn--sm" type="submit">{{ t("admin.domains.transfer") }}</button></form>
+      {%- endif %}
+      <form method="post" action="{{ url("/admin/domains/" ~ d.id ~ "/command") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="{% if d.lock %}unlock{% else %}lock{% endif %}"><button class="btn btn--soft btn--sm" type="submit">{% if d.lock %}{{ t("admin.domains.unlock") }}{% else %}{{ t("admin.domains.lock") }}{% endif %}</button></form>
+      <form method="post" action="{{ url("/admin/domains/" ~ d.id ~ "/command") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="{% if d.privacy %}privacy_off{% else %}privacy_on{% endif %}"><button class="btn btn--soft btn--sm" type="submit">{% if d.privacy %}{{ t("admin.domains.privacy_off") }}{% else %}{{ t("admin.domains.privacy_on") }}{% endif %}</button></form>
+      <form method="post" action="{{ url("/admin/domains/" ~ d.id ~ "/command") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="{% if d.auto_renew %}auto_renew_off{% else %}auto_renew_on{% endif %}"><button class="btn btn--soft btn--sm" type="submit">{% if d.auto_renew %}{{ t("admin.domains.auto_renew_off") }}{% else %}{{ t("admin.domains.auto_renew_on") }}{% endif %}</button></form>
+      <form method="post" action="{{ url("/admin/domains/" ~ d.id ~ "/epp") }}" data-confirm="{{ t("admin.domains.epp_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ icon("key") }}{{ t("admin.domains.epp") }}</button></form>
+    </div>
+    <hr class="divider">
+    <div class="form-grid">
+      <form class="stack" method="post" action="{{ url("/admin/domains/" ~ d.id ~ "/command") }}">
+        {% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="renew_invoice">
+        <div class="field"><label class="field__label" for="rn-y">{{ t("admin.domains.years") }}</label><select class="select" id="rn-y" name="years">{% for y in [1, 2, 3, 5] %}<option value="{{ y }}">{{ y }}</option>{% endfor %}</select></div>
+        <button class="btn btn--soft btn--sm" type="submit">{{ t("admin.domains.renew_invoice") }}</button>
+      </form>
+      <form class="stack" method="post" action="{{ url("/admin/domains/" ~ d.id ~ "/command") }}" data-confirm="{{ t("admin.domains.renew_now_confirm") }}">
+        {% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="renew_now">
+        <div class="field"><label class="field__label" for="rw-y">{{ t("admin.domains.years") }}</label><select class="select" id="rw-y" name="years">{% for y in [1, 2, 3, 5] %}<option value="{{ y }}">{{ y }}</option>{% endfor %}</select></div>
+        <button class="btn btn--ghost btn--sm" type="submit">{{ t("admin.domains.renew_now") }}</button>
+      </form>
+    </div>
+    {% endcall %}
+    {% call ui::card(t("admin.domains.nameservers")) %}
+    <form class="stack" method="post" action="{{ url("/admin/domains/" ~ d.id ~ "/nameservers") }}">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::textarea("nameservers", t("admin.domains.nameservers"), nameservers, rows=4, hint=t("admin.domains.ns_hint")) %}{% endcall %}
+      <div class="form-actions"><button class="btn btn--primary btn--sm" type="submit">{{ t("common.actions.save") }}</button></div>
+    </form>
+    {% endcall %}
+  </div>
+  <aside>
+    {% call ui::card(t("admin.common.details")) %}
+    <dl class="kv">
+      <dt>{{ t("admin.tlds.registrar") }}</dt><dd>{% match registrar %}{% when Some(r) %}{{ r.name }}{% when None %}<span class="muted">—</span>{% endmatch %}</dd>
+      <dt>{{ t("admin.domains.registered_at") }}</dt><dd>{{ dtopt(d.registered_at) }}</dd>
+      <dt>{{ t("admin.domains.col_expires") }}</dt><dd>{{ dtopt(d.expires_at) }}</dd>
+      <dt>{{ t("admin.services.col_due") }}</dt><dd>{{ dopt(d.next_due_date) }}</dd>
+      <dt>{{ t("admin.services.col_amount") }}</dt><dd>{{ m(d.recurring_amount, d.currency) }}</dd>
+      <dt>{{ t("admin.domains.lock") }}</dt><dd>{{ yesno(d.lock) }}</dd>
+      <dt>{{ t("admin.domains.privacy") }}</dt><dd>{{ yesno(d.privacy) }}</dd>
+      <dt>{{ t("admin.domains.col_auto_renew") }}</dt><dd>{{ yesno(d.auto_renew) }}</dd>
+      <dt>{{ t("admin.domains.synced_at") }}</dt><dd>{{ dtopt(d.last_synced_at) }}</dd>
+    </dl>
+    {% endcall %}
+  </aside>
+</div>
+{% endblock %}

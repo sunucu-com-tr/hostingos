@@ -1,0 +1,61 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/reports/_macros.html" as rp %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+{% include "admin/reports/_head.html" %}
+{% call rp::filters(s, true) %}{% endcall %}
+
+<section class="report-stats" aria-label="{{ t("admin_settings.reports.recurring") }}">
+  {%- if metrics.recurring.is_empty() %}
+  <div class="card"><div class="card__body"><p class="muted small">{{ t("admin_settings.reports.mrr") }}</p><p class="stat__value">—</p><p class="muted small">{{ t("admin_settings.reports.no_recurring") }}</p></div></div>
+  {%- endif %}
+  {%- for r in metrics.recurring %}
+  <div class="card"><div class="card__body">
+    <p class="muted small">{{ t("admin_settings.reports.mrr") }} · {{ r.currency.as_str() }}</p>
+    <p class="stat__value">{{ money_in(r.mrr, r.currency) }}</p>
+    <p class="muted small">{{ t("admin_settings.reports.arr") }}: {{ money_in(r.arr, r.currency) }}</p>
+  </div></div>
+  {%- endfor %}
+  <div class="card"><div class="card__body">
+    <p class="muted small">{{ t("admin_settings.reports.churn_rate") }}</p>
+    <p class="stat__value">{{ tv("admin_settings.reports.percent", "value", metrics.churn_rate_percent.normalize()) }}</p>
+    <p class="muted small">{{ tv2("admin_settings.reports.churn_detail", "churned", num(metrics.churn.churned), "start", num(metrics.churn.active_at_start)) }}</p>
+  </div></div>
+  <div class="card"><div class="card__body">
+    <p class="muted small">{{ t("admin_settings.reports.new_services") }}</p>
+    <p class="stat__value">{{ num(metrics.churn.new_services) }}</p>
+    <p class="muted small">{{ t("admin_settings.reports.in_range") }}</p>
+  </div></div>
+</section>
+<p class="report-note small">{{ icon("info") }}{{ t("admin_settings.reports.mrr_hint") }}</p>
+
+<section class="card report-card mt-4">
+  {% call rp::head(t("admin_settings.reports.flow"), t("admin_settings.reports.flow_lead"), url(s.export("flow"))) %}{% endcall %}
+  <div class="card__body">
+    {%- if flow.is_empty() %}
+    <p class="muted">{{ t("admin_settings.reports.empty") }}</p>
+    {%- else %}
+    {{ chart_svg|safe }}
+    <div class="table-wrap mt-2"><table class="table table--dense table--stack">
+      <thead><tr>
+        <th scope="col">{{ t("admin_settings.reports.period") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.new_clients") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.new_services") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.ended_services") }}</th>
+      </tr></thead>
+      <tbody>
+      {%- for r in flow %}
+      <tr>
+        <th scope="row" data-label="{{ t("admin_settings.reports.period") }}">{{ period(r.period) }}</th>
+        <td class="num" data-label="{{ t("admin_settings.reports.new_clients") }}">{{ num(r.new_clients) }}</td>
+        <td class="num" data-label="{{ t("admin_settings.reports.new_services") }}">{{ num(r.new_services) }}</td>
+        <td class="num" data-label="{{ t("admin_settings.reports.ended_services") }}">{{ num(r.ended_services) }}</td>
+      </tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
+    {%- endif %}
+  </div>
+</section>
+{% endblock %}

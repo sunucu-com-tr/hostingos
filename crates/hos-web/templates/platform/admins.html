@@ -1,0 +1,54 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ t("platform.admins.title") }}</h1>
+    <p>{{ t("platform.admins.lead") }}</p>
+  </div>
+</div>
+{%- if !created_email.is_empty() %}
+{% call ui::alert("success", tv("platform.admins.created", "email", created_email)) %}{% endcall %}
+{% call ui::code("new-admin-password", t("platform.admins.password_once"), created_password) %}{% endcall %}
+{%- endif %}
+<div class="stack-lg">
+{% call ui::card() %}
+<div class="table-wrap"><table class="table table--stack">
+  <thead><tr>
+    <th scope="col">{{ t("platform.admins.col_name") }}</th>
+    <th scope="col">{{ t("auth.fields.email") }}</th>
+    <th scope="col">{{ t("platform.tenants.col_status") }}</th>
+    <th scope="col">{{ t("platform.admins.col_2fa") }}</th>
+    <th scope="col">{{ t("platform.admins.col_last_login") }}</th>
+    <th scope="col"></th>
+  </tr></thead>
+  <tbody>
+  {%- for a in admins %}
+    <tr>
+      <td data-label="{{ t("platform.admins.col_name") }}"><strong>{{ a.name }}</strong>{% if a.id == me %} {{ badge(t("platform.admins.you"), "info") }}{% endif %}</td>
+      <td data-label="{{ t("auth.fields.email") }}">{{ a.email }}</td>
+      <td data-label="{{ t("platform.tenants.col_status") }}">{{ status_badge(a.status.as_str()) }}</td>
+      <td data-label="{{ t("platform.admins.col_2fa") }}">{% if a.totp_enabled %}{{ badge(t("platform.admins.2fa_on"), "success") }}{% else %}{{ badge(t("platform.admins.2fa_off"), "warning") }}{% endif %}</td>
+      <td data-label="{{ t("platform.admins.col_last_login") }}">{{ date_opt(a.last_login_at) }}{% match a.last_login_ip %}{% when Some(ip) %} <span class="muted small">{{ ip }}</span>{% when None %}{% endmatch %}</td>
+      <td>
+        {%- if a.id != me %}
+        <form method="post" action="/platform/admins/{{ a.id }}/delete" data-confirm="{{ tv("platform.admins.delete_confirm", "email", a.email) }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ icon("x") }}{{ t("platform.common.delete") }}</button></form>
+        {%- endif %}
+      </td>
+    </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% endcall %}
+{% call ui::card(t("platform.admins.add_title"), t("platform.admins.add_lead")) %}
+{% call ui::form_errors(errors) %}{% endcall %}
+<form class="form-row" method="post" action="/platform/admins" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::field("name", t("platform.admins.col_name"), form.name, error=errors.get("name"), required=true) %}{% endcall %}
+  {% call ui::field("email", t("auth.fields.email"), form.email, kind="email", error=errors.get("email"), required=true) %}{% endcall %}
+  <div class="field"><span class="field__label">&nbsp;</span><button class="btn btn--primary" type="submit">{{ icon("plus") }}{{ t("platform.admins.add") }}</button></div>
+</form>
+{% endcall %}
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{#- Report helpers. `filters(s, show_unit)`: date range + currency (+ unit)
+    bar; page-specific controls come from the caller body. -#}
+{% macro filters(s, show_unit) %}
+<form class="filters report-filters" method="get" action="{{ url(s.path) }}">
+  <div class="field"><label class="field__label" for="f-from">{{ t("admin.common.from") }}</label><input class="input" id="f-from" type="date" name="from" value="{{ s.filters.from }}" required></div>
+  <div class="field"><label class="field__label" for="f-to">{{ t("admin.common.to") }}</label><input class="input" id="f-to" type="date" name="to" value="{{ s.filters.to }}" required></div>
+  <div class="field"><label class="field__label" for="f-currency">{{ t("admin.common.currency") }}</label>
+    <select class="select" id="f-currency" name="currency">
+    {%- for (code, label) in s.filters.currencies %}
+      <option value="{{ code }}"{% if code == s.filters.currency.as_str() %} selected{% endif %}>{{ label }}</option>
+    {%- endfor %}
+    </select></div>
+  {%- if show_unit %}
+  <div class="field"><label class="field__label" for="f-unit">{{ t("admin_settings.reports.unit") }}</label>
+    <select class="select" id="f-unit" name="unit">
+    {%- for (u, label) in s.units %}
+      <option value="{{ u }}"{% if *u == s.filters.unit %} selected{% endif %}>{{ label }}</option>
+    {%- endfor %}
+    </select></div>
+  {%- else %}
+  <input type="hidden" name="unit" value="{{ s.filters.unit }}">
+  {%- endif %}
+  {{ caller() }}
+  <div class="filters__actions"><button class="btn btn--primary" type="submit">{{ icon("filter") }}{{ t("admin.common.filter") }}</button></div>
+</form>
+{%- if s.filters.adjusted %}
+<p class="report-note small">{{ icon("info") }}{{ t("admin_settings.reports.adjusted") }}</p>
+{%- endif %}
+{%- if !s.others.is_empty() %}
+<p class="report-note small">{{ icon("info") }}{{ tv("admin_settings.reports.other_currencies", "list", s.others.join(", ")) }}</p>
+{%- endif %}
+{% endmacro %}
+
+{#- Card head with a CSV export link. -#}
+{% macro head(title, lead, href) %}
+<header class="card__head between">
+  <div><h2>{{ title }}</h2>{% if !lead.is_empty() %}<p class="muted small">{{ lead }}</p>{% endif %}</div>
+  <a class="btn btn--ghost btn--sm" href="{{ href }}" download>{{ icon("download") }}{{ t("admin.common.export_csv") }}</a>
+</header>
+{% endmacro %}

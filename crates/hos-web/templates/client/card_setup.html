@@ -1,0 +1,19 @@
+{#- Hand-off to a gateway's card form (saving a card without paying). -#}
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head">
+  <div><h1>{{ t("client.billing.card_title") }}</h1><p>{{ t("client.billing.card_add_note") }}</p></div>
+  <div class="btn-row"><a class="btn btn--ghost" href="{{ url("/client/billing") }}">{{ t("client.pay.back") }}</a></div>
+</div>
+<section class="card pay-handoff">
+  <div class="card__body stack">
+    <p><span class="spinner" aria-hidden="true"></span> {{ t("client.pay.redirecting") }}</p>
+    <form id="gateway-form" method="{{ method }}" action="{{ action }}">
+      {%- for (k, v) in fields %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+      <button type="submit" class="btn btn--primary">{{ icon("lock") }}{{ t("client.pay.continue") }}</button>
+    </form>
+    <script nonce="{{ nonce }}">document.getElementById("gateway-form").submit();</script>
+  </div>
+</section>
+{% endblock %}

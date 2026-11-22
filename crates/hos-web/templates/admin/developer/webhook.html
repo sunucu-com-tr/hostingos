@@ -1,0 +1,92 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{% match endpoint %}{% when Some(e) %}<span class="mono">{{ e.url }}</span>{% when None %}{{ t("admin_settings.developer.new_webhook") }}{% endmatch %}</h1>
+    <p>{{ t("admin_settings.developer.webhook_lead") }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/developer/webhooks") }}">{{ icon("chevron-left") }}{{ t("admin.common.back") }}</a></div>
+</div>
+{%- if !secret.is_empty() %}
+<section class="card secret-once mb-4">
+  <div class="card__body stack-sm">
+    {% call ui::code("webhook-secret", t("admin_settings.developer.signing_secret"), secret) %}{% endcall %}
+    <p class="small muted">{{ t("admin_settings.developer.secret_once") }}</p>
+    <p class="small">{{ t("admin_settings.developer.signature_hint") }} <code>X-HostingOS-Signature</code></p>
+  </div>
+</section>
+{%- endif %}
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    <form method="post" action="{{ url(action_url()) }}" class="card card__body stack" novalidate>
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::form_errors(errors) %}{% endcall %}
+      {% call ui::field("url", t("admin_settings.developer.url"), form.url, kind="url", error=errors.get("url"), hint=t("admin_settings.developer.url_hint"), required=true, placeholder="https://hooks.example.com/hostingos") %}{% endcall %}
+      {% call ui::field("description", t("admin.common.description"), form.description) %}{% endcall %}
+      <fieldset class="stack-sm">
+        <legend class="field__label">{{ t("admin_settings.developer.events") }}</legend>
+        <div class="event-grid">
+        {%- for (e, on) in events %}
+        <label class="check"><input type="checkbox" name="events" value="{{ e }}"{% if *on %} checked{% endif %}> <span class="mono small">{{ e }}</span></label>
+        {%- endfor %}
+        </div>
+        <p class="field__hint">{{ t("admin_settings.developer.events_hint") }}</p>
+      </fieldset>
+      {% call ui::checkbox("is_active", t("admin.common.active"), form.active) %}{% endcall %}
+      <div class="btn-row"><button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button></div>
+    </form>
+
+    {%- if endpoint.is_some() %}
+    {% call ui::card(t("admin_settings.developer.deliveries"), t("admin_settings.developer.deliveries_lead")) %}
+    {%- if deliveries.is_empty() %}
+    <p class="muted small">{{ t("admin_settings.developer.deliveries_empty") }}</p>
+    {%- else %}
+    <div class="table-wrap"><table class="table table--dense table--stack">
+      <thead><tr><th>{{ t("admin.common.date") }}</th><th>{{ t("admin_settings.developer.event") }}</th><th>{{ t("admin.common.status") }}</th><th>{{ t("admin_settings.developer.attempts") }}</th><th class="actions"></th></tr></thead>
+      <tbody>
+      {%- for j in deliveries %}
+      <tr>
+        <td data-label="{{ t("admin.common.date") }}" class="nowrap">{{ datetime(j.created_at) }}</td>
+        <td data-label="{{ t("admin_settings.developer.event") }}" class="mono small">{{ event_of(j) }}</td>
+        <td data-label="{{ t("admin.common.status") }}">{{ sbadge(j.status.as_str()) }}<span class="sub small">{{ outcome(j) }}</span></td>
+        <td data-label="{{ t("admin_settings.developer.attempts") }}">{{ j.attempts }} / {{ j.max_attempts }}</td>
+        <td class="actions">{% match endpoint %}{% when Some(e) %}
+          <form method="post" action="{{ url("/admin/developer/webhooks/" ~ e.id ~ "/deliveries/" ~ j.id ~ "/resend") }}">{% call ui::csrf() %}{% endcall %}
+            <button class="btn btn--ghost btn--sm" type="submit">{{ icon("refresh") }}{{ t("admin_settings.developer.resend") }}</button></form>
+          {% when None %}{% endmatch %}</td>
+      </tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
+    {%- endif %}
+    {% endcall %}
+    {%- endif %}
+  </div>
+  {%- match endpoint %}{% when Some(e) %}
+  <aside class="stack-lg">
+    {% call ui::card(t("admin_settings.developer.actions")) %}
+    <div class="stack-sm">
+      <form method="post" action="{{ url("/admin/developer/webhooks/" ~ e.id ~ "/test") }}">{% call ui::csrf() %}{% endcall %}
+        <button class="btn btn--soft btn--sm" type="submit"{% if !e.is_active %} disabled{% endif %}>{{ icon("send") }}{{ t("admin_settings.developer.send_test") }}</button></form>
+      <form method="post" action="{{ url("/admin/developer/webhooks/" ~ e.id ~ "/secret") }}" data-confirm="{{ t("admin_settings.developer.rotate_confirm") }}">{% call ui::csrf() %}{% endcall %}
+        <button class="btn btn--ghost btn--sm" type="submit">{{ icon("key") }}{{ t("admin_settings.developer.rotate_secret") }}</button></form>
+      <form method="post" action="{{ url("/admin/developer/webhooks/" ~ e.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}
+        <button class="btn btn--ghost btn--sm" type="submit">{{ icon("x") }}{{ t("admin.common.delete") }}</button></form>
+    </div>
+    {% endcall %}
+    {% call ui::card(t("admin_settings.developer.health")) %}
+    <dl class="dl">
+      <dt>{{ t("admin_settings.developer.last_delivery") }}</dt><dd>{{ dtopt(e.last_delivery_at) }}{% match e.last_status_code %}{% when Some(c) %} · HTTP {{ c }}{% when None %}{% endmatch %}</dd>
+      <dt>{{ t("admin_settings.developer.failures_label") }}</dt><dd>{{ e.failure_count }}</dd>
+    </dl>
+    {% endcall %}
+  </aside>
+  {%- when None %}
+  <aside class="stack-lg">
+    {% call ui::card(t("admin_settings.developer.how_title")) %}
+    <p class="small">{{ t("admin_settings.developer.how_text") }}</p>
+    {% endcall %}
+  </aside>
+  {%- endmatch %}
+</div>
+{% endblock %}

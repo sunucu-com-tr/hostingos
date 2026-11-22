@@ -1,0 +1,158 @@
+# HostingOS — single-server deployment example: PostgreSQL 16, the app (web +
+# embedded job worker / scheduler) and Caddy with automatic TLS for the
+# hosting company's address (HOS_BASE_URL).
+#
+#   cp docs/deploy/env.example .env.production   # fill in the secrets
+#   docker compose --env-file .env.production up -d --build
+#   docker compose --env-file .env.production run --rm app setup --email owner@example.com
+#
+# `setup` creates the company and its owner account once (the password is
+# printed); sign in at HOS_BASE_URL/auth/login. Multi-company operation
+# (HOS_MODE=multi) is described in docs/DEPLOYMENT.md.
+#
+# Published release images instead of a local build: set HOS_IMAGE (e.g.
+# ghcr.io/<owner>/hostingos) and HOS_TAG (a version, or `latest`) in the env
+# file. Updating (docs/UPDATES.md): change HOS_TAG if pinned, then
+#   docker compose --env-file .env.production pull
+#   docker compose --env-file .env.production up -d
+# (`migrate` runs before the new app starts). From source: `git pull` and
+# `docker compose --env-file .env.production up -d --build`.
+#
+# See docs/DEPLOYMENT.md (scaling, backups, separate worker, Neon → own PostgreSQL).
+
+name: hostingos
+
+x-app-env: &app-env
+  DATABASE_URL: postgres://hostingos:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD (openssl rand -hex 32)}@postgres:5432/hostingos
+  DATABASE_URL_DIRECT: postgres://hostingos:${POSTGRES_PASSWORD}@postgres:5432/hostingos
+  HOS_SECRET_KEY: ${HOS_SECRET_KEY:?set HOS_SECRET_KEY (openssl rand -base64 32)}
+  HOS_BASE_URL: ${HOS_BASE_URL:?set HOS_BASE_URL, e.g. https://panel.example.com}
+  # `single` (default): one hosting company on HOS_BASE_URL's host. `multi`:
+  # several companies at <slug>.HOS_BASE_DOMAIN with the operator console.
+  HOS_MODE: ${HOS_MODE:-single}
+  HOS_BASE_DOMAIN: ${HOS_BASE_DOMAIN:-localhost}
+  HOS_BIND: 0.0.0.0:8080
+  HOS_TRUST_PROXY: "true"
+  # Peers whose forwarding headers count (docs/DEPLOYMENT.md, "Reverse
+  # proxies"): this stack's network range, from
+  #   docker network inspect hostingos_default --format '{{range .IPAM.Config}}{{.Subnet}} {{end}}'
+  # Empty: every peer, with a warning in the log (only Caddy reaches the app here).
+  HOS_TRUSTED_PROXIES: ${HOS_TRUSTED_PROXIES:-}
+  # Slow clients (docs/DEPLOYMENT.md, "HTTP timeouts"); empty = default.
+  HOS_HTTP_HEADER_TIMEOUT_SECS: ${HOS_HTTP_HEADER_TIMEOUT_SECS:-}
+  HOS_HTTP_BODY_TIMEOUT_SECS: ${HOS_HTTP_BODY_TIMEOUT_SECS:-}
+  HOS_HTTP_REQUEST_TIMEOUT_SECS: ${HOS_HTTP_REQUEST_TIMEOUT_SECS:-}
+  HOS_TLS_ASK_SECRET: ${HOS_TLS_ASK_SECRET:?set HOS_TLS_ASK_SECRET (openssl rand -hex 32)}
+  HOS_PUBLIC_IPS: ${HOS_PUBLIC_IPS:-}
+  # `private`: the company's integrations may reach its own LAN. Use `public`
+  # with HOS_MODE=multi and unrelated companies (docs/DEPLOYMENT.md,
+  # "Outbound connections").
+  HOS_OUTBOUND_POLICY: ${HOS_OUTBOUND_POLICY:-private}
+  HOS_WORKER_CONCURRENCY: ${HOS_WORKER_CONCURRENCY:-8}
+  # Update checks (docs/UPDATES.md): off unless a release source is set.
+  HOS_UPDATE_REPO: ${HOS_UPDATE_REPO:-}
+  HOS_UPDATE_MANIFEST_URL: ${HOS_UPDATE_MANIFEST_URL:-}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  RUST_LOG: ${RUST_LOG:-info,sqlx=warn}
+  HOS_LOG_FORMAT: json
+
+# Hardening shared by every HostingOS container: the app writes nothing to
+# its filesystem (templates, migrations are in the binary; static/locales
+# are read-only), runs as uid 10001 and needs no capabilities.
+x-app-hardening: &app-hardening
+  read_only: true
+  tmpfs:
+    - /tmp
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hostingos
+      POSTGRES_USER: hostingos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD (openssl rand -hex 32)}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hostingos -d hostingos"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # One-shot: applies pending migrations, then exits (also on every update).
+  migrate:
+    image: ${HOS_IMAGE:-hostingos}:${HOS_TAG:-latest}
+    build: .
+    command: ["migrate"]
+    environment: *app-env
+    <<: *app-hardening
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    image: ${HOS_IMAGE:-hostingos}:${HOS_TAG:-latest}
+    build: .
+    # `serve` = web + job worker + cron scheduler + custom-domain checks.
+    # With several web replicas use `serve --no-worker` here and the
+    # `worker` service below (profile "split").
+    command: ["serve"]
+    environment: *app-env
+    <<: *app-hardening
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    stop_grace_period: 60s
+    # The binary probes itself (plain HTTP GET to 127.0.0.1:8080, no shell);
+    # /readyz also checks the database and its migrations.
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/hostingos", "healthcheck", "--path", "/readyz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # Optional dedicated background runtime: `docker compose --profile split up -d`
+  # (then run `app` with `serve --no-worker`).
+  worker:
+    image: ${HOS_IMAGE:-hostingos}:${HOS_TAG:-latest}
+    build: .
+    command: ["worker"]
+    environment: *app-env
+    <<: *app-hardening
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    stop_grace_period: 60s
+    profiles: ["split"]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
+      HOS_TLS_ASK_SECRET: ${HOS_TLS_ASK_SECRET:?set HOS_TLS_ASK_SECRET (openssl rand -hex 32)}
+    volumes:
+      - ./docs/deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

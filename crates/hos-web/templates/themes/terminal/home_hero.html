@@ -1,0 +1,45 @@
+{#- Terminal template: headline column with a live-data status line and a
+    prompt-style domain search, next to a terminal window that prints the
+    real TLD price list (or the product groups). Included by home.html. -#}
+<section class="hero hero--terminal">
+  <div class="container hero__inner">
+    <div class="hero__main">
+      <p class="hero__status"><span class="hero__dot" aria-hidden="true"></span><span>{{ tn("storefront.catalog.plans", facts.plans) }}</span><span>{{ num(facts.tlds) }} {{ t("storefront.home.fact_tlds") }}</span><span>{{ num(facts.articles) }} {{ t("storefront.home.fact_articles") }}</span></p>
+      <h1>{{ hero_title }}</h1>
+      <p class="hero__lead">{{ hero_lead }}</p>
+      <div class="hero__search">{% call cat::domain_search("") %}{% endcall %}</div>
+      {% include "themes/_hero_actions.html" %}
+      {%- if !posts.is_empty() %}
+      {%- let latest = posts[0].clone() %}
+      <a class="pill-link" href="{{ latest.href }}"><span class="badge badge--brand">{{ t("storefront.home.new") }}</span><span>{{ latest.title }}</span>{{ icon("arrow-right") }}</a>
+      {%- endif %}
+    </div>
+    <div class="hero__panel term-window">
+      <div class="term-window__bar"><span class="term-window__dots" aria-hidden="true"><i></i><i></i><i></i></span><h2 class="term-window__title">{% if !tlds.is_empty() %}{{ t("storefront.home.tld_prices") }}{% else %}{{ t("storefront.home.groups_eyebrow") }}{% endif %}</h2></div>
+      <div class="term-window__body">
+        {%- if !tlds.is_empty() %}
+        <p class="term-line" aria-hidden="true"><span class="term-prompt">$</span> {{ t("storefront.theme.terminal_cmd") }}</p>
+        <table class="term-table">
+          <caption class="visually-hidden">{{ t("storefront.home.tld_prices") }}</caption>
+          <tbody>
+            {%- for c in tlds %}
+            <tr><th scope="row">.{{ c.tld }}</th><td>{% match c.price %}{% when Some(p) %}{{ money(p) }}<small>{{ t("common.per.annual") }}</small>{% when None %}—{% endmatch %}</td></tr>
+            {%- endfor %}
+          </tbody>
+        </table>
+        <p class="term-line"><span class="term-prompt" aria-hidden="true">$</span> <a href="{{ url("/domains") }}">{{ t("storefront.nav.domains") }} →</a></p>
+        {%- else %}
+        <p class="term-line" aria-hidden="true"><span class="term-prompt">$</span> {{ t("storefront.theme.terminal_ls") }}</p>
+        <table class="term-table">
+          <tbody>
+            {%- for g in groups %}
+            <tr><th scope="row"><a href="{{ g.href }}">{{ g.name }}</a></th><td>{% match g.from %}{% when Some(f) %}{{ money(f) }}<small>{{ t("common.per.monthly") }}</small>{% when None %}{{ tn("storefront.catalog.plans", g.count) }}{% endmatch %}</td></tr>
+            {%- endfor %}
+          </tbody>
+        </table>
+        {%- endif %}
+        <p class="term-line term-line--cursor" aria-hidden="true"><span class="term-prompt">$</span><span class="term-cursor"></span></p>
+      </div>
+    </div>
+  </div>
+</section>

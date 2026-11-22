@@ -1,0 +1,31 @@
+{#- Billing profile fields (`form: DetailsForm`, `errors`, `countries`). -#}
+<fieldset class="field">
+  <legend class="field__label">{{ t("cart.checkout.kind") }}</legend>
+  <div class="cluster">
+    <label class="check"><input type="radio" name="kind" value="individual"{% if !form.corporate() %} checked{% endif %}> <span>{{ t("cart.checkout.individual") }}</span></label>
+    <label class="check"><input type="radio" name="kind" value="corporate"{% if form.corporate() %} checked{% endif %}> <span>{{ t("cart.checkout.corporate") }}</span></label>
+  </div>
+</fieldset>
+<div class="form-row">
+  {% call ui::field("first_name", t("cart.checkout.first_name"), form.first_name, error=errors.get("first_name"), required=true, autocomplete="given-name") %}{% endcall %}
+  {% call ui::field("last_name", t("cart.checkout.last_name"), form.last_name, error=errors.get("last_name"), required=true, autocomplete="family-name") %}{% endcall %}
+</div>
+<div class="stack corporate-fields">
+  {% call ui::field("company_name", t("cart.checkout.company"), form.company_name, error=errors.get("company_name"), autocomplete="organization", hint=t("cart.checkout.corporate_only")) %}{% endcall %}
+  <div class="form-row">
+    {% call ui::field("tax_office", t("cart.checkout.tax_office"), form.tax_office, error=errors.get("tax_office"), hint=t("cart.checkout.corporate_only")) %}{% endcall %}
+    {% call ui::field("tax_number", t("cart.checkout.tax_number"), form.tax_number, error=errors.get("tax_number"), inputmode="numeric", hint=t("cart.checkout.corporate_only")) %}{% endcall %}
+  </div>
+</div>
+{% call ui::field("national_id", t("cart.checkout.national_id"), form.national_id, error=errors.get("national_id"), inputmode="numeric", hint=t("cart.checkout.national_id_hint")) %}{% endcall %}
+{% call ui::field("phone", t("cart.checkout.phone"), form.phone, kind="tel", error=errors.get("phone"), autocomplete="tel", placeholder="+90 5xx xxx xx xx") %}{% endcall %}
+{% call ui::field("address_line1", t("cart.checkout.address1"), form.address_line1, error=errors.get("address_line1"), autocomplete="address-line1") %}{% endcall %}
+{% call ui::field("address_line2", t("cart.checkout.address2"), form.address_line2, autocomplete="address-line2") %}{% endcall %}
+<div class="form-row">
+  {% call ui::field("postal_code", t("cart.checkout.postal_code"), form.postal_code, error=errors.get("postal_code"), autocomplete="postal-code") %}{% endcall %}
+  {% call ui::field("city", t("cart.checkout.city"), form.city, error=errors.get("city"), autocomplete="address-level2") %}{% endcall %}
+</div>
+<div class="form-row">
+  {% call ui::field("state", t("cart.checkout.state"), form.state, autocomplete="address-level1") %}{% endcall %}
+  {% call ui::select("country_code", t("cart.checkout.country"), countries, form.country_code.as_str(), error=errors.get("country_code")) %}{% endcall %}
+</div>

@@ -1,0 +1,27 @@
+[package]
+name = "hos-mail"
+description = "HostingOS outgoing email: SMTP/Resend/Postmark/Mailgun/log mailers, safe email template engine, branded layout and default tr/en templates."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+hos-core = { workspace = true, features = ["net"] }
+base64 = { workspace = true }
+lettre = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+tracing-subscriber = { workspace = true }
+wiremock = { workspace = true }

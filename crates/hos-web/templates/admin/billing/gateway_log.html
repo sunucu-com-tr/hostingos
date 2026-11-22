@@ -1,0 +1,58 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/_macros.html" as ax %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.billing.gateway_log") }}</h1><p>{{ t("admin.billing.gateway_log_lead") }}</p></div></div>
+<nav class="tabs" aria-label="{{ t("admin.billing.gateway_log") }}">
+  <a href="{{ url("/admin/billing/gateway-log?tab=webhooks") }}"{% if tab == "webhooks" %} aria-current="page"{% endif %}>{{ t("admin.billing.webhooks_in") }}</a>
+  <a href="{{ url("/admin/billing/gateway-log?tab=attempts") }}"{% if tab == "attempts" %} aria-current="page"{% endif %}>{{ t("admin.billing.attempts") }}</a>
+</nav>
+{%- if tab == "webhooks" %}
+<form class="filters" method="get" action="{{ url("/admin/billing/gateway-log") }}">
+  <input type="hidden" name="tab" value="webhooks">
+  <div class="field"><label class="field__label" for="f-int">{{ t("admin.billing.integration") }}</label>
+    <select class="select" id="f-int" name="integration" data-autosubmit><option value="">{{ t("admin.common.all") }}</option>{% for i in integrations %}<option value="{{ i.id }}"{{ sel(i.id.to_string().as_str(), integration) }}>{{ i.name }}</option>{% endfor %}</select></div>
+</form>
+{%- if hooks.is_empty() %}
+{% call ui::empty("activity", t("admin.billing.no_webhooks"), "") %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense">
+  <thead><tr><th>{{ t("admin.common.date") }}</th><th>{{ t("admin.billing.integration") }}</th><th>{{ t("admin.billing.event") }}</th><th>{{ t("admin.billing.signature") }}</th><th>{{ t("admin.common.status") }}</th><th>{{ t("admin.common.details") }}</th></tr></thead>
+  <tbody>
+  {%- for h in hooks %}
+  <tr>
+    <td>{{ datetime(h.row.created_at) }}</td>
+    <td>{{ h.integration }}</td>
+    <td><span class="mono">{{ o(h.row.event_type) }}</span><span class="sub mono">{{ h.row.external_event_id }}</span></td>
+    <td>{% if h.row.signature_valid %}{{ badge(t("admin.billing.sig_valid"), "success") }}{% else %}{{ badge(t("admin.billing.sig_invalid"), "danger") }}{% endif %}</td>
+    <td>{{ sbadge(h.row.status.as_str()) }}{% if h.row.attempts > 1 %}<span class="sub">× {{ h.row.attempts }}</span>{% endif %}{% match h.row.error %}{% when Some(er) %}<span class="sub text-danger">{{ er }}</span>{% when None %}{% endmatch %}</td>
+    <td><details><summary>{{ t("admin.billing.payload") }}</summary><pre class="code-block">{{ h.payload }}</pre></details></td>
+  </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% call ax::pager(pager) %}{% endcall %}
+{%- endif %}
+{%- else %}
+{%- if attempts.is_empty() %}
+{% call ui::empty("credit-card", t("admin.billing.no_attempts"), "") %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th>{{ t("admin.common.date") }}</th><th>{{ t("admin.invoices.col_number") }}</th><th>{{ t("admin.billing.integration") }}</th><th>{{ t("admin.billing.reference") }}</th><th class="num">{{ t("admin.common.amount") }}</th><th>{{ t("admin.common.status") }}</th></tr></thead>
+  <tbody>
+  {%- for a in attempts %}
+  <tr>
+    <td data-label="{{ t("admin.common.date") }}">{{ datetime(a.created_at) }}</td>
+    <td data-label="{{ t("admin.invoices.col_number") }}"><a href="{{ url("/admin/invoices/" ~ a.invoice_id) }}">{{ o(a.invoice_number) }}</a></td>
+    <td data-label="{{ t("admin.billing.integration") }}">{{ o(a.integration_name) }}</td>
+    <td data-label="{{ t("admin.billing.reference") }}"><span class="mono">{{ a.reference }}</span>{% match a.gateway_ref %}{% when Some(g) %}<span class="sub mono">{{ g }}</span>{% when None %}{% endmatch %}</td>
+    <td data-label="{{ t("admin.common.amount") }}" class="num">{{ m(a.amount, a.currency) }}</td>
+    <td data-label="{{ t("admin.common.status") }}">{{ sbadge(a.status) }}</td>
+  </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% call ax::pager(pager) %}{% endcall %}
+{%- endif %}
+{%- endif %}
+{% endblock %}

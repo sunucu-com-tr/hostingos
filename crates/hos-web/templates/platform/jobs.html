@@ -1,0 +1,97 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ t("platform.jobs.title") }}</h1>
+    <p>{{ t("platform.jobs.lead") }}</p>
+  </div>
+</div>
+<div class="stack-lg">
+<section class="stats">
+  {% call ui::stat(t("platform.jobs.pending"), num(health.pending), tv("platform.jobs.due", "count", num(health.due)), "", "clock") %}{% endcall %}
+  {% call ui::stat(t("platform.jobs.running"), num(health.running), tv("platform.jobs.stale", "count", num(health.stale)), "", "activity") %}{% endcall %}
+  {% call ui::stat(t("platform.jobs.completed_24h"), num(health.completed_24h), tv("platform.jobs.last_completed", "at", date_opt(health.last_completed_at)), "up", "check-circle") %}{% endcall %}
+  {% call ui::stat(t("platform.jobs.failed_24h"), num(health.failed_24h), tv("platform.jobs.oldest_due", "at", date_opt(health.oldest_due_at)), "down", "alert-triangle") %}{% endcall %}
+</section>
+{%- if !counts.is_empty() %}
+{% call ui::card(t("platform.jobs.counts")) %}
+<div class="cluster">
+  {%- for (q, s, n) in counts %}
+  <a class="badge badge--dot badge--{{ tone(s) }}" href="/platform/jobs?queue={{ q|urlencode }}&amp;status={{ s }}">{{ q }} · {{ s }}: {{ num(n) }}</a>
+  {%- endfor %}
+</div>
+{% endcall %}
+{%- endif %}
+{% call ui::card(t("platform.jobs.list")) %}
+<form class="form-row" method="get" action="/platform/jobs">
+  {% call ui::select("status", t("platform.subscription.status"), statuses, status.as_str()) %}{% endcall %}
+  {% call ui::field("queue", t("platform.jobs.queue"), queue) %}{% endcall %}
+  <div class="field"><span class="field__label">&nbsp;</span><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("platform.common.filter") }}</button></div>
+</form>
+{%- if jobs.is_empty() %}
+{% call ui::empty("activity", t("platform.jobs.empty")) %}{% endcall %}
+{%- else %}
+<div class="table-wrap mt-4"><table class="table table--stack">
+  <thead><tr>
+    <th scope="col">{{ t("platform.jobs.kind") }}</th>
+    <th scope="col">{{ t("platform.subscription.status") }}</th>
+    <th scope="col" class="num">{{ t("platform.jobs.attempts") }}</th>
+    <th scope="col">{{ t("platform.jobs.run_at") }}</th>
+    <th scope="col">{{ t("platform.jobs.error") }}</th>
+    <th scope="col"></th>
+  </tr></thead>
+  <tbody>
+  {%- for j in jobs %}
+    <tr>
+      <td data-label="{{ t("platform.jobs.kind") }}"><code>{{ j.kind }}</code> <span class="muted small">{{ j.queue }}</span>
+        {%- match j.tenant_id %}{% when Some(tid) %}<br><a class="small" href="/platform/tenants/{{ tid }}">{{ t("platform.jobs.tenant") }}</a>{% when None %}{% endmatch %}</td>
+      <td data-label="{{ t("platform.subscription.status") }}">{{ badge(j.status.as_str(), tone(j.status.as_str())) }}</td>
+      <td data-label="{{ t("platform.jobs.attempts") }}" class="num tabular">{{ j.attempts }}/{{ j.max_attempts }}</td>
+      <td data-label="{{ t("platform.jobs.run_at") }}"><time datetime="{{ iso(j.run_at) }}">{{ datetime(j.run_at) }}</time></td>
+      <td data-label="{{ t("platform.jobs.error") }}">{% match j.last_error %}{% when Some(e) %}<span class="pf-json">{{ e }}</span>{% when None %}<span class="muted">—</span>{% endmatch %}</td>
+      <td>
+        <div class="btn-row">
+        {%- if j.status.as_str() == "failed" || j.status.as_str() == "cancelled" %}
+          <form method="post" action="/platform/jobs/{{ j.id }}/retry">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ icon("refresh") }}{{ t("platform.jobs.retry") }}</button></form>
+        {%- elif j.status.as_str() == "pending" %}
+          <form method="post" action="/platform/jobs/{{ j.id }}/cancel">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ icon("x") }}{{ t("platform.jobs.cancel") }}</button></form>
+        {%- endif %}
+        </div>
+      </td>
+    </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% call ui::pagination(pager) %}{% endcall %}
+{%- endif %}
+{% endcall %}
+{% call ui::card(t("platform.jobs.tasks"), t("platform.jobs.tasks_lead")) %}
+{%- if tasks.is_empty() %}
+{% call ui::empty("clock", t("platform.jobs.no_tasks")) %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--stack">
+  <thead><tr>
+    <th scope="col">{{ t("platform.jobs.task") }}</th>
+    <th scope="col">{{ t("platform.tenants.col_tenant") }}</th>
+    <th scope="col">{{ t("platform.jobs.cron") }}</th>
+    <th scope="col">{{ t("platform.jobs.next_run") }}</th>
+    <th scope="col">{{ t("platform.jobs.last_run") }}</th>
+  </tr></thead>
+  <tbody>
+  {%- for r in tasks %}
+    <tr>
+      <td data-label="{{ t("platform.jobs.task") }}"><strong>{{ r.task.name }}</strong> <code class="muted small">{{ r.task.kind }}</code>{% if !r.task.is_active %} {{ badge(t("platform.plans.inactive"), "") }}{% endif %}</td>
+      <td data-label="{{ t("platform.tenants.col_tenant") }}">{% match r.tenant_slug %}{% when Some(s) %}<code>{{ s }}</code>{% when None %}<span class="muted">{{ t("platform.jobs.global") }}</span>{% endmatch %}</td>
+      <td data-label="{{ t("platform.jobs.cron") }}"><code>{{ r.task.cron }}</code> <span class="muted small">{{ r.task.timezone }}</span></td>
+      <td data-label="{{ t("platform.jobs.next_run") }}">{{ date_opt(r.task.next_run_at) }}</td>
+      <td data-label="{{ t("platform.jobs.last_run") }}">{{ date_opt(r.task.last_run_at) }}{% match r.task.last_status %}{% when Some(s) %} {{ badge(s.as_str(), tone(s.as_str())) }}{% when None %}{% endmatch %}{% match r.task.last_error %}{% when Some(e) %}<br><span class="pf-json">{{ e }}</span>{% when None %}{% endmatch %}</td>
+    </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{%- endif %}
+{% endcall %}
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ title }} {{ sbadge(order.status.as_str()) }}</h1>
+    <p><a href="{{ url("/admin/clients/" ~ client.id) }}">{{ client.display_name() }}</a> · {{ datetime(order.created_at) }}</p></div>
+  {%- if can("billing.manage") %}
+  <div class="page-head__actions">
+    {%- if order.status.as_str() == "pending" %}
+    <form method="post" action="{{ url("/admin/orders/" ~ order.id ~ "/accept") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("admin.orders.accept") }}</button></form>
+    <form method="post" action="{{ url("/admin/orders/" ~ order.id ~ "/fraud") }}" data-confirm="{{ t("admin.orders.fraud_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--soft" type="submit">{{ icon("alert-triangle") }}{{ t("admin.orders.mark_fraud") }}</button></form>
+    {%- endif %}
+    {%- if order.status.as_str() != "cancelled" %}
+    <form method="post" action="{{ url("/admin/orders/" ~ order.id ~ "/cancel") }}" data-confirm="{{ t("admin.orders.cancel_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--danger" type="submit">{{ icon("x") }}{{ t("admin.orders.cancel") }}</button></form>
+    {%- endif %}
+  </div>
+  {%- endif %}
+</div>
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    {% call ui::card(t("admin.orders.items")) %}
+    <div class="table-wrap"><table class="table table--dense">
+      <thead><tr><th>{{ t("admin.common.description") }}</th><th>{{ t("admin.services.col_cycle") }}</th><th class="num">{{ t("admin.orders.qty") }}</th><th class="num">{{ t("admin.orders.setup") }}</th><th class="num">{{ t("admin.common.amount") }}</th></tr></thead>
+      <tbody>{% for it in items %}<tr><td>{{ it.description }}{% match it.domain_name %}{% when Some(dn) %}<span class="sub">{{ dn }}</span>{% when None %}{% endmatch %}</td>
+        <td>{% match it.billing_cycle %}{% when Some(cy) %}{{ cycle(cy) }}{% when None %}{% match it.years %}{% when Some(y) %}{{ tn("admin.common.years", y) }}{% when None %}—{% endmatch %}{% endmatch %}</td>
+        <td class="num">{{ it.quantity }}</td><td class="num">{{ m(it.setup_fee, order.currency) }}</td><td class="num">{{ m(it.amount, order.currency) }}</td></tr>{% endfor %}</tbody>
+      <tfoot>
+        {%- if !order.discount_total.is_zero() %}<tr><td colspan="4">{{ t("admin.common.discount") }}{% match order.coupon_code %}{% when Some(cc) %} ({{ cc }}){% when None %}{% endmatch %}</td><td class="num">−{{ m(order.discount_total, order.currency) }}</td></tr>{% endif %}
+        <tr><td colspan="4">{{ t("admin.common.tax") }}</td><td class="num">{{ m(order.tax_total, order.currency) }}</td></tr>
+        <tr><td colspan="4">{{ t("admin.common.total") }}</td><td class="num">{{ m(order.total, order.currency) }}</td></tr>
+      </tfoot>
+    </table></div>
+    {% endcall %}
+    {%- if !services.is_empty() || !domains.is_empty() %}
+    {% call ui::card(t("admin.orders.created_items")) %}
+    <ul class="health">
+      {%- for s in services %}<li><a href="{{ url("/admin/services/" ~ s.id) }}">{{ icon("server") }} {{ o(s.domain) }} <span class="mono small">{{ short(s.id.as_ref()) }}</span></a>{{ sbadge(s.status.as_str()) }}</li>{% endfor %}
+      {%- for dm in domains %}<li><a href="{{ url("/admin/domains/" ~ dm.id) }}">{{ icon("globe") }} {{ dm.name }}</a>{{ sbadge(dm.status.as_str()) }}</li>{% endfor %}
+    </ul>
+    {% endcall %}
+    {%- endif %}
+    {%- if !fraud_json.is_empty() %}
+    {% call ui::card(t("admin.orders.fraud_details")) %}<pre class="mono small">{{ fraud_json }}</pre>{% endcall %}
+    {%- endif %}
+  </div>
+  <aside class="stack-lg">
+    {% call ui::card(t("admin.orders.summary")) %}
+    <dl class="kv">
+      <dt>{{ t("admin.orders.col_number") }}</dt><dd class="mono">{{ order.order_number }}</dd>
+      <dt>{{ t("admin.orders.col_client") }}</dt><dd><a href="{{ url("/admin/clients/" ~ client.id) }}">{{ client.display_name() }}</a><span class="sub muted">{{ client.email }}</span></dd>
+      <dt>{{ t("admin.orders.invoice") }}</dt><dd>{% match invoice %}{% when Some(inv) %}<a href="{{ url("/admin/invoices/" ~ inv.id) }}">{% match inv.number %}{% when Some(n) %}{{ n }}{% when None %}{{ t("admin.invoices.draft_label") }}{% endmatch %}</a> {{ sbadge(inv.status.as_str()) }}{% when None %}—{% endmatch %}</dd>
+      <dt>{{ t("admin.orders.ip") }}</dt><dd class="mono">{% match order.ip %}{% when Some(ip) %}{{ ip }}{% when None %}—{% endmatch %}</dd>
+      <dt>{{ t("admin.orders.fraud_score") }}</dt><dd>{% match order.fraud_score %}{% when Some(sc) %}{{ dec(sc) }}{% when None %}—{% endmatch %}</dd>
+      <dt>{{ t("admin.orders.accepted_at") }}</dt><dd>{{ dtopt(order.accepted_at) }}</dd>
+      <dt>{{ t("admin.common.notes") }}</dt><dd>{{ o(order.notes) }}</dd>
+    </dl>
+    {% endcall %}
+  </aside>
+</div>
+{% endblock %}

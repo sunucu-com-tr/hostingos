@@ -1,0 +1,25 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ t("platform.settings.title") }}</h1>
+    <p>{{ t("platform.settings.lead") }}</p>
+  </div>
+</div>
+{% call ui::form_errors(errors) %}{% endcall %}
+<form class="stack-lg" method="post" action="/platform/settings" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::card(t("platform.settings.signup_title"), t("platform.settings.signup_lead")) %}
+  {% call ui::checkbox("signup_enabled", t("platform.settings.signup_enabled"), signup_enabled) %}{% endcall %}
+  {%- if errors.has("signup_enabled") %}<p class="field__error">{{ errors.get("signup_enabled") }}</p>{% endif %}
+  <p class="muted small mt-2">{{ t("platform.settings.signup_url") }} <a href="{{ signup_url }}"><code>{{ signup_url }}</code></a></p>
+  <div class="form-row mt-4">
+    {% call ui::field("trial_days", t("platform.tenant_new.trial_days"), trial_days, kind="number", error=errors.get("trial_days"), hint=t("platform.settings.trial_hint")) %}{% endcall %}
+    {% call ui::select("default_plan", t("platform.settings.default_plan"), plans, default_plan.as_str(), error=errors.get("default_plan")) %}{% endcall %}
+  </div>
+  {% endcall %}
+  <div class="btn-row"><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button></div>
+</form>
+{% endblock %}

@@ -1,0 +1,27 @@
+# cargo-audit configuration (`cargo audit` reads .cargo/audit.toml).
+
+[advisories]
+ignore = [
+    # RUSTSEC-2023-0071 — `rsa` (Marvin timing side channel), no fixed release.
+    #
+    # `rsa` is in Cargo.lock only because sqlx's *optional* MySQL driver
+    # (`sqlx-mysql`, referenced by `sqlx` and `sqlx-macros-core`) depends on it:
+    # Cargo records optional dependencies of dependencies in the lockfile even
+    # when no feature enables them, so this cannot be removed from Cargo.lock
+    # by feature selection. The workspace builds sqlx with
+    # `default-features = false` and the Postgres driver only, so neither
+    # `sqlx-mysql` nor `rsa` is ever compiled or linked:
+    #
+    #   cargo tree -i rsa --workspace --all-features -e all   # nothing to print
+    #
+    # Re-check (and drop this entry) whenever sqlx is upgraded.
+    "RUSTSEC-2023-0071",
+    # RUSTSEC-2026-0459 — `libsqlite3-sys`. Same situation: it is in
+    # Cargo.lock only through sqlx's *optional* SQLite driver (`sqlx-sqlite`),
+    # which no feature enables, so it is never compiled or linked:
+    #
+    #   cargo tree -i libsqlite3-sys --workspace -e normal,build   # nothing to print
+    #
+    # Re-check (and drop this entry) whenever sqlx is upgraded.
+    "RUSTSEC-2026-0459",
+]

@@ -1,0 +1,46 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% import "admin/_macros.html" as ax %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("affiliates.admin.title") }}</h1><p>{{ t("affiliates.admin.lead") }}</p></div>
+</div>
+<div class="mt-2">{% call ui::tabs(tabs.as_slice(), url("/admin/affiliates")) %}{% endcall %}</div>
+{%- if !enabled %}<div class="mt-4">{% call ui::alert("warning", t("affiliates.admin.disabled_notice")) %}{% endcall %}</div>{% endif %}
+<div class="biz-stats mt-4">
+  <div class="biz-stat"><p class="biz-stat__label">{{ t("affiliates.admin.total_affiliates") }}</p><p class="biz-stat__value">{{ num(totals.0) }}</p></div>
+  <div class="biz-stat"><p class="biz-stat__label">{{ t("affiliates.fields.referrals") }}</p><p class="biz-stat__value">{{ num(totals.1) }}</p></div>
+  {%- for (cur, pending, available, paid) in money %}
+  <div class="biz-stat"><p class="biz-stat__label">{{ t("affiliates.admin.owed") }} · {{ cur }}</p><p class="biz-stat__value">{{ m(available, cur) }}</p><p class="biz-sub">{{ t("affiliates.fields.pending") }}: {{ m(pending, cur) }}</p></div>
+  <div class="biz-stat"><p class="biz-stat__label">{{ t("affiliates.fields.paid_out") }} · {{ cur }}</p><p class="biz-stat__value">{{ m(paid, cur) }}</p></div>
+  {%- endfor %}
+</div>
+<form class="filters" method="get" action="{{ url("/admin/affiliates") }}" role="search">
+  <div class="field field--grow">{{ icon("search") }}<label class="visually-hidden" for="f-q">{{ t("admin.common.search") }}</label>
+    <input class="input" id="f-q" type="search" name="q" value="{{ q }}" placeholder="{{ t("affiliates.admin.search_placeholder") }}"></div>
+  <div class="filters__actions"><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("admin.common.filter") }}</button></div>
+</form>
+{%- if rows.is_empty() %}
+{% call ui::empty("users", t("affiliates.admin.empty_title"), t("affiliates.admin.empty_text")) %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th scope="col">{{ t("affiliates.fields.affiliate") }}</th><th scope="col">{{ t("affiliates.fields.code") }}</th><th scope="col" class="num">{{ t("affiliates.fields.clicks") }}</th><th scope="col" class="num">{{ t("affiliates.fields.referrals") }}</th><th scope="col" class="num">{{ t("affiliates.fields.pending") }}</th><th scope="col" class="num">{{ t("affiliates.fields.balance") }}</th><th scope="col" class="num">{{ t("affiliates.fields.paid_out") }}</th><th scope="col">{{ t("admin.common.status") }}</th></tr></thead>
+  <tbody>
+  {%- for r in rows %}
+  <tr>
+    <td data-label="{{ t("affiliates.fields.affiliate") }}"><a class="row-link" href="{{ url("/admin/affiliates/" ~ r.affiliate.id) }}">{{ r.client_name }}</a><span class="sub">{{ r.client_email }}</span></td>
+    <td data-label="{{ t("affiliates.fields.code") }}" class="mono">{{ r.affiliate.code }}</td>
+    <td data-label="{{ t("affiliates.fields.clicks") }}" class="num">{{ num(r.clicks) }}</td>
+    <td data-label="{{ t("affiliates.fields.referrals") }}" class="num">{{ num(r.referrals) }}</td>
+    <td data-label="{{ t("affiliates.fields.pending") }}" class="num">{{ m(r.pending, r.affiliate.currency) }}</td>
+    <td data-label="{{ t("affiliates.fields.balance") }}" class="num">{{ m(r.balance, r.affiliate.currency) }}</td>
+    <td data-label="{{ t("affiliates.fields.paid_out") }}" class="num">{{ m(r.paid_out, r.affiliate.currency) }}</td>
+    <td data-label="{{ t("admin.common.status") }}">{{ abadge(r.affiliate.status) }}</td>
+  </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% call ax::pager(pager) %}{% endcall %}
+{%- endif %}
+{% endblock %}

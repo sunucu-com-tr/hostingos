@@ -1,0 +1,30 @@
+{#- Admin-only macros: {% import "admin/_macros.html" as ax %}.
+    `pager(pager)`     table footer: result count + page links (view::Pager).
+    `row_menu(label)`  per-row action menu (last table column; admin.js
+                       positions it fixed so the table never clips it);
+                       items from the caller: <a role="menuitem"> / forms
+                       with <button role="menuitem">. -#}
+
+{% macro pager(pager) %}
+<div class="table-foot">
+  <p>{{ tn("admin.shell.results", pager.total) }}{% if pager.visible() %} · {{ tv2("admin.shell.page_of", "page", pager.page, "pages", pager.total_pages) }}{% endif %}</p>
+  {%- if pager.visible() %}
+  <nav class="pagination" aria-label="{{ t("common.pagination.label") }}">
+    {%- match pager.prev %}{% when Some(href) %}<a href="{{ href }}" rel="prev">{{ icon("chevron-left") }}<span class="visually-hidden">{{ t("common.pagination.prev") }}</span></a>{% when None %}{% endmatch %}
+    {%- for l in pager.links %}
+      {%- if l.gap %}<span aria-hidden="true">…</span>
+      {%- elif l.current %}<span aria-current="page">{{ l.n }}</span>
+      {%- else %}<a href="{{ l.href }}">{{ l.n }}</a>{% endif %}
+    {%- endfor %}
+    {%- match pager.next %}{% when Some(href) %}<a href="{{ href }}" rel="next">{{ icon("chevron-right") }}<span class="visually-hidden">{{ t("common.pagination.next") }}</span></a>{% when None %}{% endmatch %}
+  </nav>
+  {%- endif %}
+</div>
+{% endmacro %}
+
+{% macro row_menu(label) %}
+<details class="menu row-menu" data-menu>
+  <summary class="btn btn--ghost btn--icon btn--sm" aria-label="{{ label }}" title="{{ label }}">{{ icon("more") }}</summary>
+  <div class="menu__panel" role="menu">{{ caller() }}</div>
+</details>
+{% endmacro %}

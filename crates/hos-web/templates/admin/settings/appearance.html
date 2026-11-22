@@ -1,0 +1,153 @@
+{#- Appearance settings (routes/admin/settings/appearance.rs, crate::theme).
+    Template picker, colours, fonts (each listed in its own face: the
+    specimen stylesheet is loaded on this page only), radius / mode, and a
+    live preview iframe of the storefront with the unsaved values
+    (admin_appearance.js; without JS the "Preview" button posts into it). -#}
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}"><link rel="stylesheet" href="{{ asset("css/admin_appearance.css") }}"><link rel="stylesheet" href="{{ specimen_css }}"><script src="{{ asset("js/admin_settings.js") }}" defer></script><script src="{{ asset("js/admin_appearance.js") }}" defer></script>{% endblock %}
+{% block content %}
+{% include "admin/settings/_head.html" %}
+<div class="appearance" data-appearance data-default-label="{{ t("admin_settings.appearance.template_default_value") }}">
+  <form method="post" action="{{ url("/admin/settings/appearance") }}" class="ax-form appearance__form" id="appearance-form" novalidate>
+    {% call ui::csrf() %}{% endcall %}
+    <section class="form-section form-section--first">
+      <div class="form-section__intro"><h2 id="tpl-title">{{ t("admin_settings.appearance.template_title") }}</h2><p>{{ t("admin_settings.appearance.template_lead") }}</p></div>
+      <div class="form-section__body">
+        {% call ui::form_errors(errors) %}{% endcall %}
+        <div class="tpl-picker" role="radiogroup" aria-labelledby="tpl-title">
+          {%- for c in templates %}
+          <label class="tpl-card">
+            <input type="radio" name="template" value="{{ c.key }}"{% if c.selected %} checked{% endif %} data-body="{{ c.body }}" data-body-key="{{ c.body_key }}" data-heading="{{ c.heading }}" data-heading-key="{{ c.heading_key }}" data-radius="{{ c.radius }}" data-mode="{{ c.mode }}" data-brand="{{ c.brand }}" data-accent="{{ c.accent }}">
+            <img class="tpl-card__thumb" src="{{ c.thumbnail }}" alt="" width="480" height="300" loading="lazy" decoding="async">
+            <span class="tpl-card__body">
+              <span class="tpl-card__title"><strong>{{ c.name }}</strong><span class="badge badge--success tpl-card__check">{{ icon("check") }}{{ t("admin_settings.appearance.selected") }}</span></span>
+              <span class="tpl-card__desc">{{ c.description }}</span>
+              <span class="tpl-card__meta"><svg class="tpl-card__swatch" width="28" height="14" viewBox="0 0 28 14" aria-hidden="true"><rect width="14" height="14" rx="3" fill="{{ c.brand }}"/><rect x="14" width="14" height="14" rx="3" fill="{{ c.accent }}"/></svg><span>{{ c.heading }}{% if c.heading != c.body %} + {{ c.body }}{% endif %} · {{ c.radius }} · {{ c.mode }}</span></span>
+            </span>
+          </label>
+          {%- endfor %}
+        </div>
+        {%- if !errors.get("template").is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("template") }}</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="form-section">
+      <div class="form-section__intro"><h2>{{ t("admin_settings.appearance.colors_title") }}</h2><p>{{ t("admin_settings.appearance.colors_lead") }}</p></div>
+      <div class="form-section__body">
+        <div class="form-grid">
+          <div class="field{% if !errors.get("brand_color").is_empty() %} field--error{% endif %}">
+            <label class="field__label" for="f-brand_color">{{ t("admin_settings.appearance.brand_color") }}</label>
+            <div class="color-row"><input type="color" value="{{ brand_value }}" data-color-sync="f-brand_color" data-color-default="brand" aria-label="{{ t("admin_settings.appearance.brand_color") }}">
+              <input class="input input--code" id="f-brand_color" name="brand_color" value="{{ form.brand_color }}" placeholder="{{ brand_default }}" maxlength="7" pattern="#?[0-9a-fA-F]{3}([0-9a-fA-F]{3})?" spellcheck="false" autocomplete="off"{% if !errors.get("brand_color").is_empty() %} aria-invalid="true"{% endif %} aria-describedby="h-brand_color"></div>
+            {%- if !errors.get("brand_color").is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("brand_color") }}</p>{% endif %}
+            <p class="field__hint" id="h-brand_color">{{ t("admin_settings.appearance.color_hint") }}</p>
+          </div>
+          <div class="field{% if !errors.get("accent_color").is_empty() %} field--error{% endif %}">
+            <label class="field__label" for="f-accent_color">{{ t("admin_settings.appearance.accent_color") }}</label>
+            <div class="color-row"><input type="color" value="{{ accent_value }}" data-color-sync="f-accent_color" data-color-default="accent" aria-label="{{ t("admin_settings.appearance.accent_color") }}">
+              <input class="input input--code" id="f-accent_color" name="accent_color" value="{{ form.accent_color }}" placeholder="{{ accent_default }}" maxlength="7" pattern="#?[0-9a-fA-F]{3}([0-9a-fA-F]{3})?" spellcheck="false" autocomplete="off"{% if !errors.get("accent_color").is_empty() %} aria-invalid="true"{% endif %} aria-describedby="h-accent_color"></div>
+            {%- if !errors.get("accent_color").is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("accent_color") }}</p>{% endif %}
+            <p class="field__hint" id="h-accent_color">{{ t("admin_settings.appearance.color_hint") }}</p>
+          </div>
+        </div>
+        <p class="appearance__note">{{ icon("info") }}<span>{{ t("admin_settings.appearance.contrast_note") }}</span></p>
+      </div>
+    </section>
+
+    <section class="form-section">
+      <div class="form-section__intro"><h2>{{ t("admin_settings.appearance.type_title") }}</h2><p>{{ t("admin_settings.appearance.type_lead") }}</p></div>
+      <div class="form-section__body">
+        <fieldset class="font-list" aria-describedby="font-list-hint">
+          <legend class="field__label">{{ t("admin_settings.appearance.font_heading") }}</legend>
+          {%- for f in heading_fonts %}
+          <label class="font-option">
+            <input type="radio" name="font_heading" value="{{ f.key }}"{% if f.selected %} checked{% endif %}>
+            <span class="font-option__name font-specimen--{{ f.specimen }}"{% if f.key.is_empty() %} data-default-font="heading"{% endif %}>{{ f.label }}</span>
+            <span class="font-option__sample font-option__sample--heading font-specimen--{{ f.specimen }}"{% if f.key.is_empty() %} data-default-font="heading"{% endif %} aria-hidden="true">{{ t("admin_settings.appearance.heading_sample") }}</span>
+            <span class="font-option__cat">{{ f.category }}</span>
+          </label>
+          {%- endfor %}
+          {%- if !errors.get("font_heading").is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("font_heading") }}</p>{% endif %}
+        </fieldset>
+        <fieldset class="font-list">
+          <legend class="field__label">{{ t("admin_settings.appearance.font_body") }}</legend>
+          {%- for f in body_fonts %}
+          <label class="font-option">
+            <input type="radio" name="font_body" value="{{ f.key }}"{% if f.selected %} checked{% endif %}>
+            <span class="font-option__name font-specimen--{{ f.specimen }}"{% if f.key.is_empty() %} data-default-font="body"{% endif %}>{{ f.label }}</span>
+            <span class="font-option__sample font-specimen--{{ f.specimen }}"{% if f.key.is_empty() %} data-default-font="body"{% endif %} aria-hidden="true">{{ t("admin_settings.appearance.body_sample") }}</span>
+            <span class="font-option__cat">{{ f.category }}</span>
+          </label>
+          {%- endfor %}
+          {%- if !errors.get("font_body").is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("font_body") }}</p>{% endif %}
+        </fieldset>
+        <p class="field__hint" id="font-list-hint">{{ t("admin_settings.appearance.font_hint") }}</p>
+      </div>
+    </section>
+
+    <section class="form-section">
+      <div class="form-section__intro"><h2>{{ t("admin_settings.appearance.shape_title") }}</h2><p>{{ t("admin_settings.appearance.shape_lead") }}</p></div>
+      <div class="form-section__body">
+        <fieldset class="seg-field">
+          <legend class="field__label">{{ t("admin_settings.appearance.radius") }}</legend>
+          <div class="seg">
+            {%- for o in radii %}
+            <label class="seg__opt"><input type="radio" name="radius" value="{{ o.value }}"{% if o.selected %} checked{% endif %}><span class="seg__shape seg__shape--{% if o.value.is_empty() %}default{% else %}{{ o.value }}{% endif %}" aria-hidden="true"></span><span{% if o.value.is_empty() %} data-default-label-for="radius"{% endif %}>{{ o.label }}</span></label>
+            {%- endfor %}
+          </div>
+          {%- if !errors.get("radius").is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("radius") }}</p>{% endif %}
+        </fieldset>
+        <fieldset class="seg-field">
+          <legend class="field__label">{{ t("admin_settings.appearance.mode") }}</legend>
+          <div class="seg">
+            {%- for o in modes %}
+            <label class="seg__opt"><input type="radio" name="mode" value="{{ o.value }}"{% if o.selected %} checked{% endif %}><span{% if o.value.is_empty() %} data-default-label-for="mode"{% endif %}>{{ o.label }}</span></label>
+            {%- endfor %}
+          </div>
+          {%- if !errors.get("mode").is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("mode") }}</p>{% endif %}
+        </fieldset>
+        {% call ui::checkbox("mode_toggle", t("admin_settings.appearance.mode_toggle"), form.mode_toggle) %}{% endcall %}
+      </div>
+    </section>
+
+    <section class="form-section">
+      <div class="form-section__intro"><h2>{{ t("admin_settings.appearance.images_title") }}</h2><p>{{ t("admin_settings.appearance.images_lead") }}</p></div>
+      <div class="form-section__body appearance__link-body">
+        <p>{{ t("admin_settings.appearance.images_text") }}</p>
+        <a class="btn btn--soft" href="{{ images_url }}">{{ icon("pencil") }}{{ t("admin_settings.appearance.images_link") }}{{ icon("arrow-right") }}</a>
+      </div>
+    </section>
+
+    <div class="form-actions form-actions--sticky">
+      <span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span>
+      <button class="btn btn--ghost form-actions__reset" type="reset">{{ t("admin.shell.discard") }}</button>
+      <button class="btn btn--ghost" type="submit" form="appearance-reset">{{ icon("refresh") }}{{ t("admin_settings.appearance.reset") }}</button>
+      <button class="btn btn--soft appearance__preview-btn" type="submit" formaction="{{ url("/admin/settings/appearance/preview") }}" formtarget="theme-preview" formnovalidate>{{ icon("eye") }}{{ t("admin_settings.appearance.preview_button") }}</button>
+      <button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button>
+    </div>
+  </form>
+
+  <aside class="appearance__preview" aria-labelledby="preview-title">
+    <div class="appearance__preview-head">
+      <div><h2 id="preview-title">{{ t("admin_settings.appearance.preview_title") }}</h2><p>{{ t("admin_settings.appearance.preview_hint") }}</p></div>
+      <div class="appearance__preview-tools">
+        <label class="visually-hidden" for="preview-page">{{ t("admin_settings.appearance.preview_page") }}</label>
+        <select class="select select--sm" id="preview-page" name="preview_page" form="appearance-form" data-preview-page>
+          {%- for p in preview_pages %}<option value="{{ p.value }}" data-href="{{ url(p.value) }}"{% if p.selected %} selected{% endif %}>{{ p.label }}</option>{% endfor %}
+        </select>
+        <div class="seg seg--sm" role="radiogroup" aria-label="{{ t("admin_settings.appearance.preview_device") }}">
+          <label class="seg__opt"><input type="radio" name="preview_device" value="1280" checked data-preview-device form="appearance-preview-tools">{{ icon("layout") }}<span class="visually-hidden">{{ t("admin_settings.appearance.preview_desktop") }}</span></label>
+          <label class="seg__opt"><input type="radio" name="preview_device" value="390" data-preview-device form="appearance-preview-tools">{{ icon("smartphone") }}<span class="visually-hidden">{{ t("admin_settings.appearance.preview_mobile") }}</span></label>
+        </div>
+        <a class="btn btn--ghost btn--sm btn--icon" href="{{ preview_src }}" target="_blank" rel="noopener" data-preview-open title="{{ t("admin_settings.appearance.preview_open") }}" aria-label="{{ t("admin_settings.appearance.preview_open") }}">{{ icon("external-link") }}</a>
+      </div>
+    </div>
+    <div class="appearance__frame" data-preview-wrap>
+      <iframe name="theme-preview" src="{{ preview_src }}" title="{{ t("admin_settings.appearance.preview_frame") }}" sandbox="allow-same-origin allow-scripts" data-preview-frame></iframe>
+    </div>
+  </aside>
+</div>
+<form id="appearance-reset" method="post" action="{{ url("/admin/settings/appearance/reset") }}" data-confirm="{{ t("admin_settings.appearance.reset_confirm") }}" hidden>{% call ui::csrf() %}{% endcall %}</form>
+<form id="appearance-preview-tools" hidden></form>
+{% endblock %}

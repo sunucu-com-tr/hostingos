@@ -1,0 +1,16 @@
+{#- Client-area shell: panel layout + client.css + impersonation banner.
+    Pages extend this and fill `page`. -#}
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}">{% endblock %}
+{% block topbar %}<a class="btn btn--ghost btn--sm hide-sm" href="{{ url("/cart") }}">{{ icon("cart") }}<span>{{ t("client.topbar.cart") }}</span></a>{% endblock %}
+{% block content %}
+{%- match session %}{% when Some(s) %}{% if s.principal.is_impersonated() %}
+<div class="impersonation-bar" role="alert">
+  {{ icon("eye") }}
+  <p><strong>{{ t("client.impersonation.title") }}</strong> {{ tv("client.impersonation.text", "name", user_name()) }}</p>
+  <form method="post" action="{{ url("/admin/impersonation/end") }}">{% call ui::csrf() %}{% endcall %}<button type="submit" class="btn btn--sm">{{ icon("log-out") }}{{ t("client.impersonation.exit") }}</button></form>
+</div>
+{%- endif %}{% when None %}{% endmatch %}
+{% block page %}{% endblock %}
+{% endblock %}

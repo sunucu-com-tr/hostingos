@@ -1,0 +1,65 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ ctx.title }}</h1><p>{{ t("inbound.admin.settings_lead") }}</p></div>
+</div>
+{%- match new_token %}{% when Some(tok) %}
+{% call ui::alert("warning", t("inbound.admin.token_once")) %}{% endcall %}
+{% call ui::code("raw-token", t("inbound.admin.raw_token"), tok) %}{% endcall %}
+{%- when None %}{% endmatch %}
+<div class="admin-grid admin-grid--side mt-4">
+  <div class="stack">
+    {% call ui::card(t("inbound.admin.settings_title")) %}
+    <form method="post" action="{{ url("/admin/support/inbound/settings") }}" class="stack" autocomplete="off">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::checkbox("enabled", t("inbound.admin.enabled"), checked=enabled()) %}{% endcall %}
+      {%- let pv = policy() %}
+      <div class="field"><label class="field__label" for="f-unknown_senders">{{ t("inbound.fields.unknown_senders") }}</label>
+        <select class="select" id="f-unknown_senders" name="unknown_senders">
+          {%- for (v, l) in policy_options() %}<option value="{{ v }}"{{ sel(v, pv) }}>{{ l }}</option>{% endfor %}
+        </select>
+        <p class="field__hint">{{ t("inbound.admin.policy_hint") }}</p></div>
+      <div class="field"><label class="field__label" for="f-default_department_id">{{ t("inbound.fields.default_department") }}</label>
+        <select class="select" id="f-default_department_id" name="default_department_id">
+          <option value="">{{ t("inbound.admin.first_department") }}</option>
+          {%- for d in departments %}<option value="{{ d.id }}"{{ dept_sel(d) }}>{{ d.name }}</option>{% endfor %}
+        </select>
+        <p class="field__hint">{{ t("inbound.admin.department_hint") }}</p></div>
+      <div class="field"><label class="field__label" for="f-mailgun_key">{{ t("inbound.fields.mailgun_key") }}</label>
+        <input class="input" type="password" id="f-mailgun_key" name="mailgun_key" autocomplete="new-password" placeholder="{% if has_key() %}{{ t("inbound.admin.key_set") }}{% endif %}">
+        <p class="field__hint">{{ t("inbound.admin.key_hint") }}</p></div>
+      {%- if has_key() %}{% call ui::checkbox("clear_mailgun_key", t("inbound.admin.clear_key")) %}{% endcall %}{% endif %}
+      {% call ui::checkbox("mailgun_trust_spf", t("inbound.fields.mailgun_trust_spf"), checked=trust_spf()) %}{% endcall %}
+      <p class="field__hint">{{ t("inbound.admin.trust_spf_hint") }}</p>
+      <div class="field"><label class="field__label" for="f-trusted_authserv_id">{{ t("inbound.fields.trusted_authserv_id") }}</label>
+        <input class="input" id="f-trusted_authserv_id" name="trusted_authserv_id" value="{{ authserv_id() }}" maxlength="253" placeholder="mx.example.com">
+        <p class="field__hint">{{ t("inbound.admin.authserv_hint") }}</p></div>
+      <div class="biz-actions"><button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button></div>
+    </form>
+    {% endcall %}
+  </div>
+  <aside class="stack">
+    {% call ui::card(t("inbound.admin.mailgun_title")) %}
+    <p class="biz-muted">{{ t("inbound.admin.mailgun_help") }}</p>
+    {% call ui::code("mailgun-url", t("inbound.admin.route_url"), mailgun_url) %}{% endcall %}
+    {% endcall %}
+    {% call ui::card(t("inbound.admin.raw_title")) %}
+    <p class="biz-muted">{{ t("inbound.admin.raw_help") }}</p>
+    {% call ui::code("raw-url", t("inbound.admin.endpoint_url"), raw_url) %}{% endcall %}
+    <p>{% if has_token() %}{{ badge(t("inbound.admin.token_set"), "success") }}{% else %}{{ badge(t("inbound.admin.token_unset"), "") }}{% endif %}</p>
+    <form method="post" action="{{ url("/admin/support/inbound/settings/token") }}"{% if has_token() %} data-confirm="{{ t("inbound.admin.token_replace_confirm") }}"{% endif %}>
+      {% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--soft btn--sm" type="submit">{{ icon("key") }}{{ t("inbound.admin.token_new") }}</button>
+    </form>
+    {%- if has_token() %}
+    <form method="post" action="{{ url("/admin/support/inbound/settings/token/delete") }}" class="mt-4" data-confirm="{{ t("inbound.admin.token_delete_confirm") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--ghost btn--sm" type="submit">{{ icon("trash") }}{{ t("inbound.admin.token_delete") }}</button>
+    </form>
+    {%- endif %}
+    {% endcall %}
+  </aside>
+</div>
+{% endblock %}

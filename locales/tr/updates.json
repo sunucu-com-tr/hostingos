@@ -1,0 +1,230 @@
+{
+  "menu": "Güncellemeler",
+  "title": "Güncellemeler",
+  "lead": "Sürüm, yayımlanan sürümler, kurulum ve geçmiş. Onayınız olmadan hiçbir şey kurulmaz.",
+  "overview": "Güncelleme özeti",
+  "version": "Çalışan sürüm",
+  "commit": "Commit",
+  "build_date": "Derleme tarihi",
+  "target": "Hedef platform",
+  "privacy": "Güncelleme denetimi, yapılandırılan yayın kaynağına yapılan sade bir HTTPS isteğidir; User-Agent yalnızca sürümü içerir. Telemetri ya da kimlik bilgisi gönderilmez.",
+  "check": {
+    "now": "Şimdi denetle",
+    "found": "{version} sürümü kullanılabilir.",
+    "none": "En yeni sürümü kullanıyorsunuz.",
+    "last": "Son denetim",
+    "next": "Sonraki otomatik denetim",
+    "failed": "başarısız",
+    "error": "Son denetim başarısız oldu: {detail}"
+  },
+  "source": {
+    "label": "Yayın kaynağı",
+    "off_title": "Güncelleme denetimi kapalı",
+    "off_text": "Yayın kaynağı yapılandırılmadığı için HostingOS hiçbir sunucuya bağlanmaz. HOS_UPDATE_REPO (GitHub sahip/ad) ya da HOS_UPDATE_MANIFEST_URL değişkenini ayarlayıp yeniden başlatın. Ayrıntılar: docs/UPDATES.md.",
+    "off_short": "Yapılandırılmadı",
+    "env_label": "Ortam değişkenleri"
+  },
+  "keys": {
+    "label": "İmza anahtarları",
+    "count": "{builtin} yerleşik, {endorsed} duyurulmuş",
+    "none_title": "Henüz güvenilen bir yayın imza anahtarı yok",
+    "none_text": "Bu derlemede açık anahtar bulunmadığı için güncellemeler bulunup duyurulabilir ama kurulamaz. Projenin açık anahtarını içeren bir derleme kurulana kadar sürümler doğrulanmamış olarak gösterilir.",
+    "none_short": "yok — kurulum devre dışı"
+  },
+  "problems": {
+    "title": "Bazı sürümler reddedildi.",
+    "text": "Bunlar kurulum için sunulmaz."
+  },
+  "trust": {
+    "verified": "İmza doğrulandı",
+    "unverified": "Doğrulanmadı",
+    "rejected": "Reddedildi",
+    "unavailable": "Erişilemedi"
+  },
+  "severity": {
+    "security": "Güvenlik düzeltmesi"
+  },
+  "releases": {
+    "title": "Kullanılabilir sürümler",
+    "hint": "Çalışan sürümden yeni olanlar, en yenisi önce.",
+    "none": "Güncel",
+    "none_text": "Daha yeni bir sürüm bulunamadı."
+  },
+  "release": {
+    "published": "yayımlandı: {date}",
+    "page": "Yayın sayfası",
+    "migrations": "Veritabanı geçişleri",
+    "rollback_safe": "Geri alınabilir",
+    "not_rollback_safe": "Geri alma güvenli değil",
+    "unverified_hint": "Bu sürümün imzası doğrulanamadığı için buradan kurulamaz.",
+    "untrusted_notes": "İmzasız sürüm: notları ve bağlantısı doğrudan sürüm kaynağından gelir ve düz metin olarak gösterilir. Bunlara göre işlem yapmadan önce bildiğiniz proje sayfasından doğrulayın.",
+    "restore_hint": "Veritabanı değişiklikleri geri alınabilir değil: daha sonra önceki sürüme dönmek için güncellemeden önce alınan yedek gerekir."
+  },
+  "apply": {
+    "button": "{version} sürümünü kur",
+    "confirm": "{version} sürümü şimdi kurulsun mu? Site birkaç dakika bakım modunda olacak.",
+    "what": "Sürüm indirilip doğrulanır, bakım modu açılır, çalışan işlerin bitmesi beklenir, yedek alınır, ikili dosya değiştirilir (öncekisi saklanır), geçişler çalıştırılır ve yeniden başlatılır. Yeni sürüm sağlıklı çalışmazsa otomatik olarak geri alınır.",
+    "password": "Parolanız",
+    "code": "Doğrulama kodu",
+    "no_2fa": "İpucu: hesabınızda iki adımlı doğrulamayı açın; kurulumlar o zaman ayrıca kod da ister.",
+    "started": "Güncelleme başladı.",
+    "reauth_failed": "Parola ya da doğrulama kodu hatalı.",
+    "no_keys": "Bu derleme hiçbir imza anahtarına güvenmediği için güncelleme kuramaz.",
+    "no_supervisor": "HostingOS kendisini yeniden başlatan bir hizmet yöneticisi (systemd) altında çalışmadığı için kendini güncelleyemez.",
+    "unknown_install": "Kurulum türü belirlenemedi.",
+    "unavailable": "Burada yerinde kurulum kullanılamaz.",
+    "manual": "Elle güncellemek için docs/UPDATES.md adımlarını izleyin."
+  },
+  "backup": {
+    "label": "Güncelleme öncesi yedek",
+    "plan_command": "Yedekleme komutu (HOS_UPDATE_BACKUP_COMMAND)",
+    "plan_pg_dump": "Veritabanının pg_dump yedeği",
+    "plan_manual": "Yapılandırılmadı — onayınız gerekir",
+    "command": "Güncellemeden önce yapılandırılmış yedekleme komutu çalışır.",
+    "pg_dump": "Güncellemeden önce veritabanının pg_dump yedeği alınır.",
+    "manual": "Otomatik yedekleme yapılandırılmamış (HOS_UPDATE_BACKUP_COMMAND da pg_dump da yok). Önce veritabanının yedeğini alın.",
+    "confirm": "Veritabanının güncel bir yedeği bende var"
+  },
+  "container": {
+    "text": "Bu kurulum bir konteynerde çalışıyor; konteyner kendini değiştirmez. Yeni imajı çekip konteyneri yeniden oluşturun:",
+    "image": "İmaj:",
+    "commands": "Docker Compose"
+  },
+  "deploy": {
+    "button": "Dağıtımı başlat",
+    "confirm": "{version} sürümü için dağıtım webhook'u çağrılsın mı?",
+    "requested": "Dağıtım istendi.",
+    "no_webhook": "Dağıtımları buradan başlatmak için ayarlardan bir dağıtım webhook'u (Coolify, Portainer, CI) tanımlayın."
+  },
+  "install": {
+    "title": "Bu kurulum",
+    "label": "Kurulum",
+    "binary": "İkili dosya",
+    "binary_detail": "{root} içinde, hizmet yöneticisi altında",
+    "binary_unsupervised": "{root} içinde, hizmet yöneticisi olmadan",
+    "container": "Konteyner ({kind})",
+    "container_detail": "Yeni imaj çekilerek güncellenir.",
+    "unknown": "Bilinmiyor",
+    "unknown_detail": "{reason}"
+  },
+  "channel": {
+    "label": "Kanal",
+    "hint": "Beta, ön sürümleri de sunar.",
+    "stable": "Kararlı",
+    "beta": "Beta"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "hint": "Tüm düğümler için geçerlidir.",
+    "auto_check": "Günde bir kez güncelleme denetle",
+    "auto_on": "günlük denetim açık",
+    "auto_off": "günlük denetim kapalı",
+    "notify_email": "Bildirim e-postası",
+    "notify_email_hint": "İsteğe bağlı. Yeni sürüm bulunduğunda bilgilendirilir.",
+    "webhook": "Dağıtım webhook'u",
+    "webhook_hint": "Konteyner kurulumları için: dağıtımı başlattığınızda HTTPS üzerinden çağrılır.",
+    "webhook_url": "Webhook adresi",
+    "webhook_method": "Yöntem",
+    "webhook_secret": "Gizli anahtar (Bearer token)",
+    "secret_set": "Bir gizli anahtar saklı (şifreli). Korumak için boş bırakın.",
+    "secret_unset": "İsteğe bağlı. Şifreli olarak saklanır.",
+    "clear_secret": "Saklı gizli anahtarı kaldır",
+    "secret_host": "Webhook başka bir sunucuya taşındığında saklı gizli anahtar silinir.",
+    "reauth": "Parolanızla onaylayın",
+    "reauth_hint": "Kanalı ya da dağıtım webhook'unu (adres, yöntem veya gizli anahtar) değiştirirken gerekir.",
+    "reauth_required": "Kanalı ya da dağıtım webhook'unu değiştirmek için parolanız (açıksa iki adımlı doğrulama kodunuz da) gerekir. Hiçbir şey kaydedilmedi."
+  },
+  "history": {
+    "title": "Geçmiş",
+    "none": "Henüz güncelleme yapılmadı.",
+    "when": "Zaman",
+    "versions": "Sürümler",
+    "kind": "Tür",
+    "status": "Sonuç",
+    "by": "Yapan"
+  },
+  "kind": {
+    "binary": "Yerinde kurulum",
+    "webhook": "Dağıtım webhook'u",
+    "rollback": "Geri alma"
+  },
+  "run": {
+    "title": "Güncelleme {from} → {to}",
+    "back": "Tüm güncellemeler",
+    "live": "Bu sayfa, hizmet yeniden başlarken de kendiliğinden güncellenir.",
+    "in_progress": "{from} → {to} güncellemesi sürüyor",
+    "follow": "İlerlemeyi izle",
+    "node": "Düğüm",
+    "backup": "Yedek",
+    "finished": "Bitiş",
+    "log": "Adımlar",
+    "restarting_hint": "Yeni sürüm başlatılıyor. Sağlık süresi içinde sağlıklı olduğunu bildirmezse önceki sürüm otomatik olarak geri yüklenir.",
+    "rolled_back_hint": "Önceki sürüm yeniden çalışıyor. Güncelleme veritabanını geri alınamaz biçimde değiştirdiyse güncelleme öncesi alınan yedeği geri yükleyin."
+  },
+  "run_status": {
+    "running": "Sürüyor",
+    "restarting": "Yeniden başlatılıyor",
+    "requested": "İstendi",
+    "succeeded": "Başarılı",
+    "failed": "Başarısız",
+    "rolled_back": "Geri alındı"
+  },
+  "step": {
+    "preflight": "Ön denetimler",
+    "maintenance": "Bakım modu",
+    "download": "İndirme",
+    "verify": "İmza ve sağlama toplamı",
+    "unpack": "Paketi açma",
+    "backup": "Yedekleme",
+    "swap": "Sürüm değişimi",
+    "migrate": "Veritabanı geçişleri",
+    "restart": "Yeniden başlatma",
+    "rollback": "Geri alma",
+    "healthy": "Sağlık denetimi",
+    "webhook": "Dağıtım webhook'u"
+  },
+  "banner": {
+    "available": "HostingOS {version} kullanılabilir.",
+    "security": "HostingOS {version} kullanılabilir ve bir güvenlik açığını kapatıyor.",
+    "review": "İncele",
+    "dismiss": "Kapat"
+  },
+  "notice": {
+    "update_succeeded": "{version} sürümüne güncellendi.",
+    "update_failed": "{version} sürümüne güncelleme başarısız oldu.",
+    "update_rolled_back": "{version} sürümüne güncelleme geri alındı."
+  },
+  "maintenance": {
+    "on": "Bakım modu açık.",
+    "on_hint": "Ziyaretçiler ve müşteriler bakım sayfası görür; iş kuyruğu duraklatıldı.",
+    "end": "Bakım modunu bitir",
+    "ended": "Bakım modu kapatıldı.",
+    "active_run": "Bir güncelleme hâlâ sürüyor."
+  },
+  "errors": {
+    "with_detail": "{what}: {detail}"
+  },
+  "error_kind": {
+    "not_configured": "Yapılandırılmadı",
+    "config": "Geçersiz yapılandırma",
+    "no_trusted_keys": "Güvenilen imza anahtarı yok",
+    "signature": "İmza doğrulanamadı",
+    "manifest": "Geçersiz yayın bildirimi",
+    "not_newer": "Çalışan sürümden yeni değil",
+    "replay": "Eski ya da tekrar oynatılmış yayın verisi",
+    "not_upgradable": "Bu sürümden doğrudan yükseltilemez",
+    "wrong_target": "Bu platform için derleme yok",
+    "refused": "Reddedildi",
+    "too_large": "Çok büyük",
+    "network": "Ağ hatası",
+    "checksum": "Sağlama toplamı uyuşmuyor",
+    "io": "Dosya sistemi hatası",
+    "busy": "Başka bir güncelleme sürüyor",
+    "preflight": "Ön denetim başarısız",
+    "backup": "Yedekleme başarısız",
+    "migration": "Veritabanı geçişi başarısız",
+    "archive": "Geçersiz yayın arşivi",
+    "unsupported": "Bu kurulum için desteklenmiyor",
+    "smoke_test": "Yeni ikili dosya çalışmadı"
+  }
+}

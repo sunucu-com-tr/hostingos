@@ -1,0 +1,120 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}">{% if !notices.is_empty() %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endif %}{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div>
+    <h1>{{ tv("client.dashboard.hello", "name", first_name) }}</h1>
+    <p>{{ t("client.dashboard.lead") }}</p>
+  </div>
+  <div class="btn-row">
+    <a class="btn btn--primary" href="{{ url("/") }}">{{ icon("cart") }}{{ t("client.dashboard.order_new") }}</a>
+  </div>
+</div>
+{%- if !email_verified %}
+<div class="mb-8">{% call ui::alert("warning", t("client.dashboard.verify_email")) %}{% endcall %}</div>
+{%- endif %}
+{%- if !notices.is_empty() %}{% include "client/_network_notices.html" %}{% endif %}
+<section class="stats" aria-label="{{ t("client.dashboard.overview") }}">
+  {% call ui::stat(t("client.dashboard.active_services"), num(summary.active_services), tn("client.dashboard.attention", summary.attention_services), "", "server") %}{% endcall %}
+  {% call ui::stat(t("client.dashboard.domains"), num(summary.active_domains), tn("client.dashboard.expiring", summary.domains_expiring_30d), "", "globe") %}{% endcall %}
+  {% call ui::stat(t("client.dashboard.unpaid"), money_in(summary.unpaid_total, summary.currency), tn("client.dashboard.unpaid_count", summary.unpaid_invoices), "", "receipt") %}{% endcall %}
+  {% call ui::stat(t("client.dashboard.tickets"), num(summary.open_tickets), t("client.dashboard.tickets_hint"), "", "life-buoy") %}{% endcall %}
+</section>
+<div class="grid grid--2 mt-8">
+  {%- if access.allows("services") %}
+  <section class="card">
+    <header class="card__head between"><h2>{{ t("client.dashboard.services_title") }}</h2><a class="small" href="{{ url("/client/services") }}">{{ t("client.dashboard.see_all") }}</a></header>
+    <div class="card__body">
+    {%- if services.is_empty() %}
+      {% call ui::empty("server", t("client.dashboard.no_services"), t("client.dashboard.no_services_text")) %}
+        <a class="btn btn--primary btn--sm" href="{{ url("/") }}">{{ t("client.dashboard.browse") }}</a>
+      {% endcall %}
+    {%- else %}
+      <ul class="row-list">
+      {%- for s in services %}
+        <li><a href="{{ url("/client/services/") }}{{ s.service.id }}"><span><strong>{{ s.product_name }}</strong>{% match s.service.domain %}{% when Some(d) %}<span class="muted small">{{ d }}</span>{% when None %}{% endmatch %}</span>{{ st(s.service.status.as_str()) }}</a></li>
+      {%- endfor %}
+      </ul>
+    {%- endif %}
+    </div>
+  </section>
+  {%- endif %}
+  {%- if access.allows("invoices") %}
+  <section class="card">
+    <header class="card__head between"><h2>{{ t("client.dashboard.invoices_title") }}</h2><a class="small" href="{{ url("/client/invoices") }}">{{ t("client.dashboard.see_all") }}</a></header>
+    <div class="card__body">
+    {%- if invoices.is_empty() %}
+      {% call ui::empty("check-circle", t("client.dashboard.no_invoices"), t("client.dashboard.no_invoices_text")) %}{% endcall %}
+    {%- else %}
+      <ul class="row-list">
+      {%- for i in invoices %}
+        <li><a href="{{ url("/client/invoices/") }}{{ i.id }}"><span><strong>{{ invoice_number(i) }}</strong><span class="muted small">{{ tv("client.dashboard.due", "date", day(i.due_date)) }}</span></span><span class="nowrap">{{ money_in(i.balance, i.currency) }}</span></a></li>
+      {%- endfor %}
+      </ul>
+    {%- endif %}
+    </div>
+  </section>
+  {%- endif %}
+  <section class="card">
+    <header class="card__head"><h2>{{ t("client.dashboard.renewals_title") }}</h2></header>
+    <div class="card__body">
+    {%- if renewals.is_empty() %}
+      <p class="muted">{{ t("client.dashboard.no_renewals") }}</p>
+    {%- else %}
+      <ul class="row-list">
+      {%- for r in renewals %}
+        <li><a href="{{ r.href }}"><span><strong>{{ r.label }}</strong><span class="muted small">{{ day(r.date) }} · {{ tn("client.dashboard.days_left", r.days) }}</span></span>{% match r.amount %}{% when Some(a) %}<span class="nowrap">{{ a }}</span>{% when None %}{% endmatch %}</a></li>
+      {%- endfor %}
+      </ul>
+    {%- endif %}
+    </div>
+  </section>
+  {%- if access.allows("domains") %}
+  <section class="card">
+    <header class="card__head between"><h2>{{ t("client.dashboard.expiring_title") }}</h2><a class="small" href="{{ url("/client/domains") }}">{{ t("client.dashboard.see_all") }}</a></header>
+    <div class="card__body">
+    {%- if expiring.is_empty() %}
+      <p class="muted">{{ t("client.dashboard.no_expiring") }}</p>
+    {%- else %}
+      <ul class="row-list">
+      {%- for d in expiring %}
+        <li><a href="{{ url("/client/domains/") }}{{ d.id }}"><span><strong>{{ domain_label(d.name) }}</strong><span class="muted small">{{ date_opt(d.expires_at) }}</span></span>{{ badge(tn("client.dashboard.days_left", days_left(d)), "warning") }}</a></li>
+      {%- endfor %}
+      </ul>
+    {%- endif %}
+    </div>
+  </section>
+  {%- endif %}
+  {%- if access.allows("tickets") %}
+  <section class="card">
+    <header class="card__head between"><h2>{{ t("client.dashboard.tickets_title") }}</h2><a class="small" href="{{ url("/client/tickets/new") }}">{{ t("client.dashboard.new_ticket") }}</a></header>
+    <div class="card__body">
+    {%- if tickets.is_empty() %}
+      <p class="muted">{{ t("client.dashboard.no_tickets") }}</p>
+    {%- else %}
+      <ul class="row-list">
+      {%- for tk in tickets %}
+        <li><a href="{{ url("/client/tickets/") }}{{ tk.ticket.id }}"><span><strong>{{ tk.ticket.subject }}</strong><span class="muted small">#{{ tk.ticket.number }} · {{ tk.department_name }}</span></span>{{ st(tk.ticket.status.as_str()) }}</a></li>
+      {%- endfor %}
+      </ul>
+    {%- endif %}
+    </div>
+  </section>
+  {%- endif %}
+  <section class="card">
+    <header class="card__head between"><h2>{{ t("client.dashboard.news_title") }}</h2><a class="small" href="{{ url("/announcements") }}">{{ t("client.dashboard.see_all") }}</a></header>
+    <div class="card__body">
+    {%- if announcements.is_empty() %}
+      <p class="muted">{{ t("client.dashboard.no_news") }}</p>
+    {%- else %}
+      <ul class="row-list">
+      {%- for a in announcements %}
+        <li><a href="{{ url("/announcements/") }}{{ a.slug }}"><span><strong>{{ a.title }}</strong><span class="muted small">{{ date_opt(a.published_at) }}</span></span>{{ icon("chevron-right") }}</a></li>
+      {%- endfor %}
+      </ul>
+    {%- endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

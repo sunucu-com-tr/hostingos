@@ -1,0 +1,32 @@
+{#- Usage history charts (crate::vm_charts) + bandwidth bar; expects
+    `charts: Vec<Chart>` and `bandwidth: Option<BandwidthBar>`. -#}
+{%- match bandwidth %}{% when Some(bw) %}
+<section class="card vm-bw">
+  <header class="card__head"><div><h2>{{ t("client.vm.bandwidth") }}</h2><p class="muted small">{% if bw.estimated %}{{ t("client.vm.bandwidth_estimated") }}{% else %}{{ t("client.vm.bandwidth_period") }}{% endif %}</p></div></header>
+  <div class="card__body stack-sm">
+    <p class="vm-bw__figures"><strong>{{ bw.used }}</strong>{% if !bw.quota.is_empty() %} <span class="muted">/ {{ bw.quota }}</span>{% endif %}{% if !bw.split.is_empty() %} <span class="muted small">· {{ bw.split }}</span>{% endif %}</p>
+    {%- if !bw.quota.is_empty() %}
+    <div class="vm-meter{% if bw.over %} vm-meter--over{% endif %}" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ bw.percent }}" aria-label="{{ t("client.vm.bandwidth") }}"><span class="vm-meter__bar vm-w-{{ bw.percent }}"></span></div>
+    {%- endif %}
+    {%- if bw.over %}{% call ui::alert("warning", tv("client.vm.bandwidth_over", "amount", bw.overage)) %}{% endcall %}{% endif %}
+  </div>
+</section>
+{%- when None %}{% endmatch %}
+{%- if !charts.is_empty() %}
+<div class="vm-graphs">
+{%- for c in charts %}
+  <figure class="vm-graph">
+    <figcaption><span>{{ c.title }}</span><span class="vm-graph__legend">{% for l in c.lines %}<span class="vm-graph__key vm-graph__key--{{ l.class }}">{{ l.label }} <strong>{{ l.latest }}</strong></span>{% endfor %}</span></figcaption>
+    {%- if c.empty %}<p class="muted small vm-graph__empty">{{ t("client.vm.graph_empty") }}</p>{% else %}
+    <svg class="vm-graph__svg" viewBox="0 0 600 160" preserveAspectRatio="none" role="img" aria-label="{{ c.title }}">
+      <line class="vm-graph__grid" x1="0" y1="6" x2="600" y2="6"></line>
+      <line class="vm-graph__grid" x1="0" y1="80" x2="600" y2="80"></line>
+      <line class="vm-graph__grid" x1="0" y1="154" x2="600" y2="154"></line>
+      {%- for l in c.lines %}<polyline class="vm-graph__line vm-graph__line--{{ l.class }}" points="{{ l.points }}"></polyline>{% endfor %}
+    </svg>
+    <div class="vm-graph__axis"><span>{{ c.start }}</span><span>max {{ c.max }}</span><span>{{ c.end }}</span></div>
+    {%- endif %}
+  </figure>
+{%- endfor %}
+</div>
+{%- endif %}

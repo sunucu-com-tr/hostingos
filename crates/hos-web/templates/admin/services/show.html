@@ -1,0 +1,103 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ product.name }} {{ sbadge(s.status.as_str()) }}</h1>
+    <p><a href="{{ url("/admin/clients/" ~ client.id) }}">{{ client.display_name() }}</a>{% match s.domain %}{% when Some(dm) %} · <span class="mono">{{ dm }}</span>{% when None %}{% endmatch %} · {{ m(s.recurring_amount, s.currency) }} {{ cycle(s.billing_cycle) }}</p></div>
+  <div class="page-head__actions">
+    {%- if is_virt || has_vm %}<a class="btn btn--soft" href="{{ url("/admin/services/" ~ s.id ~ "/vm") }}">{{ icon("cpu") }}{{ t("admin.vm.title") }}</a>{% endif %}
+    {%- if can("services.manage") %}
+    {%- if s.status.as_str() == "pending" || s.status.as_str() == "failed" %}
+    <form method="post" action="{{ url("/admin/services/" ~ s.id ~ "/command") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="create"><button class="btn btn--primary" type="submit">{{ icon("zap") }}{% if s.status.as_str() == "failed" %}{{ t("admin.services.retry") }}{% else %}{{ t("admin.services.create") }}{% endif %}</button></form>
+    {%- endif %}
+    {%- if s.status.as_str() == "active" %}<button type="button" class="btn btn--soft" data-dialog-open="dlg-suspend">{{ icon("minus") }}{{ t("admin.services.suspend") }}</button>{% endif %}
+    {%- if s.status.as_str() == "suspended" %}<form method="post" action="{{ url("/admin/services/" ~ s.id ~ "/command") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="unsuspend"><button class="btn btn--primary" type="submit">{{ icon("zap") }}{{ t("admin.services.unsuspend") }}</button></form>{% endif %}
+    {%- if s.status.as_str() == "active" || s.status.as_str() == "suspended" %}<form method="post" action="{{ url("/admin/services/" ~ s.id ~ "/command") }}" data-confirm="{{ t("admin.services.terminate_confirm") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="terminate"><button class="btn btn--danger" type="submit">{{ icon("x") }}{{ t("admin.services.terminate") }}</button></form>{% endif %}
+    {%- endif %}
+  </div>
+</div>
+{%- match s.suspended_reason %}{% when Some(rs) %}{% if s.status.as_str() == "suspended" %}{% call ui::alert("warning", tv("admin.services.suspended_because", "reason", rs)) %}{% endcall %}{% endif %}{% when None %}{% endmatch %}
+{%- if s.cancellation_requested_at.is_some() %}{% call ui::alert("warning", t("admin.services.cancellation_pending")) %}{% endcall %}{% endif %}
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    {% call ui::card(t("admin.services.details")) %}
+    <form class="stack" method="post" action="{{ url("/admin/services/" ~ s.id) }}">
+      {% call ui::csrf() %}{% endcall %}
+      <div class="form-grid">
+        {% call ui::field("recurring_amount", t("admin.services.col_amount"), dec(s.recurring_amount), inputmode="decimal") %}{% endcall %}
+        {% call ui::field("next_due_date", t("admin.services.col_due"), date_val(s.next_due_date), kind="date") %}{% endcall %}
+        {% call ui::field("next_invoice_date", t("admin.services.next_invoice"), date_val(s.next_invoice_date), kind="date") %}{% endcall %}
+        {% call ui::field("override_suspend_until", t("admin.services.override_suspend"), date_val(s.override_suspend_until), kind="date", hint=t("admin.services.override_hint")) %}{% endcall %}
+        {% call ui::field("username", t("admin.services.username"), s.username.clone().unwrap_or_default()) %}{% endcall %}
+        {% call ui::field("external_id", t("admin.services.external_id"), s.external_id.clone().unwrap_or_default()) %}{% endcall %}
+        {% call ui::field("server_hostname", t("admin.services.server_hostname"), s.server_hostname.clone().unwrap_or_default()) %}{% endcall %}
+        {% call ui::field("dedicated_ip", t("admin.services.dedicated_ip"), ip_val()) %}{% endcall %}
+      </div>
+      {% call ui::textarea("admin_notes", t("admin.services.admin_notes"), s.admin_notes.clone().unwrap_or_default(), rows=3) %}{% endcall %}
+      {%- if can("services.manage") %}<div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button></div>{% endif %}
+    </form>
+    {% endcall %}
+
+    {% call ui::card(t("admin.services.events")) %}
+    {%- if events.is_empty() %}<p class="muted">{{ t("admin.services.no_events") }}</p>{% else %}
+    <ol class="timeline">
+      {%- for e in events %}
+      <li class="timeline__item timeline__item--{{ e.level.as_str() }}"><time datetime="{{ iso(e.created_at) }}">{{ datetime(e.created_at) }}</time>
+        <div><strong>{{ e.event }}</strong>{% match e.to_status %}{% when Some(ts) %} → {{ lbl("admin.status", ts.as_str()) }}{% when None %}{% endmatch %}<p class="small">{{ e.message }}</p></div></li>
+      {%- endfor %}
+    </ol>{% endif %}
+    {% endcall %}
+
+    {% call ui::card(t("admin.clients.tab_invoices")) %}
+    {%- if invoices.is_empty() %}<p class="muted">{{ t("admin.clients.no_invoices") }}</p>{% else %}
+    <div class="table-wrap"><table class="table table--dense">
+      <thead><tr><th>{{ t("admin.invoices.col_number") }}</th><th>{{ t("admin.invoices.col_due") }}</th><th class="num">{{ t("admin.invoices.col_total") }}</th><th>{{ t("admin.common.status") }}</th></tr></thead>
+      <tbody>{% for i in invoices %}<tr><td><a href="{{ url("/admin/invoices/" ~ i.id) }}">{% match i.number %}{% when Some(n) %}{{ n }}{% when None %}{{ t("admin.invoices.draft_label") }}{% endmatch %}</a></td><td>{{ d(i.due_date) }}</td><td class="num">{{ m(i.total, i.currency) }}</td><td>{{ sbadge(i.status.as_str()) }}</td></tr>{% endfor %}</tbody>
+    </table></div>{% endif %}
+    {% endcall %}
+  </div>
+
+  <aside class="stack-lg">
+    {% call ui::card(t("admin.services.module")) %}
+    <dl class="kv">
+      <dt>{{ t("admin.catalog.integration") }}</dt><dd>{% match integration %}{% when Some(i) %}{{ i.name }} <span class="muted">({{ i.kind }})</span>{% when None %}{{ t("admin.catalog.manual_provisioning") }}{% endmatch %}</dd>
+      <dt>{{ t("admin.services.username") }}</dt><dd class="mono">{{ o(s.username) }}</dd>
+      {%- if !password.is_empty() %}<dt>{{ t("admin.services.password") }}</dt><dd><details><summary>{{ t("admin.services.show_password") }}</summary><code class="mono">{{ password }}</code></details></dd>{% endif %}
+      <dt>{{ t("admin.services.external_id") }}</dt><dd class="mono">{{ o(s.external_id) }}</dd>
+      <dt>{{ t("admin.services.registered") }}</dt><dd>{{ d(s.registration_date) }}</dd>
+    </dl>
+    {%- if can("services.manage") && is_panel && s.status.as_str() == "active" %}
+    <form class="stack mt-4" method="post" action="{{ url("/admin/services/" ~ s.id ~ "/password") }}">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::field("password", t("admin.services.new_password"), "", kind="password", autocomplete="new-password", hint=t("admin.services.password_hint")) %}{% endcall %}
+      <button class="btn btn--soft btn--sm" type="submit">{{ t("admin.services.change_password") }}</button>
+    </form>
+    {%- endif %}
+    {% endcall %}
+    {%- if can("services.manage") && (s.status.as_str() == "active" || s.status.as_str() == "suspended") %}
+    {% call ui::card(t("admin.services.change_package"), t("admin.services.change_package_lead")) %}
+    <form class="stack" method="post" action="{{ url("/admin/services/" ~ s.id ~ "/upgrade") }}" data-confirm="{{ t("admin.services.change_package_confirm") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <div class="field"><label class="field__label" for="up-p">{{ t("admin.services.target_product") }}</label><select class="select" id="up-p" name="product_id">{% for (pid, pn) in upgrade_targets %}<option value="{{ pid }}">{{ pn }}</option>{% endfor %}</select></div>
+      <button class="btn btn--soft btn--sm" type="submit">{{ t("admin.services.change_package") }}</button>
+    </form>
+    {% endcall %}
+    {%- endif %}
+    {%- if !config_json.is_empty() || !custom_json.is_empty() %}
+    {% call ui::card(t("admin.services.order_data")) %}
+    {%- if !config_json.is_empty() %}<p class="small muted">{{ t("admin.services.config_selections") }}</p><pre class="code-block">{{ config_json }}</pre>{% endif %}
+    {%- if !custom_json.is_empty() %}<p class="small muted">{{ t("admin.services.custom_fields") }}</p><pre class="code-block">{{ custom_json }}</pre>{% endif %}
+    {% endcall %}
+    {%- endif %}
+  </aside>
+</div>
+{%- if can("services.manage") %}
+{% call ui::modal("dlg-suspend", t("admin.services.suspend")) %}
+<form class="stack" method="post" action="{{ url("/admin/services/" ~ s.id ~ "/command") }}">
+  {% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="suspend">
+  {% call ui::field("reason", t("admin.services.suspend_reason"), "", placeholder=t("admin.services.default_suspend_reason")) %}{% endcall %}
+  <div class="btn-row"><button class="btn btn--primary" type="submit">{{ t("admin.services.suspend") }}</button><button class="btn btn--ghost" type="button" data-dialog-close>{{ t("common.actions.cancel") }}</button></div>
+</form>
+{% endcall %}
+{%- endif %}
+{% endblock %}

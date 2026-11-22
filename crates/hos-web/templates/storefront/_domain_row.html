@@ -1,0 +1,29 @@
+{#- One domain result (used by domains.html and the /domains/check fragment). -#}
+<div class="domain-row{% if row.state == "available" %} domain-row--available{% endif %}{% if row.exact %} domain-row--exact{% endif %}" id="{{ row.id }}"
+  {%- if row.state == "pending" %} hx-get="{{ url("/domains/check") }}?d={{ row.ascii|urlencode }}{% if row.exact %}&amp;exact=1{% endif %}" hx-trigger="load" hx-swap="outerHTML"{% endif %} aria-live="polite">
+  <div class="domain-row__name">{{ row.sld }}<span>.{{ row.tld }}</span></div>
+  <div class="domain-row__meta">
+    {%- if row.state == "pending" %}
+    <span class="spinner" aria-hidden="true"></span><span class="muted small">{{ t("storefront.domains.checking") }}</span>
+    {%- elif row.state == "available" %}
+    {%- if row.premium %}{{ badge(t("storefront.domains.premium"), "accent") }}{% endif %}
+    {{ badge(t("storefront.domains.available"), "success") }}
+    {%- match row.price %}{% when Some(p) %}<span class="domain-row__price">{{ money(p) }}<span class="muted small">{{ t("common.per.annual") }}</span></span>{% when None %}{% endmatch %}
+    {%- elif row.state == "taken" %}
+    {{ badge(t("storefront.domains.taken"), "") }}
+    <a class="btn btn--link btn--sm" href="{{ url("/whois") }}?domain={{ row.ascii|urlencode }}">{{ t("storefront.domains.whois") }}</a>
+    {%- else %}
+    {{ badge(t("storefront.domains.unknown"), "warning") }}
+    {%- endif %}
+  </div>
+  {%- if row.state == "available" %}
+  <form method="post" action="{{ url("/cart/add") }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <input type="hidden" name="domain" value="{{ row.ascii }}">
+    <input type="hidden" name="return_to" value="{{ url("/domains") }}">
+    <button type="submit" class="btn btn--primary btn--sm">{{ icon("cart") }}{{ t("storefront.domains.add") }}</button>
+  </form>
+  {%- elif row.state == "taken" %}
+  <a class="btn btn--soft btn--sm" href="{{ url("/cart") }}?transfer={{ row.ascii|urlencode }}#add-domain-title">{{ t("storefront.domains.transfer") }}</a>
+  {%- else %}<span></span>{% endif %}
+</div>

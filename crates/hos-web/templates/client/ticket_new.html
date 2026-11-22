@@ -1,0 +1,52 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head"><div><h1>{{ t("client.tickets.new_title") }}</h1><p>{{ t("client.tickets.new_lead") }}</p></div></div>
+{%- if departments.is_empty() %}
+<div class="card"><div class="card__body">{% call ui::empty("life-buoy", t("client.tickets.no_departments")) %}{% endcall %}</div></div>
+{%- else %}
+<form class="ticket-layout" method="post" action="{{ url("/client/tickets") }}" enctype="multipart/form-data" novalidate>
+  <div class="card">
+    <div class="card__body stack">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::form_errors(errors) %}{% endcall %}
+      <div class="form-row">
+        <div class="field{% if errors.has("department") %} field--error{% endif %}">
+          <label class="field__label" for="f-department">{{ t("client.tickets.department") }}</label>
+          <select class="select" id="f-department" name="department" required>
+            {%- for dp in departments %}<option value="{{ dp.id }}"{% if dp.id.to_string() == input.department %} selected{% endif %}>{{ dp.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label" for="f-priority">{{ t("client.tickets.priority") }}</label>
+          <select class="select" id="f-priority" name="priority">
+            {%- for (v, label) in priorities %}<option value="{{ v }}"{% if *v == input.priority %} selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field__label" for="f-related">{{ t("client.tickets.related") }}</label>
+        <select class="select" id="f-related" name="related">
+          <option value="">{{ t("client.tickets.related_none") }}</option>
+          {%- for (v, label) in related %}<option value="{{ v }}"{% if *v == input.related %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field{% if errors.has("subject") %} field--error{% endif %}">
+        <label class="field__label" for="f-subject">{{ t("client.tickets.subject") }} <span class="field__req" aria-hidden="true">*</span></label>
+        <input class="input" id="f-subject" name="subject" type="text" maxlength="200" required value="{{ input.subject }}" autocomplete="off"
+          hx-get="{{ url("/client/kb-suggest") }}" hx-trigger="input changed delay:400ms" hx-target="#kb-suggest" hx-swap="innerHTML" hx-include="this">
+        {%- if errors.has("subject") %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("subject") }}</p>{% endif %}
+      </div>
+      <div id="kb-suggest" aria-live="polite"></div>
+      <div class="field{% if errors.has("body") %} field--error{% endif %}">
+        <label class="field__label" for="f-body">{{ t("client.tickets.message") }} <span class="field__req" aria-hidden="true">*</span></label>
+        <textarea class="textarea" id="f-body" name="body" rows="10" required>{{ input.body }}</textarea>
+        {%- if errors.has("body") %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("body") }}</p>{% else %}<p class="field__hint">{{ t("client.tickets.markdown_hint") }}</p>{% endif %}
+      </div>
+      {% include "client/_attach_field.html" %}
+    </div>
+    <div class="card__foot"><button type="submit" class="btn btn--primary">{{ icon("send") }}{{ t("client.tickets.submit") }}</button></div>
+  </div>
+</form>
+{%- endif %}
+{% endblock %}

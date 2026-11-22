@@ -1,0 +1,41 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_content.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("admin_content.seo.llms.title") }}</h1><p>{{ t("admin_content.seo.llms.lead") }}</p></div>
+  <div class="page-head__actions">
+    <a class="btn btn--ghost" href="{{ url("/llms.txt") }}" target="_blank" rel="noopener">{{ icon("external-link") }}llms.txt</a>
+    <a class="btn btn--ghost" href="{{ url("/llms-full.txt") }}" target="_blank" rel="noopener">{{ icon("external-link") }}llms-full.txt</a>
+  </div>
+</div>
+{% include "admin/seo/_tabs.html" %}
+{% call ui::card() %}
+<form class="stack" method="post" action="{{ url("/admin/seo/llms") }}">
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::form_errors(errors) %}{% endcall %}
+  <div class="form-grid">
+    {% call ui::textarea("summary_tr", t("admin_content.seo.llms.summary_tr"), form.summary_tr, error=errors.get("summary_tr"), hint=t("admin_content.seo.llms.summary_hint"), rows=3) %}{% endcall %}
+    {% call ui::textarea("summary_en", t("admin_content.seo.llms.summary_en"), form.summary_en, error=errors.get("summary_en"), hint=t("admin_content.seo.llms.summary_hint"), rows=3) %}{% endcall %}
+    {% call ui::textarea("details_tr", t("admin_content.seo.llms.details_tr"), form.details_tr, error=errors.get("details_tr"), hint=t("admin_content.seo.llms.details_hint"), rows=6) %}{% endcall %}
+    {% call ui::textarea("details_en", t("admin_content.seo.llms.details_en"), form.details_en, error=errors.get("details_en"), hint=t("admin_content.seo.llms.details_hint"), rows=6) %}{% endcall %}
+  </div>
+  <p class="field__hint">{{ t("admin_content.seo.llms.auto_hint") }}</p>
+  <div class="form-actions"><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button></div>
+</form>
+{% endcall %}
+<div class="grid grid--2 mt-6">
+  {% call ui::card("llms.txt", t("admin_content.seo.llms.preview_default")) %}
+  {%- if preview_default.is_empty() %}<p class="muted">{{ t("admin_content.seo.llms.preview_error") }}</p>{% else %}<pre class="code-block file-preview"><code>{{ preview_default }}</code></pre>{% endif %}
+  {% endcall %}
+  {% call ui::card(other_label, t("admin_content.seo.llms.preview_other")) %}
+  {%- if preview_other.is_empty() %}<p class="muted">{{ t("admin_content.seo.llms.preview_error") }}</p>{% else %}<pre class="code-block file-preview"><code>{{ preview_other }}</code></pre>{% endif %}
+  {% endcall %}
+</div>
+<div class="mt-6">
+{% call ui::card("llms-full.txt", t("admin_content.seo.llms.preview_full")) %}
+{%- if preview_full.is_empty() %}<p class="muted">{{ t("admin_content.seo.llms.preview_error") }}</p>{% else %}<pre class="code-block file-preview"><code>{{ preview_full }}</code></pre>{% endif %}
+{%- if full_truncated %}<p class="field__hint">{{ t("admin_content.seo.llms.truncated") }}</p>{% endif %}
+{% endcall %}
+</div>
+{% endblock %}

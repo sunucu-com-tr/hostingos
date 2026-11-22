@@ -1,0 +1,44 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ t("platform.audit.title") }}</h1>
+    <p>{{ t("platform.audit.lead") }}</p>
+  </div>
+</div>
+{% call ui::card() %}
+<form class="form-row" method="get" action="/platform/audit">
+  {% call ui::field("action", t("platform.audit.action"), action, placeholder="platform.tenant") %}{% endcall %}
+  {% call ui::field("tenant", t("platform.audit.tenant"), tenant_filter, hint=t("platform.audit.tenant_hint")) %}{% endcall %}
+  {% call ui::select("actor", t("platform.audit.actor"), actors, actor.as_str()) %}{% endcall %}
+  <div class="field"><span class="field__label">&nbsp;</span><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("platform.common.filter") }}</button></div>
+</form>
+{%- if rows.is_empty() %}
+{% call ui::empty("file-text", t("platform.audit.empty")) %}{% endcall %}
+{%- else %}
+<div class="table-wrap mt-4"><table class="table table--stack">
+  <thead><tr>
+    <th scope="col">{{ t("platform.audit.when") }}</th>
+    <th scope="col">{{ t("platform.audit.tenant") }}</th>
+    <th scope="col">{{ t("platform.audit.actor") }}</th>
+    <th scope="col">{{ t("platform.audit.action") }}</th>
+    <th scope="col">{{ t("platform.audit.changes") }}</th>
+  </tr></thead>
+  <tbody>
+  {%- for r in rows %}
+    <tr>
+      <td data-label="{{ t("platform.audit.when") }}"><time datetime="{{ iso(r.entry.created_at) }}">{{ datetime(r.entry.created_at) }}</time>{% match r.entry.ip %}{% when Some(ip) %}<br><span class="muted small">{{ ip }}</span>{% when None %}{% endmatch %}</td>
+      <td data-label="{{ t("platform.audit.tenant") }}">{% match r.tenant_slug %}{% when Some(s) %}{% match r.entry.tenant_id %}{% when Some(tid) %}<a href="/platform/tenants/{{ tid }}"><code>{{ s }}</code></a>{% when None %}<code>{{ s }}</code>{% endmatch %}{% when None %}<span class="muted">{{ t("platform.audit.platform") }}</span>{% endmatch %}</td>
+      <td data-label="{{ t("platform.audit.actor") }}">{{ r.entry.actor_kind.as_str() }}{% match r.entry.impersonator_id %}{% when Some(_) %} {{ badge(t("platform.audit.impersonated"), "warning") }}{% when None %}{% endmatch %}</td>
+      <td data-label="{{ t("platform.audit.action") }}"><code>{{ r.entry.action }}</code>{% match r.entry.entity_type %}{% when Some(e) %}<br><span class="muted small">{{ e }}</span>{% when None %}{% endmatch %}</td>
+      <td data-label="{{ t("platform.audit.changes") }}"><span class="pf-json">{{ r.entry.changes }}</span></td>
+    </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% call ui::pagination(pager) %}{% endcall %}
+{%- endif %}
+{% endcall %}
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% import "components/blocks.html" as blk %}
+{% block content %}
+<article class="cms-page{% if legal %} cms-page--legal{% endif %}">
+  <header class="page-hero">
+    <div class="container page-hero__inner">
+      {% call ui::breadcrumbs(crumbs) %}{% endcall %}
+      <h1>{{ title }}</h1>
+      <p class="article-meta"><span>{{ t("storefront.content.updated") }} <time datetime="{{ iso(updated_at) }}">{{ date(updated_at) }}</time></span><a href="{{ md_href }}" rel="alternate" type="text/markdown">{{ t("storefront.content.markdown") }}</a></p>
+    </div>
+  </header>
+  {%- if legal %}
+  <div class="section section--tight">
+    <div class="container content-layout">
+      {%- if toc.len() > 2 %}
+      <nav class="toc" aria-labelledby="toc-title">
+        <h2 id="toc-title">{{ t("storefront.content.toc") }}</h2>
+        <ol>{% for h in toc %}<li class="lvl-{{ h.level }}"><a href="#{{ h.id }}">{{ h.text }}</a></li>{% endfor %}</ol>
+      </nav>
+      {%- endif %}
+      <div class="legal-body">{% call blk::render(blocks) %}{% endcall %}</div>
+    </div>
+  </div>
+  {%- else %}
+  <div class="cms-page__body">{% call blk::render(blocks) %}{% endcall %}</div>
+  {%- endif %}
+</article>
+{% endblock %}

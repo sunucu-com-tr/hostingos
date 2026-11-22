@@ -1,0 +1,33 @@
+{% extends "admin/layout.html" %}
+{% block content %}
+{%- let inv = detail.invoice.clone() %}
+<div class="page-head no-print"><div><h1>{{ title }}</h1></div><div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/invoices/" ~ inv.id) }}">{{ icon("chevron-left") }}{{ t("admin.common.back") }}</a></div></div>
+<article class="invoice-doc">
+  <header class="invoice-doc__head">
+    <div>
+      {%- if !store().logo_url.is_empty() %}<img class="logo-preview" src="{{ store().logo_url }}" alt="{{ site_name }}">{% else %}<h2>{{ site_name }}</h2>{% endif %}
+      <p class="small">{{ company.legal_name }}<br>{{ company.address }}<br>{% if !company.tax_number.is_empty() %}{{ company.tax_office }} {{ company.tax_number }}<br>{% endif %}{{ company.email }}</p>
+    </div>
+    <div>
+      <h1>{% match inv.number %}{% when Some(n) %}{{ t("admin.invoices.invoice") }} {{ n }}{% when None %}{{ t("admin.invoices.draft_title") }}{% endmatch %}</h1>
+      <dl class="kv"><dt>{{ t("admin.invoices.col_issue") }}</dt><dd>{{ d(inv.issue_date) }}</dd><dt>{{ t("admin.invoices.col_due") }}</dt><dd>{{ d(inv.due_date) }}</dd><dt>{{ t("admin.common.status") }}</dt><dd>{{ lbl("admin.status", inv.status.as_str()) }}</dd></dl>
+    </div>
+  </header>
+  <section class="mb-8">
+    <p class="muted small">{{ t("admin.invoices.billed_to") }}</p>
+    <p><strong>{{ client.display_name() }}</strong><br>{{ o(client.address_line1) }}<br>{{ o(client.postal_code) }} {{ o(client.city) }} {{ client.country_code }}<br>{{ o(client.tax_office) }} {{ o(client.tax_number) }}<br>{{ client.email }}</p>
+  </section>
+  <table class="table">
+    <thead><tr><th>{{ t("admin.common.description") }}</th><th class="num">{{ t("admin.orders.qty") }}</th><th class="num">{{ t("admin.invoices.unit_price") }}</th><th class="num">{{ t("admin.common.amount") }}</th></tr></thead>
+    <tbody>{% for it in detail.items %}<tr><td>{{ it.description }}</td><td class="num">{{ dec(it.quantity) }}</td><td class="num">{{ m(it.unit_price, inv.currency) }}</td><td class="num">{{ m(it.amount, inv.currency) }}</td></tr>{% endfor %}</tbody>
+  </table>
+  <dl class="kv invoice-doc__totals mt-6">
+    <dt>{{ t("admin.invoices.subtotal") }}</dt><dd class="tabular">{{ m(inv.subtotal, inv.currency) }}</dd>
+    {%- if !inv.discount_total.is_zero() %}<dt>{{ t("admin.common.discount") }}</dt><dd class="tabular">−{{ m(inv.discount_total, inv.currency) }}</dd>{% endif %}
+    {%- for tl in detail.tax_lines %}<dt>{{ tl.name }} (%{{ dec(tl.rate) }})</dt><dd class="tabular">{{ m(tl.tax_amount, inv.currency) }}</dd>{% endfor %}
+    <dt><strong>{{ t("admin.common.total") }}</strong></dt><dd class="tabular"><strong>{{ m(inv.total, inv.currency) }}</strong></dd>
+    <dt>{{ t("admin.invoices.col_balance") }}</dt><dd class="tabular">{{ m(inv.balance, inv.currency) }}</dd>
+  </dl>
+  {%- match inv.notes %}{% when Some(n) %}<p class="mt-8 small">{{ nl2br(n) }}</p>{% when None %}{% endmatch %}
+</article>
+{% endblock %}

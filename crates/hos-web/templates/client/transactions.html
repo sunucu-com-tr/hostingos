@@ -1,0 +1,28 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head"><div><h1>{{ t("client.billing.transactions") }}</h1></div></div>
+<div class="card">
+{%- if rows.is_empty() %}
+  <div class="card__body">{% call ui::empty("activity", t("client.billing.no_transactions")) %}{% endcall %}</div>
+{%- else %}
+  <div class="table-wrap">
+    <table class="table table--stack">
+      <thead><tr><th scope="col">{{ t("client.billing.date") }}</th><th scope="col">{{ t("client.billing.gateway") }}</th><th scope="col">{{ t("client.billing.reference") }}</th><th scope="col" class="num">{{ t("client.billing.amount") }}</th><th scope="col">{{ t("client.invoices.status") }}</th></tr></thead>
+      <tbody>
+      {%- for tx in rows %}
+        <tr>
+          <td data-label="{{ t("client.billing.date") }}">{{ datetime(tx.occurred_at) }}</td>
+          <td data-label="{{ t("client.billing.gateway") }}">{{ tx.gateway }}</td>
+          <td data-label="{{ t("client.billing.reference") }}">{% match tx.invoice_id %}{% when Some(i) %}<a href="{{ url("/client/invoices/") }}{{ i }}">{{ t("client.billing.invoice_link") }}</a>{% when None %}—{% endmatch %}</td>
+          <td class="num" data-label="{{ t("client.billing.amount") }}">{{ money_in(tx.amount, tx.currency) }}</td>
+          <td data-label="{{ t("client.invoices.status") }}">{{ st(tx.status.as_str()) }}</td>
+        </tr>
+      {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- endif %}
+</div>
+{% call ui::pagination(pager) %}{% endcall %}
+{% endblock %}

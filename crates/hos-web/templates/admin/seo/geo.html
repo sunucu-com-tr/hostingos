@@ -1,0 +1,43 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_content.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("admin_content.seo.geo.title") }}</h1><p>{{ t("admin_content.seo.geo.lead") }}</p></div>
+</div>
+{% include "admin/seo/_tabs.html" %}
+<div class="mt-4">
+{%- match audit %}
+{%- when Some(a) %}
+<div class="grid grid--2">
+  {% call ui::card(t("admin_content.seo.geo.average")) %}
+  <div class="seo-score"><span class="score score--{{ avg_tone }}">{{ average }}</span>
+    <div><p class="small">{{ tn("admin_content.seo.overview.pages_audited", rows.len()) }}</p>
+      <p class="small muted">{{ t("admin_content.seo.geo.source") }} <a href="{{ url("/admin/seo/audits/" ~ a.id) }}">{{ datetime(a.created_at) }}</a></p></div></div>
+  {% endcall %}
+  {% call ui::card(t("admin_content.seo.geo.common_gaps")) %}
+  {%- if checks.is_empty() %}<p class="check-pass">{{ icon("check-circle") }} {{ t("admin_content.seo.geo.no_gaps") }}</p>{% else %}
+  <ul class="side-list">{% for (title, n) in checks %}<li><strong>{{ title }}</strong> <span class="muted">— {{ tn("admin_content.seo.audits.affected", n) }}</span></li>{% endfor %}</ul>{% endif %}
+  {% endcall %}
+</div>
+<h2 class="mt-6">{{ t("admin_content.seo.geo.lowest") }}</h2>
+<div class="table-wrap mt-2"><table class="table table--dense table--stack">
+  <thead><tr><th scope="col">{{ t("admin_content.seo.geo.page") }}</th><th scope="col" class="num">GEO</th><th scope="col" class="num">{{ t("admin_content.seo.geo.failed") }}</th><th scope="col">{{ t("admin_content.seo.geo.first_fix") }}</th></tr></thead>
+  <tbody>
+  {%- for r in rows %}
+    <tr>
+      <td data-label="{{ t("admin_content.seo.geo.page") }}"><a class="row-link mono small" href="{{ url(r.href) }}">{{ r.url }}</a></td>
+      <td data-label="GEO" class="num"><strong class="check-{% if r.tone == "good" %}pass{% elif r.tone == "mid" %}warn{% else %}fail{% endif %}">{{ r.score }}</strong></td>
+      <td data-label="{{ t("admin_content.seo.geo.failed") }}" class="num">{{ r.failed }}</td>
+      <td data-label="{{ t("admin_content.seo.geo.first_fix") }}">{% if r.top.is_empty() %}<span class="muted">—</span>{% else %}{{ r.top }}{% endif %}</td>
+    </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{%- when None %}
+{% call ui::empty("zap", t("admin_content.seo.geo.empty_title"), t("admin_content.seo.geo.empty_text")) %}
+  <form method="post" action="{{ url("/admin/seo/audits") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--primary" type="submit">{{ icon("refresh") }}{{ t("admin_content.seo.audits.run") }}</button></form>
+{% endcall %}
+{%- endmatch %}
+</div>
+{% endblock %}

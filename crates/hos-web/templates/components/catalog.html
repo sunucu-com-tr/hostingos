@@ -1,0 +1,82 @@
+{#- Storefront catalog macros: {% import "components/catalog.html" as cat %} -#}
+
+{#- Monthly / annual switch. Must sit inside <div class="js-cycle-scope"> together
+    with the cards (pure CSS: :has(input[value=annual]:checked)). `saving`:
+    Option<i64> percent; `scope`: id prefix, unique per page. -#}
+{% macro cycle_switch(saving, scope="cy") %}
+<div class="cycle-switch" role="radiogroup" aria-label="{{ t("storefront.catalog.cycle_label") }}">
+  <input type="radio" name="{{ scope }}-cycle" id="{{ scope }}-monthly" value="monthly" checked><label for="{{ scope }}-monthly">{{ t("common.cycle.monthly") }}</label>
+  <input type="radio" name="{{ scope }}-cycle" id="{{ scope }}-annual" value="annual"><label for="{{ scope }}-annual">{{ t("common.cycle.annual") }}{% match saving %}{% when Some(pct) %} <span class="badge badge--success">{{ tv("storefront.catalog.save_pct", "pct", pct) }}</span>{% when None %}{% endmatch %}</label>
+</div>
+{% endmacro %}
+
+{#- Price card from routes::storefront::ProductCard. Always five rows (name,
+    tagline, prices, features, action) so cards in a .price-grid share row
+    heights (subgrid). All cycle variants sit in one cell (.price-card__prices):
+    switching cycles toggles visibility only. `card.eyebrow` (e.g. the group
+    on the home page) replaces the "popular" ribbon. -#}
+{% macro price_card(card) %}
+<article class="price-card{% if card.featured && card.eyebrow.is_empty() %} price-card--featured{% endif %}">
+  {%- if !card.eyebrow.is_empty() %}<span class="price-card__ribbon price-card__ribbon--quiet">{{ card.eyebrow }}</span>
+  {%- elif card.featured %}<span class="price-card__ribbon">{{ icon("sparkles") }}{{ t("storefront.catalog.popular") }}</span>{% endif %}
+  <h3 class="price-card__name"><a href="{{ card.href }}">{{ card.name }}</a></h3>
+  <p class="price-card__tagline">{{ card.tagline }}</p>
+  <div class="price-card__prices">
+  {%- for p in card.prices %}
+    <div class="price" data-cycle="{{ p.slot }}">
+      {%- if p.slot == "fallback" %}
+      <span class="price__amount">{{ money(p.total) }}</span><span class="price__per">{{ per(p.cycle) }}</span>
+      {%- else %}
+      <span class="price__amount">{{ money(p.per_month) }}</span><span class="price__per">{{ t("common.per.monthly") }}</span>
+      {%- endif %}
+      {%- if p.slot == "annual" %}<span class="price__note">{{ tv("storefront.catalog.billed_annually", "amount", money(p.total)) }}</span>
+      {%- elif p.slot == "monthly" %}<span class="price__note">{{ t("storefront.catalog.billed_monthly") }}</span>{% endif %}
+      {%- if !p.setup_fee.is_zero() %}<span class="price__note">{{ tv("storefront.catalog.setup_fee", "amount", money(p.setup_fee)) }}</span>{% endif %}
+    </div>
+  {%- endfor %}
+  {%- if card.prices.is_empty() %}<p class="muted">{{ t("storefront.catalog.contact_for_price") }}</p>{% endif %}
+  </div>
+  <ul class="feature-list">
+    {%- for f in card.features %}<li>{{ icon("check") }}<span>{{ f }}</span></li>{% endfor %}
+  </ul>
+  <a class="btn {% if card.featured %}btn--primary{% else %}btn--soft{% endif %} btn--block" href="{{ card.href }}">{{ t("storefront.catalog.details") }}<span class="visually-hidden">: {{ card.name }}</span>{{ icon("arrow-right") }}</a>
+</article>
+{% endmacro %}
+
+{#- Domain search box (GET /domains). `chips`: show the popular-extension hint row. -#}
+{% macro domain_search(q, autofocus=false) %}
+<form class="domain-search domain-search--mono" method="get" action="{{ url("/domains") }}" role="search" aria-label="{{ t("storefront.domains.search_label") }}">
+  <label class="domain-search__field">
+    {{ icon("search") }}
+    <span class="visually-hidden">{{ t("storefront.domains.search_label") }}</span>
+    <input type="search" name="q" value="{{ q }}" placeholder="{{ t("storefront.domains.placeholder") }}" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="253" enterkeyhint="search" required{% if autofocus %} autofocus{% endif %}>
+  </label>
+  <button type="submit" class="btn btn--primary btn--lg">{{ t("storefront.domains.search") }}</button>
+</form>
+{% endmacro %}
+
+{#- TLD price table (register / transfer / renew, one year). -#}
+{% macro tld_table(rows) %}
+<div class="table-wrap">
+  <table class="table table--stack table--tlds">
+    <caption class="visually-hidden">{{ t("storefront.domains.prices_title") }}</caption>
+    <thead><tr>
+      <th scope="col">{{ t("storefront.domains.col_tld") }}</th>
+      <th scope="col" class="num">{{ t("storefront.domains.col_register") }}</th>
+      <th scope="col" class="num">{{ t("storefront.domains.col_transfer") }}</th>
+      <th scope="col" class="num">{{ t("storefront.domains.col_renew") }}</th>
+    </tr></thead>
+    <tbody>
+      {%- for p in rows.iter() %}
+      <tr>
+        <th scope="row" data-label="{{ t("storefront.domains.col_tld") }}"><span class="cluster"><span class="mono">.{{ p.tld }}</span>{% if p.featured %} {{ badge(t("storefront.domains.popular"), "brand") }}{% endif %}</span></th>
+        <td class="num" data-label="{{ t("storefront.domains.col_register") }}">{% match p.register %}{% when Some(v) %}{{ money(v) }}{% when None %}—{% endmatch %}</td>
+        <td class="num" data-label="{{ t("storefront.domains.col_transfer") }}">{% match p.transfer %}{% when Some(v) %}{{ money(v) }}{% when None %}—{% endmatch %}</td>
+        <td class="num" data-label="{{ t("storefront.domains.col_renew") }}">{% match p.renew %}{% when Some(v) %}{{ money(v) }}{% when None %}—{% endmatch %}</td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="small muted mt-4">{{ t("storefront.domains.prices_note") }}</p>
+{% endmacro %}

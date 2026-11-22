@@ -1,0 +1,29 @@
+{#- Auth shell: the form column (left) + an editorial brand panel (desktop,
+    right). Pages fill `card`. -#}
+{% extends "layouts/base.html" %}
+{% import "components/ui.html" as ui %}
+{% block body %}
+<div class="auth-shell">
+  <main id="main" class="auth-main{% block main_class %}{% endblock %}">
+    <div class="auth-top">
+      {% call ui::lang_switch() %}{% endcall %}
+      {% call ui::theme_toggle() %}{% endcall %}
+    </div>
+    <div class="auth-card">
+      <a class="brand" href="{{ url("/") }}"><span class="brand__mark">{{ icon("forge") }}</span><span>{{ site_name }}</span></a>
+      {% block card %}{% endblock %}
+    </div>
+  </main>
+  <aside class="auth-aside" aria-hidden="true">
+    <div class="auth-aside__body">
+      <h2>{{ t("auth.aside.title") }}</h2>
+      <p>{{ t("auth.aside.text") }}</p>
+      <ul>
+        <li>{{ icon("shield") }}<span>{{ t("auth.aside.point_security") }}</span></li>
+        <li>{{ icon("zap") }}<span>{{ t("auth.aside.point_speed") }}</span></li>
+        <li>{{ icon("life-buoy") }}<span>{{ t("auth.aside.point_support") }}</span></li>
+      </ul>
+    </div>
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{#- e-Fatura / e-Arşiv documents (routes/admin/einvoice.rs::list). -#}
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/_macros.html" as ax %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("einvoice.list.title") }}</h1><p>{{ t("einvoice.list.lead") }} · {{ tn("einvoice.list.count", pager.total) }}</p></div>
+  {%- if can("settings.manage") %}
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/settings/einvoice") }}">{{ icon("settings") }}{{ t("einvoice.list.settings") }}</a></div>
+  {%- endif %}
+</div>
+<form class="filters" method="get" action="{{ url("/admin/einvoice") }}">
+  <div class="field"><label class="field__label" for="f-status">{{ t("einvoice.list.filter") }}</label>
+    <select class="select" id="f-status" name="status" data-autosubmit>
+      {%- for (v, l) in filters %}<option value="{{ v }}"{{ sel(status, v) }}>{{ l }}</option>{% endfor %}
+    </select></div>
+  <div class="filters__actions"><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("admin.common.filter") }}</button></div>
+</form>
+{%- if rows.is_empty() %}
+{% call ui::empty("file-text", t("einvoice.list.empty"), "") %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th>{{ t("einvoice.list.col_invoice") }}</th><th>{{ t("einvoice.list.col_client") }}</th><th>{{ t("einvoice.list.col_kind") }}</th><th>{{ t("einvoice.list.col_number") }}</th><th>{{ t("einvoice.list.col_status") }}</th><th>{{ t("einvoice.list.col_problem") }}</th><th>{{ t("einvoice.list.col_updated") }}</th></tr></thead>
+  <tbody>{% for r in rows %}<tr>
+    <td data-label="{{ t("einvoice.list.col_invoice") }}"><a href="{{ url("/admin/invoices/" ~ r.row.invoice_id) }}">{% match r.row.invoice_number %}{% when Some(n) %}{{ n }}{% when None %}{{ t("admin.common.open") }}{% endmatch %}</a></td>
+    <td data-label="{{ t("einvoice.list.col_client") }}"><a href="{{ url("/admin/clients/" ~ r.row.client_id) }}">{{ r.row.client_name }}</a></td>
+    <td data-label="{{ t("einvoice.list.col_kind") }}">{{ r.kind }}{% if r.row.is_test %} {{ badge(t("einvoice.panel.test"), "info") }}{% endif %}</td>
+    <td data-label="{{ t("einvoice.list.col_number") }}" class="mono">{% match r.row.number %}{% when Some(n) %}{{ n }}{% when None %}—{% endmatch %}</td>
+    <td data-label="{{ t("einvoice.list.col_status") }}">{{ badge(r.status_label, r.tone) }}{% if r.row.attention.is_some() %} {{ badge(t("einvoice.panel.attention"), "danger") }}{% endif %}</td>
+    <td data-label="{{ t("einvoice.list.col_problem") }}" class="small">{{ r.problem }}</td>
+    <td data-label="{{ t("einvoice.list.col_updated") }}" class="muted nowrap">{{ r.updated }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% call ax::pager(pager) %}{% endcall %}
+{%- endif %}
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ t("platform.dashboard.title") }}</h1>
+    <p>{{ tv("platform.dashboard.hello", "name", admin_name) }}</p>
+  </div>
+  <div class="btn-row">
+    <a class="btn btn--primary" href="/platform/tenants/new">{{ icon("plus") }}{{ t("platform.tenants.new") }}</a>
+  </div>
+</div>
+{% include "platform/_update_banner.html" %}
+<section class="stats" aria-label="{{ t("platform.dashboard.overview") }}">
+  {% call ui::stat(t("platform.dashboard.tenants"), num(overview.tenants), tn("platform.dashboard.new_tenants", overview.new_tenants_30d), "up", "building") %}{% endcall %}
+  {% call ui::stat(t("platform.dashboard.active"), num(overview.active_tenants), tn("platform.dashboard.trial", overview.trial_tenants), "", "check-circle") %}{% endcall %}
+  {% call ui::stat(t("platform.dashboard.suspended"), num(overview.suspended_tenants), tn("platform.dashboard.cancelled", cancelled), "", "alert-triangle") %}{% endcall %}
+  {% call ui::stat(t("platform.dashboard.clients"), num(overview.clients), tn("platform.dashboard.services", overview.active_services), "", "users") %}{% endcall %}
+</section>
+<div class="grid grid--2 mt-8">
+{% call ui::card(t("platform.dashboard.mrr"), t("platform.dashboard.mrr_hint")) %}
+  {%- if mrr.is_empty() %}
+  <p class="muted">{{ t("platform.dashboard.no_mrr") }}</p>
+  {%- else %}
+  <dl class="dl">
+    {%- for m in mrr %}
+    <dt>{{ m.currency.as_str() }}</dt><dd class="tabular">{{ money_in(m.amount, m.currency) }} <span class="muted small">· {{ tn("platform.dashboard.subscriptions", m.subscriptions) }}</span></dd>
+    {%- endfor %}
+  </dl>
+  {%- endif %}
+{% endcall %}
+{% call ui::card(t("platform.dashboard.queue"), t("platform.dashboard.queue_hint")) %}
+  <p>{% if queue_ok %}{{ badge(t("platform.dashboard.queue_ok"), "success") }}{% else %}{{ badge(t("platform.dashboard.queue_attention"), "danger") }}{% endif %}</p>
+  <dl class="dl mt-4">
+    <dt>{{ t("platform.jobs.pending") }}</dt><dd class="tabular">{{ num(jobs.pending) }} <span class="muted small">({{ tv("platform.jobs.due", "count", jobs.due) }})</span></dd>
+    <dt>{{ t("platform.jobs.running") }}</dt><dd class="tabular">{{ num(jobs.running) }}{% if jobs.stale > 0 %} · <span class="text-danger">{{ tv("platform.jobs.stale", "count", jobs.stale) }}</span>{% endif %}</dd>
+    <dt>{{ t("platform.jobs.failed_24h") }}</dt><dd class="tabular">{{ num(jobs.failed_24h) }}</dd>
+    <dt>{{ t("platform.jobs.completed_24h") }}</dt><dd class="tabular">{{ num(jobs.completed_24h) }}</dd>
+    <dt>{{ t("platform.jobs.last_completed_label") }}</dt><dd>{{ date_opt(jobs.last_completed_at) }}</dd>
+  </dl>
+  <p class="mt-4"><a href="/platform/jobs">{{ t("platform.dashboard.open_jobs") }}</a></p>
+{% endcall %}
+</div>
+<div class="mt-8">
+{% call ui::card(t("platform.dashboard.volume"), t("platform.dashboard.volume_hint")) %}
+  {%- if volumes.is_empty() %}
+  {% call ui::empty("building", t("platform.dashboard.no_tenants")) %}{% endcall %}
+  {%- else %}
+  <div class="table-wrap"><table class="table table--stack">
+    <thead><tr>
+      <th scope="col">{{ t("platform.tenants.col_tenant") }}</th>
+      <th scope="col">{{ t("platform.tenants.col_status") }}</th>
+      <th scope="col" class="num">{{ t("platform.tenants.col_clients") }}</th>
+      <th scope="col" class="num">{{ t("platform.tenants.col_services") }}</th>
+      <th scope="col" class="num">{{ t("platform.dashboard.revenue_30d") }}</th>
+      <th scope="col" class="num">{{ t("platform.dashboard.revenue_total") }}</th>
+    </tr></thead>
+    <tbody>
+    {%- for v in volumes %}
+      <tr>
+        <td data-label="{{ t("platform.tenants.col_tenant") }}"><a href="/platform/tenants/{{ v.tenant_id }}"><strong>{{ v.name }}</strong></a> <code class="muted small">{{ v.slug }}</code></td>
+        <td data-label="{{ t("platform.tenants.col_status") }}">{{ status_badge(v.status.as_str()) }}</td>
+        <td data-label="{{ t("platform.tenants.col_clients") }}" class="num tabular">{{ num(v.clients) }}</td>
+        <td data-label="{{ t("platform.tenants.col_services") }}" class="num tabular">{{ num(v.active_services) }}</td>
+        <td data-label="{{ t("platform.dashboard.revenue_30d") }}" class="num tabular">{{ money_in(v.revenue_30d, v.currency) }}</td>
+        <td data-label="{{ t("platform.dashboard.revenue_total") }}" class="num tabular">{{ money_in(v.revenue_total, v.currency) }}</td>
+      </tr>
+    {%- endfor %}
+    </tbody>
+  </table></div>
+  {%- endif %}
+{% endcall %}
+</div>
+<div class="grid grid--2 mt-8">
+{% call ui::card(t("platform.dashboard.recent")) %}
+  {%- if tenants.is_empty() %}
+  {% call ui::empty("building", t("platform.dashboard.no_tenants")) %}{% endcall %}
+  {%- else %}
+  <div class="table-wrap"><table class="table table--stack">
+    <thead><tr>
+      <th scope="col">{{ t("platform.tenants.col_tenant") }}</th>
+      <th scope="col">{{ t("platform.tenants.col_status") }}</th>
+      <th scope="col">{{ t("platform.tenants.col_created") }}</th>
+    </tr></thead>
+    <tbody>
+    {%- for tn_row in tenants %}
+      <tr>
+        <td data-label="{{ t("platform.tenants.col_tenant") }}"><a href="/platform/tenants/{{ tn_row.id }}"><strong>{{ tn_row.name }}</strong></a> <code class="muted small">{{ tn_row.slug }}</code></td>
+        <td data-label="{{ t("platform.tenants.col_status") }}">{{ status_badge(tn_row.status.as_str()) }}</td>
+        <td data-label="{{ t("platform.tenants.col_created") }}"><time datetime="{{ iso(tn_row.created_at) }}">{{ date(tn_row.created_at) }}</time></td>
+      </tr>
+    {%- endfor %}
+    </tbody>
+  </table></div>
+  {%- endif %}
+{% endcall %}
+{% call ui::card(t("platform.dashboard.signups"), t("platform.dashboard.signups_hint")) %}
+  {%- if signups.is_empty() %}
+  <p class="muted">{{ t("platform.dashboard.no_signups") }}</p>
+  {%- else %}
+  <ul class="stack-sm">
+    {%- for s in signups %}
+    <li class="between"><span><strong>{{ s.company_name }}</strong> <code class="muted small">{{ s.slug }}</code><br><span class="muted small">{{ s.email }} · {{ datetime(s.created_at) }}</span></span>
+      {%- match s.tenant_id %}{% when Some(tid) %}<a class="badge badge--success" href="/platform/tenants/{{ tid }}">{{ t("platform.dashboard.signup_done") }}</a>{% when None %}{% if s.verified_at.is_some() %}{{ badge(t("platform.dashboard.signup_claimed"), "info") }}{% else %}{{ badge(t("platform.dashboard.signup_pending"), "warning") }}{% endif %}{% endmatch %}</li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+{% endcall %}
+</div>
+{% endblock %}

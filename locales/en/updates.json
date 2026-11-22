@@ -1,0 +1,230 @@
+{
+  "menu": "Updates",
+  "title": "Updates",
+  "lead": "Version, available releases, installation and history. Nothing is installed without your approval.",
+  "overview": "Update overview",
+  "version": "Running version",
+  "commit": "Commit",
+  "build_date": "Build date",
+  "target": "Target",
+  "privacy": "Checking for updates is a plain HTTPS request to the configured release source with a generic User-Agent containing only the version. No telemetry, no identifiers.",
+  "check": {
+    "now": "Check now",
+    "found": "Version {version} is available.",
+    "none": "You are running the newest version.",
+    "last": "Last check",
+    "next": "Next automatic check",
+    "failed": "failed",
+    "error": "The last check failed: {detail}"
+  },
+  "source": {
+    "label": "Release source",
+    "off_title": "Update checks are off",
+    "off_text": "No release source is configured, so HostingOS does not contact any server. Set HOS_UPDATE_REPO (GitHub owner/name) or HOS_UPDATE_MANIFEST_URL and restart. See docs/UPDATES.md.",
+    "off_short": "Not configured",
+    "env_label": "Environment"
+  },
+  "keys": {
+    "label": "Signing keys",
+    "count": "{builtin} built in, {endorsed} announced",
+    "none_title": "No release signing key is trusted yet",
+    "none_text": "This build contains no public key, so updates can be found and announced but not installed. Releases are shown as unverified until a build with the project's public key is installed.",
+    "none_short": "none — installs disabled"
+  },
+  "problems": {
+    "title": "Some releases were rejected.",
+    "text": "They are not offered for installation."
+  },
+  "trust": {
+    "verified": "Signature verified",
+    "unverified": "Unverified",
+    "rejected": "Rejected",
+    "unavailable": "Unavailable"
+  },
+  "severity": {
+    "security": "Security fix"
+  },
+  "releases": {
+    "title": "Available versions",
+    "hint": "Newer than the running version, newest first.",
+    "none": "Up to date",
+    "none_text": "No newer version has been found."
+  },
+  "release": {
+    "published": "published {date}",
+    "page": "Release page",
+    "migrations": "Database migrations",
+    "rollback_safe": "Rollback-safe",
+    "not_rollback_safe": "Not rollback-safe",
+    "unverified_hint": "The signature of this release could not be verified, so it cannot be installed from here.",
+    "untrusted_notes": "Unsigned release: its notes and link come straight from the release source and are shown as plain text. Check them on the project page you know before acting on them.",
+    "restore_hint": "Its database changes are not rollback-safe: going back to the previous version later needs the backup taken before the update."
+  },
+  "apply": {
+    "button": "Install {version}",
+    "confirm": "Install version {version} now? The site is in maintenance mode for a few minutes.",
+    "what": "Downloads and verifies the release, turns maintenance mode on, waits for running jobs, takes a backup, swaps the binary (keeping the previous one), runs migrations and restarts. If the new version is not healthy it is rolled back automatically.",
+    "password": "Your password",
+    "code": "Authentication code",
+    "no_2fa": "Tip: turn on two-factor authentication for your account; installs then also ask for a code.",
+    "started": "The update has started.",
+    "reauth_failed": "Password or authentication code is wrong.",
+    "no_keys": "This build trusts no signing key, so it cannot install updates.",
+    "no_supervisor": "HostingOS is not running under a service manager (systemd) that restarts it, so it cannot update itself.",
+    "unknown_install": "The installation type could not be determined.",
+    "unavailable": "In-place installation is not available here.",
+    "manual": "Follow the steps in docs/UPDATES.md to update manually."
+  },
+  "backup": {
+    "label": "Backup before updating",
+    "plan_command": "Backup command (HOS_UPDATE_BACKUP_COMMAND)",
+    "plan_pg_dump": "pg_dump of the database",
+    "plan_manual": "None configured — you confirm it",
+    "command": "The configured backup command runs before the update.",
+    "pg_dump": "A pg_dump backup of the database is taken before the update.",
+    "manual": "No automatic backup is configured (neither HOS_UPDATE_BACKUP_COMMAND nor pg_dump is available). Take a database backup first.",
+    "confirm": "I have a current backup of the database"
+  },
+  "container": {
+    "text": "This installation runs in a container, which never replaces itself. Pull the new image and recreate the container:",
+    "image": "Image:",
+    "commands": "Docker Compose"
+  },
+  "deploy": {
+    "button": "Trigger deployment",
+    "confirm": "Call the deploy webhook for version {version}?",
+    "requested": "The deployment was requested.",
+    "no_webhook": "Set a deploy webhook (Coolify, Portainer, CI) in the settings to start deployments from here."
+  },
+  "install": {
+    "title": "This installation",
+    "label": "Installation",
+    "binary": "Binary",
+    "binary_detail": "Supervised install in {root}",
+    "binary_unsupervised": "Install in {root}, without a service manager",
+    "container": "Container ({kind})",
+    "container_detail": "Updated by pulling a new image.",
+    "unknown": "Unknown",
+    "unknown_detail": "{reason}"
+  },
+  "channel": {
+    "label": "Channel",
+    "hint": "Beta also offers pre-releases.",
+    "stable": "Stable",
+    "beta": "Beta"
+  },
+  "settings": {
+    "title": "Settings",
+    "hint": "Apply to every node.",
+    "auto_check": "Check for updates once a day",
+    "auto_on": "daily check on",
+    "auto_off": "daily check off",
+    "notify_email": "Notification e-mail",
+    "notify_email_hint": "Optional. Receives a message when a new version is found.",
+    "webhook": "Deploy webhook",
+    "webhook_hint": "For container installations: called over HTTPS when you trigger a deployment.",
+    "webhook_url": "Webhook URL",
+    "webhook_method": "Method",
+    "webhook_secret": "Secret (Bearer token)",
+    "secret_set": "A secret is stored (encrypted). Leave empty to keep it.",
+    "secret_unset": "Optional. Stored encrypted.",
+    "clear_secret": "Remove the stored secret",
+    "secret_host": "The stored secret is removed when the webhook moves to another host.",
+    "reauth": "Confirm with your password",
+    "reauth_hint": "Needed when you change the channel or the deploy webhook (address, method or secret).",
+    "reauth_required": "Changing the channel or the deploy webhook needs your password (and your two-factor code when it is on). Nothing was saved."
+  },
+  "history": {
+    "title": "History",
+    "none": "No updates yet.",
+    "when": "When",
+    "versions": "Versions",
+    "kind": "Type",
+    "status": "Result",
+    "by": "By"
+  },
+  "kind": {
+    "binary": "In-place install",
+    "webhook": "Deploy webhook",
+    "rollback": "Rollback"
+  },
+  "run": {
+    "title": "Update {from} → {to}",
+    "back": "All updates",
+    "live": "This page updates itself, also while the service restarts.",
+    "in_progress": "Update {from} → {to} in progress",
+    "follow": "Follow progress",
+    "node": "Node",
+    "backup": "Backup",
+    "finished": "Finished",
+    "log": "Steps",
+    "restarting_hint": "The new version is starting. It must report healthy within the health timeout, otherwise the previous version is restored automatically.",
+    "rolled_back_hint": "The previous version is running again. If the update changed the database in a way that is not rollback-safe, restore the backup taken before the update."
+  },
+  "run_status": {
+    "running": "Running",
+    "restarting": "Restarting",
+    "requested": "Requested",
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "rolled_back": "Rolled back"
+  },
+  "step": {
+    "preflight": "Preflight checks",
+    "maintenance": "Maintenance mode",
+    "download": "Download",
+    "verify": "Signature and checksum",
+    "unpack": "Unpack",
+    "backup": "Backup",
+    "swap": "Switch version",
+    "migrate": "Database migrations",
+    "restart": "Restart",
+    "rollback": "Rollback",
+    "healthy": "Health check",
+    "webhook": "Deploy webhook"
+  },
+  "banner": {
+    "available": "HostingOS {version} is available.",
+    "security": "HostingOS {version} is available and fixes a security issue.",
+    "review": "Review",
+    "dismiss": "Dismiss"
+  },
+  "notice": {
+    "update_succeeded": "Updated to {version}.",
+    "update_failed": "The update to {version} failed.",
+    "update_rolled_back": "The update to {version} was rolled back."
+  },
+  "maintenance": {
+    "on": "Maintenance mode is on.",
+    "on_hint": "Visitors and clients see a maintenance page; the job worker is paused.",
+    "end": "End maintenance mode",
+    "ended": "Maintenance mode is off.",
+    "active_run": "An update is still running."
+  },
+  "errors": {
+    "with_detail": "{what}: {detail}"
+  },
+  "error_kind": {
+    "not_configured": "Not configured",
+    "config": "Invalid configuration",
+    "no_trusted_keys": "No trusted signing key",
+    "signature": "Signature check failed",
+    "manifest": "Invalid release manifest",
+    "not_newer": "Not newer than the running version",
+    "replay": "Outdated or replayed release data",
+    "not_upgradable": "Cannot upgrade directly from this version",
+    "wrong_target": "No build for this platform",
+    "refused": "Refused",
+    "too_large": "Too large",
+    "network": "Network error",
+    "checksum": "Checksum mismatch",
+    "io": "File system error",
+    "busy": "Another update is running",
+    "preflight": "Preflight check failed",
+    "backup": "Backup failed",
+    "migration": "Database migration failed",
+    "archive": "Invalid release archive",
+    "unsupported": "Not supported for this installation",
+    "smoke_test": "The new binary did not start"
+  }
+}

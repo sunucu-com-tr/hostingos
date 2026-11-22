@@ -1,0 +1,46 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}
+{%- if !feed_href.is_empty() %}
+<link rel="alternate" type="application/atom+xml" title="{{ site_name }} — {{ t("storefront.blog.title") }}" href="{{ feed_href }}">
+{%- endif %}
+{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="container page-hero__inner">
+    <h1>{{ heading }}</h1>
+    <p class="lead">{{ lead }}</p>
+    {%- if !feed_href.is_empty() %}
+    <p class="cluster">
+      <a class="btn btn--soft btn--sm" href="{{ feed_href }}">{{ icon("rss") }}Atom</a>
+      {%- if !tag.is_empty() %}<a class="btn btn--ghost btn--sm" href="{{ url("/blog") }}">{{ icon("x") }}<span class="mono">#{{ tag }}</span></a>{% endif %}
+    </p>
+    {%- endif %}
+  </div>
+</section>
+<section class="section section--tight">
+  <div class="container stack-lg">
+    {%- if posts.is_empty() %}
+    {% call ui::empty("newspaper", t("storefront.blog.empty_title"), t("storefront.blog.empty_text")) %}{% endcall %}
+    {%- else %}
+    <div class="cell-grid cell-grid--3 cell-grid--rows-4">
+      {%- for p in posts %}
+      <article class="post-card">
+        <p class="article-meta">
+          {%- if p.pinned %}<span class="badge badge--accent">{{ t("storefront.announcements.pinned") }}</span>{% endif %}
+          <time datetime="{{ iso(p.published_at) }}">{{ date(p.published_at) }}</time>
+          <span>{{ tn("storefront.blog.minutes", p.minutes) }}</span>
+        </p>
+        <h2 class="h4"><a href="{{ p.href }}">{{ p.title }}</a></h2>
+        <p>{{ p.excerpt }}</p>
+        <p class="cluster">
+          {%- if kind == "blog" %}{% for tg in p.tags %}<a class="tag" href="{{ url("/blog") }}?tag={{ tg|urlencode }}">#{{ tg }}</a>{% endfor %}{% endif %}
+        </p>
+      </article>
+      {%- endfor %}
+    </div>
+    {% call ui::pagination(pager) %}{% endcall %}
+    {%- endif %}
+  </div>
+</section>
+{% endblock %}

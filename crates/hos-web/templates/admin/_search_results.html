@@ -1,0 +1,16 @@
+{#- Command palette results (htmx fragment). -#}
+{%- if q.chars().count() < 2 %}
+{%- elif hits.is_empty() && shortcuts.is_empty() %}
+<p class="cmdk__empty">{{ tv("admin.search.no_results", "q", q) }}</p>
+{%- else %}
+{%- if !shortcuts.is_empty() %}
+<p class="cmdk__group">{{ t("admin.search.pages") }}</p>
+{%- for s in shortcuts %}
+<a class="cmdk__item" href="{{ s.href }}">{{ icon(s.icon) }}<span>{{ s.label }}</span></a>
+{%- endfor %}
+{%- endif %}
+{%- for h in hits %}
+{%- if h.first %}<p class="cmdk__group">{{ h.group }}</p>{% endif %}
+<a class="cmdk__item" href="{{ h.href }}">{{ icon(h.icon) }}<span>{{ h.title }}</span>{% if !h.subtitle.is_empty() %}<small>{{ h.subtitle }}</small>{% endif %}</a>
+{%- endfor %}
+{%- endif %}

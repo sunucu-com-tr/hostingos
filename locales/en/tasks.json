@@ -1,0 +1,39 @@
+{
+  "menu": "To-do",
+  "admin": {
+    "title": "To-do",
+    "lead": "The team's tasks, due dates and owners.",
+    "for_client": "Tasks of client:",
+    "show_open": "Open",
+    "show_mine": "Assigned to me",
+    "show_done": "Done",
+    "show_all": "All",
+    "empty_title": "No tasks",
+    "empty_text": "Add a task; overdue ones are shown in red.",
+    "new": "New task",
+    "edit": "Edit task",
+    "unassigned": "Unassigned",
+    "complete": "Complete",
+    "reopen": "Reopen",
+    "saved": "Task saved.",
+    "completed": "Task completed.",
+    "reopened": "Task reopened.",
+    "deleted": "Task deleted.",
+    "delete_confirm": "Delete this task?",
+    "title_required": "A title is required.",
+    "invalid": "Invalid date."
+  },
+  "fields": {
+    "title": "Title",
+    "body": "Details",
+    "due_date": "Due date",
+    "assignee": "Assignee",
+    "priority": "Priority",
+    "actions": "Actions"
+  },
+  "priority": {
+    "low": "Low",
+    "normal": "Normal",
+    "high": "High"
+  }
+}

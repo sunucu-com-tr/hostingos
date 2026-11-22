@@ -1,0 +1,56 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ ctx.title }}</h1><p>{{ t("netstatus.admin.lead") }} <a href="{{ url("/status") }}">{{ t("netstatus.admin.public_link") }}</a></p></div>
+  <div class="page-head__actions">
+    <a class="btn btn--soft" href="{{ url("/admin/status/incidents/new?kind=maintenance") }}">{{ icon("calendar") }}{{ t("netstatus.admin.maintenance_new") }}</a>
+    <a class="btn btn--primary" href="{{ url("/admin/status/incidents/new") }}">{{ icon("alert-triangle") }}{{ t("netstatus.admin.incident_new") }}</a>
+  </div>
+</div>
+<div class="stack-lg">
+{% call ui::card(t("netstatus.admin.open_title")) %}
+{%- if open.is_empty() %}<p class="biz-muted">{{ t("netstatus.admin.open_empty") }}</p>{% else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th scope="col">{{ t("netstatus.fields.title") }}</th><th scope="col">{{ t("netstatus.fields.kind") }}</th><th scope="col">{{ t("netstatus.fields.impact") }}</th><th scope="col">{{ t("netstatus.fields.starts") }}</th><th scope="col">{{ t("netstatus.fields.status") }}</th></tr></thead>
+  <tbody>{% for i in open %}<tr>
+    <td data-label="{{ t("netstatus.fields.title") }}"><a class="row-link" href="{{ url("/admin/status/incidents/" ~ i.id) }}">{{ i.title }}</a>{% if !i.is_public %}<span class="sub muted">{{ t("netstatus.admin.private") }}</span>{% endif %}</td>
+    <td data-label="{{ t("netstatus.fields.kind") }}">{{ lbl("netstatus.kind", i.kind.as_str()) }}</td>
+    <td data-label="{{ t("netstatus.fields.impact") }}">{{ lbl("netstatus.impact", i.impact.as_str()) }}</td>
+    <td data-label="{{ t("netstatus.fields.starts") }}" class="nowrap">{% match i.scheduled_start %}{% when Some(s) %}{{ datetime(s) }}{% when None %}{{ datetime(i.started_at) }}{% endmatch %}</td>
+    <td data-label="{{ t("netstatus.fields.status") }}">{{ ibadge(i.status) }}</td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{%- endif %}
+{% endcall %}
+
+{% call ui::card(t("netstatus.admin.components_title"), t("netstatus.admin.components_hint")) %}
+<div class="biz-toolbar"><a class="btn btn--soft btn--sm" href="{{ url("/admin/status/components/new") }}">{{ icon("plus") }}{{ t("netstatus.admin.component_new") }}</a></div>
+{%- if components.is_empty() %}<p class="biz-muted">{{ t("netstatus.admin.components_empty") }}</p>{% else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th scope="col">{{ t("netstatus.fields.component") }}</th><th scope="col">{{ t("netstatus.fields.group") }}</th><th scope="col">{{ t("netstatus.fields.status") }}</th><th scope="col"><span class="visually-hidden">{{ t("netstatus.fields.actions") }}</span></th></tr></thead>
+  <tbody>{% for c in components %}<tr>
+    <td data-label="{{ t("netstatus.fields.component") }}"><a class="row-link" href="{{ url("/admin/status/components/" ~ c.id) }}">{{ c.name }}</a>{% if !c.is_public %}<span class="sub muted">{{ t("netstatus.admin.private") }}</span>{% endif %}{% if c.integration_id.is_some() %}<span class="sub muted">{{ t("netstatus.admin.bound") }}</span>{% endif %}</td>
+    <td data-label="{{ t("netstatus.fields.group") }}">{% if c.group_name.is_empty() %}—{% else %}{{ c.group_name }}{% endif %}</td>
+    <td data-label="{{ t("netstatus.fields.status") }}">{{ cbadge(c.status) }}</td>
+    <td class="num biz-cellact"><form method="post" action="{{ url("/admin/status/components/" ~ c.id ~ "/status") }}">{% call ui::csrf() %}{% endcall %}
+      <label class="visually-hidden" for="cs-{{ c.id }}">{{ t("netstatus.fields.status") }}: {{ c.name }}</label>
+      <select class="select select--sm" id="cs-{{ c.id }}" name="status">{% for (v, l) in statuses %}<option value="{{ v }}"{{ sel(v, c.status.as_str()) }}>{{ l }}</option>{% endfor %}</select>
+      <button class="btn btn--soft btn--sm" type="submit">{{ t("common.actions.save") }}</button></form></td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{%- endif %}
+{% endcall %}
+
+{%- if !recent.is_empty() %}
+{% call ui::card(t("netstatus.admin.history_title")) %}
+<ul class="biz-list">
+{%- for i in recent %}
+  <li><a href="{{ url("/admin/status/incidents/" ~ i.id) }}">{{ i.title }}</a> <span class="biz-muted">· {{ lbl("netstatus.kind", i.kind.as_str()) }} · {{ dtopt(i.resolved_at) }}</span></li>
+{%- endfor %}
+</ul>
+{% endcall %}
+{%- endif %}
+</div>
+{% endblock %}

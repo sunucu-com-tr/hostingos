@@ -1,0 +1,26 @@
+{#- AI reply draft box (htmx fragment; polls while the job runs). Never sent automatically. -#}
+{%- match g.status.as_str() %}
+{%- when "pending" %}
+<div class="ai-pending" role="status" hx-get="{{ url("/admin/support/tickets/" ~ ticket_id ~ "/ai-draft/" ~ g.id) }}" hx-trigger="every 2s" hx-swap="outerHTML">
+  <span class="spinner" aria-hidden="true"></span><span>{{ t("admin_support.ai.working") }}</span>
+</div>
+{%- when "failed" %}
+<div class="alert alert--error" role="alert">{{ icon("alert-triangle") }}<div><p>{{ t("admin_support.ai.failed") }}</p>{% match g.error %}{% when Some(e) %}<p class="small muted">{{ e }}</p>{% when None %}{% endmatch %}</div></div>
+{%- when _ %}
+<div class="ai-result stack-sm">
+  <p class="small muted">{{ t("admin_support.ai.draft_note") }}{% if !confidence.is_empty() %} · {{ t("admin_support.ai.confidence") }}: {{ lbl("admin_support.ai.confidence_levels", confidence) }}{% endif %}</p>
+  {%- if needs_human %}<p class="small text-danger">{{ icon("alert-triangle") }} {{ t("admin_support.ai.needs_human") }}</p>{% endif %}
+  <label class="visually-hidden" for="ai-reply-{{ g.id }}">{{ t("admin_support.ai.draft_label") }}</label>
+  <textarea class="textarea" id="ai-reply-{{ g.id }}" rows="9" readonly>{{ reply }}</textarea>
+  {%- if !note.is_empty() %}<p class="small"><strong>{{ t("admin_support.ai.internal_note") }}:</strong> {{ note }}</p>{% endif %}
+  {%- if !used.is_empty() %}
+  <p class="small muted">{{ t("admin_support.ai.sources") }}:</p>
+  <ul class="side-list small">{% for u in used %}<li><a href="{{ u }}" target="_blank" rel="noopener noreferrer">{{ u }}</a></li>{% endfor %}</ul>
+  {%- endif %}
+  <div class="btn-row">
+    <button class="btn btn--primary btn--sm" type="button" data-fill-into="#reply-body" data-fill-from="#ai-reply-{{ g.id }}" hidden>{{ icon("arrow-right") }}{{ t("admin_support.ai.use") }}</button>
+    <a class="btn btn--ghost btn--sm" href="{{ url("/admin/support/tickets/" ~ ticket_id ~ "?draft=" ~ g.id ~ "#reply") }}" data-fill-fallback>{{ t("admin_support.ai.use_reload") }}</a>
+  </div>
+  <p class="token-usage">{{ g.model }}{% match g.input_tokens %}{% when Some(n) %} · {{ tv("admin_content.ai.tokens_in", "n", n) }}{% when None %}{% endmatch %}{% match g.output_tokens %}{% when Some(n) %} · {{ tv("admin_content.ai.tokens_out", "n", n) }}{% when None %}{% endmatch %}</p>
+</div>
+{%- endmatch %}

@@ -1,0 +1,31 @@
+[package]
+name = "hos-seo"
+description = "HostingOS SEO/GEO/AI: meta tags, JSON-LD, sitemap, robots, llms.txt, IndexNow and AI content generation."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+hos-core = { workspace = true, features = ["net"] }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true }
+rust_decimal = { workspace = true }
+scraper = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+unicode-segmentation = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+quick-xml = { workspace = true }
+rust_decimal_macros = { workspace = true }
+wiremock = { workspace = true }

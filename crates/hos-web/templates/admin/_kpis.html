@@ -1,0 +1,27 @@
+{#- Dashboard KPI trends (fragment of /admin/dashboard/kpis): range picker,
+    then one card per KPI with value, change vs the previous period of the
+    same length and a sparkline over the range. -#}
+<section class="kpi-trends" id="kpi-trends" aria-label="{{ t("admin.dashboard.overview") }}">
+  <div class="kpi-trends__head">
+    <p class="muted small">{{ t("admin.dashboard.kpi_compare") }}</p>
+    <nav class="segmented" aria-label="{{ t("admin.dashboard.range") }}">
+      {%- for (r, label) in ranges %}
+      <a href="{{ url("/admin") }}?range={{ r }}" hx-get="{{ url("/admin/dashboard/kpis") }}?range={{ r }}" hx-target="#kpi-trends" hx-swap="outerHTML" hx-push-url="{{ url("/admin") }}?range={{ r }}"{% if *r == range %} aria-current="true"{% endif %}>{{ label }}</a>
+      {%- endfor %}
+    </nav>
+  </div>
+  <div class="kpis kpis--trend">
+  {%- for c in cards %}
+    <a class="kpi" href="{{ c.href }}">
+      <p class="kpi__label">{{ icon(c.icon) }}<span>{{ c.label }}</span></p>
+      <div class="kpi__main">
+        <p class="kpi__value">{{ c.value }}</p>
+        {%- if !c.spark_line.is_empty() %}
+        <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" width="104" height="36" aria-hidden="true" focusable="false"><polygon class="spark__area" points="{{ c.spark_area }}"/><polyline class="spark__line" points="{{ c.spark_line }}"/></svg>
+        {%- endif %}
+      </div>
+      <p class="kpi__foot"><span class="kpi__delta{% if c.tone == "up" %} kpi__delta--up{% elif c.tone == "down" %} kpi__delta--down{% endif %}">{% if c.tone == "up" %}{{ icon("trending-up") }}{% elif c.tone == "down" %}{{ icon("trending-down") }}{% endif %}{{ c.delta }}</span><span>{{ c.foot }}</span></p>
+    </a>
+  {%- endfor %}
+  </div>
+</section>

@@ -1,0 +1,15 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/_macros.html" as ax %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("admin_content.ai.history") }}</h1><p>{{ t("admin_content.ai.history_lead") }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/ai") }}">{{ icon("sparkles") }}{{ t("admin_content.ai.title") }}</a></div>
+</div>
+{%- if rows.is_empty() %}
+{% call ui::empty("clock", t("admin_content.ai.no_history"), t("admin_content.ai.no_history_text")) %}{% endcall %}
+{%- else %}
+{% include "admin/ai/_gen_rows.html" %}
+{% call ax::pager(pager) %}{% endcall %}
+{%- endif %}
+{% endblock %}

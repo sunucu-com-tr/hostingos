@@ -1,0 +1,32 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head">
+  <div><h1>{{ t("client.orders.title") }}</h1><p>{{ t("client.orders.lead") }}</p></div>
+  <div class="btn-row"><a class="btn btn--primary" href="{{ url("/cart") }}">{{ icon("cart") }}{{ t("client.orders.new") }}</a></div>
+</div>
+<div class="card">
+{%- if rows.is_empty() %}
+  <div class="card__body">{% call ui::empty("box", t("client.orders.empty")) %}<a class="btn btn--primary btn--sm" href="{{ url("/") }}">{{ t("client.dashboard.browse") }}</a>{% endcall %}</div>
+{%- else %}
+  <div class="table-wrap">
+    <table class="table table--stack">
+      <thead><tr><th scope="col">{{ t("client.orders.number") }}</th><th scope="col">{{ t("client.orders.date") }}</th><th scope="col">{{ t("client.orders.items") }}</th><th scope="col" class="num">{{ t("client.invoices.total") }}</th><th scope="col">{{ t("client.invoices.status") }}</th><th scope="col"><span class="visually-hidden">{{ t("client.common.actions") }}</span></th></tr></thead>
+      <tbody>
+      {%- for o in rows %}
+        <tr>
+          <td data-label="{{ t("client.orders.number") }}"><strong class="mono">{{ o.order.order_number }}</strong></td>
+          <td data-label="{{ t("client.orders.date") }}">{{ date(o.order.created_at) }}</td>
+          <td data-label="{{ t("client.orders.items") }}">{{ num(o.item_count) }}</td>
+          <td class="num" data-label="{{ t("client.invoices.total") }}">{{ money_in(o.order.total, o.order.currency) }}</td>
+          <td data-label="{{ t("client.invoices.status") }}">{{ st(o.order.status.as_str()) }}</td>
+          <td>{% match o.order.invoice_id %}{% when Some(i) %}<a class="btn btn--ghost btn--sm" href="{{ url("/client/invoices/") }}{{ i }}">{{ t("client.orders.invoice") }}</a>{% when None %}{% endmatch %}</td>
+        </tr>
+      {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- endif %}
+</div>
+{% call ui::pagination(pager) %}{% endcall %}
+{% endblock %}

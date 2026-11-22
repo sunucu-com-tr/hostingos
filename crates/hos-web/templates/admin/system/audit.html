@@ -1,0 +1,26 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/_macros.html" as ax %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.system.audit_title") }}</h1><p>{{ t("admin.system.audit_lead") }}</p></div></div>
+<form class="filters" method="get" action="{{ url("/admin/system/audit") }}">
+  <div class="field"><label class="field__label" for="a-act">{{ t("admin.system.action") }}</label><input class="input" id="a-act" name="action" value="{{ action }}" placeholder="invoice."></div>
+  <div class="field"><label class="field__label" for="a-ent">{{ t("admin.system.entity") }}</label>
+    <select class="select" id="a-ent" name="entity" data-autosubmit><option value="">{{ t("admin.common.all") }}</option>{% for e in ["client", "invoice", "order", "service", "domain", "product", "integration", "coupon", "ticket"] %}<option value="{{ e }}"{{ sel(e, entity) }}>{{ e }}</option>{% endfor %}</select></div>
+  <div class="filters__actions"><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("admin.common.filter") }}</button></div>
+</form>
+{%- if rows.is_empty() %}
+{% call ui::empty("list", t("admin.dashboard.activity_empty"), "") %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th>{{ t("admin.common.date") }}</th><th>{{ t("admin.system.actor") }}</th><th>{{ t("admin.system.action") }}</th><th>{{ t("admin.common.details") }}</th><th>IP</th></tr></thead>
+  <tbody>{% for (a, dt, ip) in rows %}<tr>
+    <td data-label="{{ t("admin.common.date") }}">{{ datetime(a.at) }}</td>
+    <td data-label="{{ t("admin.system.actor") }}">{{ a.actor }}</td>
+    <td data-label="{{ t("admin.system.action") }}">{% if a.link.is_empty() %}{{ a.action }}{% else %}<a href="{{ a.link }}">{{ a.action }}</a>{% endif %}</td>
+    <td data-label="{{ t("admin.common.details") }}" class="mono small">{{ dt }}</td>
+    <td data-label="IP" class="mono small">{{ ip }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% call ax::pager(pager) %}{% endcall %}
+{%- endif %}
+{% endblock %}

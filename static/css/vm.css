@@ -1,0 +1,98 @@
+/* VPS management pages (client + admin): tabs, usage graphs, bandwidth
+   meter, operation progress, firewall table, embedded console (noVNC).
+   Widths come from .vm-w-N classes (CSP has no 'unsafe-inline' styles). */
+@layer pages {
+  .vm-tabs { margin-block-end: var(--space-4); }
+  .vm-range { border-bottom: 0; }
+  .vm-w-0 { inline-size: 0%; }
+  .vm-w-5 { inline-size: 5%; }
+  .vm-w-10 { inline-size: 10%; }
+  .vm-w-15 { inline-size: 15%; }
+  .vm-w-20 { inline-size: 20%; }
+  .vm-w-25 { inline-size: 25%; }
+  .vm-w-30 { inline-size: 30%; }
+  .vm-w-35 { inline-size: 35%; }
+  .vm-w-40 { inline-size: 40%; }
+  .vm-w-45 { inline-size: 45%; }
+  .vm-w-50 { inline-size: 50%; }
+  .vm-w-55 { inline-size: 55%; }
+  .vm-w-60 { inline-size: 60%; }
+  .vm-w-65 { inline-size: 65%; }
+  .vm-w-70 { inline-size: 70%; }
+  .vm-w-75 { inline-size: 75%; }
+  .vm-w-80 { inline-size: 80%; }
+  .vm-w-85 { inline-size: 85%; }
+  .vm-w-90 { inline-size: 90%; }
+  .vm-w-95 { inline-size: 95%; }
+  .vm-w-100 { inline-size: 100%; }
+
+  /* ---- graphs */
+  .vm-graphs { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr)); }
+  .vm-graph { margin: 0; padding: var(--space-3) var(--space-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+  .vm-graph figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); font-size: var(--step--1); color: var(--muted); }
+  .vm-graph figcaption > span:first-child { color: var(--ink); font-weight: var(--weight-medium); }
+  .vm-graph__legend { display: inline-flex; flex-wrap: wrap; gap: var(--space-3); }
+  .vm-graph__key { display: inline-flex; align-items: center; gap: var(--space-1); font-variant-numeric: tabular-nums; }
+  .vm-graph__key::before { content: ""; inline-size: 0.75rem; block-size: 2px; background: var(--brand); }
+  .vm-graph__key--b::before { background: var(--accent); }
+  .vm-graph__key strong { color: var(--ink); font-weight: var(--weight-medium); }
+  .vm-graph__svg { display: block; inline-size: 100%; block-size: 9rem; margin-block: var(--space-2); overflow: visible; }
+  .vm-graph__grid { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .vm-graph__line { fill: none; stroke: var(--brand); stroke-width: 1.75; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+  .vm-graph__line--b { stroke: var(--accent); }
+  .vm-graph__axis { display: flex; justify-content: space-between; gap: var(--space-2); font-size: var(--step--2); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .vm-graph__empty { padding-block: var(--space-6); text-align: center; }
+
+  /* ---- bandwidth meter, progress */
+  .vm-bw__figures { margin: 0; font-variant-numeric: tabular-nums; }
+  .vm-meter, .vm-progress { display: block; block-size: 0.5rem; border-radius: 999px; background: var(--surface-sunken); overflow: hidden; }
+  .vm-meter__bar, .vm-progress__bar { display: block; block-size: 100%; background: var(--brand); border-radius: inherit; }
+  .vm-meter--over .vm-meter__bar { background: var(--danger); }
+  .vm-progress { margin-block-start: var(--space-2); max-inline-size: 16rem; }
+  .vm-progress__bar--indeterminate { inline-size: 35%; animation: vm-slide 1.2s ease-in-out infinite; }
+  @keyframes vm-slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+  @media (prefers-reduced-motion: reduce) { .vm-progress__bar--indeterminate { animation: none; inline-size: 100%; opacity: 0.5; } }
+  .vm-ops__error { display: block; color: var(--danger); }
+
+  /* ---- forms */
+  .vm-ptr > li { flex-wrap: wrap; }
+  .vm-ptr .input-group { flex: 1 1 18rem; max-inline-size: 30rem; }
+  .vm-fw { table-layout: fixed; inline-size: 100%; }
+  .vm-fw .select, .vm-fw .input { min-inline-size: 0; inline-size: 100%; }
+  .vm-fw th:nth-child(1), .vm-fw th:nth-child(2) { inline-size: 6.5rem; }
+  .vm-fw th:nth-child(3) { inline-size: 7rem; }
+  .vm-fw th:last-child { inline-size: 2.75rem; }
+  @media (max-width: 47.99rem) { .vm-fw { table-layout: auto; } }
+
+  /* Admin pages do not load client.css: the same row list there. */
+  .ax .row-list { list-style: none; margin: 0; padding: 0; }
+  .ax .row-list > li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-3); padding-block: var(--space-3); border-bottom: 1px solid var(--line); }
+  .ax .row-list > li:first-child { padding-top: 0; }
+  .ax .row-list > li:last-child { border-bottom: 0; padding-bottom: 0; }
+  .ax .row-list > li > span:first-child { min-width: 0; }
+  .ax .row-list span > strong + span, .ax .row-list span > .muted { display: block; }
+  .ax .row-list .cluster { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .vm-confirm > summary { list-style: none; }
+  .vm-confirm > summary::-webkit-details-marker { display: none; }
+  .vm-confirm[open] { flex-basis: 100%; }
+  .vm-templates { display: grid; gap: var(--space-2); grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr)); border: 0; padding: 0; margin: 0; }
+  .vm-templates legend { margin-block-end: var(--space-2); }
+  .vm-template { display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; }
+  .vm-template:has(input:checked) { border-color: var(--brand); background: var(--brand-softer); }
+  .vm-template span { display: flex; flex-direction: column; min-width: 0; }
+  .vm-fp { overflow-wrap: anywhere; }
+
+  /* ---- console */
+  .console { display: flex; flex-direction: column; gap: var(--space-3); }
+  .console__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+  .console__status { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--step--1); color: var(--muted); }
+  .console__status::before { content: ""; inline-size: 0.5rem; block-size: 0.5rem; border-radius: 50%; background: var(--warning); }
+  .console[data-state="connected"] .console__status::before { background: var(--success); }
+  .console[data-state="failed"] .console__status::before,
+  .console[data-state="disconnected"] .console__status::before { background: var(--danger); }
+  .console__screen { position: relative; min-block-size: 24rem; block-size: min(70vh, 48rem); background: #0b0b0b; border-radius: var(--radius); overflow: hidden; }
+  .console__screen:fullscreen { block-size: 100%; border-radius: 0; }
+  .console__clip textarea { inline-size: 100%; }
+  .console__note { margin: 0; }
+  @media (max-width: 40rem) { .console__screen { min-block-size: 14rem; block-size: 55vh; } }
+}

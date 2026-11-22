@@ -1,0 +1,434 @@
+{
+  "proxmox": {
+    "api_url": {
+      "label": "API URL",
+      "help": "Any cluster node; /api2/json is appended automatically."
+    },
+    "token_id": {
+      "label": "API token ID",
+      "help": "USER@REALM!TOKENID"
+    },
+    "skip_tls_verify": {
+      "label": "Skip TLS certificate verification",
+      "help": "Only for self-signed certificates on a trusted network."
+    },
+    "default_node": {
+      "label": "Default node",
+      "help": "Used when the product does not pin a node; otherwise the template's node."
+    },
+    "default_storage": {
+      "label": "Default storage",
+      "help": "Target storage for full clones and LXC root disks."
+    },
+    "default_bridge": {
+      "label": "Default bridge"
+    },
+    "default_guest_type": {
+      "label": "Default guest type"
+    },
+    "pool": {
+      "label": "Resource pool",
+      "help": "Optional pool for new guests."
+    },
+    "cpu_type": {
+      "label": "CPU type",
+      "help": "QEMU `cpu` option; empty keeps the template's setting."
+    },
+    "ciuser": {
+      "label": "cloud-init user",
+      "help": "User that receives the password and SSH keys."
+    },
+    "timeout_secs": {
+      "label": "HTTP timeout (s)"
+    },
+    "task_timeout_secs": {
+      "label": "Task wait limit (s)",
+      "help": "Upper bound for clone/stop/delete tasks awaited inside one operation."
+    },
+    "task_poll_ms": {
+      "label": "Task poll interval (ms)"
+    },
+    "token_secret": {
+      "label": "API token secret"
+    }
+  },
+  "vmware": {
+    "api_url": {
+      "label": "vCenter URL"
+    },
+    "deployment": {
+      "label": "Deployment"
+    },
+    "username": {
+      "label": "Username"
+    },
+    "skip_tls_verify": {
+      "label": "Skip TLS certificate verification",
+      "help": "Only for self-signed vCenter certificates on a trusted network."
+    },
+    "cluster": {
+      "label": "Cluster MoRef"
+    },
+    "resource_pool": {
+      "label": "Resource pool MoRef"
+    },
+    "vm_folder": {
+      "label": "VM folder MoRef",
+      "help": "Required for content-library deployments."
+    },
+    "datastore": {
+      "label": "Datastore MoRef"
+    },
+    "network": {
+      "label": "Default network MoRef",
+      "help": "Port group attached to the first NIC (VLANs are port group properties)."
+    },
+    "content_library": {
+      "label": "Content library id",
+      "help": "Only list templates from this library (default: all libraries)."
+    },
+    "customization": {
+      "label": "Guest customization"
+    },
+    "vijson_release": {
+      "label": "VI/JSON release",
+      "help": "vCenter 8.0 U1+: enables snapshots, disk growth and live metrics."
+    },
+    "timeout_secs": {
+      "label": "HTTP timeout (s)"
+    },
+    "deploy_timeout_secs": {
+      "label": "Clone/deploy timeout (s)",
+      "help": "Clone and library deploy are synchronous REST calls."
+    },
+    "task_timeout_secs": {
+      "label": "Task wait limit (s)"
+    },
+    "task_poll_ms": {
+      "label": "Task poll interval (ms)"
+    },
+    "password": {
+      "label": "Password"
+    }
+  },
+  "cpanel": {
+    "host": {
+      "label": "Hostname or IP",
+      "help": "Server hostname / IP, or a full URL such as https://server.example.com:2087"
+    },
+    "port": {
+      "label": "API port",
+      "help": "Ignored when the host field already contains a port"
+    },
+    "use_ssl": {
+      "label": "Use HTTPS"
+    },
+    "skip_tls_verify": {
+      "label": "Skip TLS certificate verification",
+      "help": "Only for servers with self-signed certificates. Insecure: credentials can be intercepted"
+    },
+    "timeout_secs": {
+      "label": "Request timeout (seconds)"
+    },
+    "username": {
+      "label": "WHM username",
+      "help": "Owner of the API token: root or a reseller"
+    },
+    "default_ip": {
+      "label": "Default IP address",
+      "help": "Used for new accounts when the order does not request a dedicated IP"
+    },
+    "nameservers": {
+      "label": "Nameservers",
+      "help": "Comma-separated; reported to the client in the welcome email"
+    },
+    "login_url": {
+      "label": "Client login URL",
+      "help": "Public panel URL for welcome emails; derived from the host when empty"
+    },
+    "reseller_acl_list": {
+      "label": "Reseller ACL list",
+      "help": "Saved ACL list (WHM » Edit Reseller Nameservers and Privileges) applied to new reseller accounts"
+    },
+    "reseller_owns_self": {
+      "label": "Resellers own their own account"
+    },
+    "keep_dns_on_terminate": {
+      "label": "Keep DNS zone on termination"
+    },
+    "api_token": {
+      "label": "WHM API token"
+    }
+  },
+  "plesk": {
+    "host": {
+      "label": "Hostname or IP",
+      "help": "Server hostname / IP, or a full URL such as https://server.example.com:2087"
+    },
+    "port": {
+      "label": "API port",
+      "help": "Ignored when the host field already contains a port"
+    },
+    "use_ssl": {
+      "label": "Use HTTPS"
+    },
+    "skip_tls_verify": {
+      "label": "Skip TLS certificate verification",
+      "help": "Only for servers with self-signed certificates. Insecure: credentials can be intercepted"
+    },
+    "timeout_secs": {
+      "label": "Request timeout (seconds)"
+    },
+    "username": {
+      "label": "Admin login",
+      "help": "Used with the password when no API key is set"
+    },
+    "default_ip": {
+      "label": "Default IP address",
+      "help": "Used for new accounts when the order does not request a dedicated IP"
+    },
+    "nameservers": {
+      "label": "Nameservers",
+      "help": "Comma-separated; reported to the client in the welcome email"
+    },
+    "login_url": {
+      "label": "Client login URL",
+      "help": "Public panel URL for welcome emails; derived from the host when empty"
+    },
+    "suspend_customer": {
+      "label": "Also suspend the customer account",
+      "help": "Blocks panel login while the subscription is suspended"
+    },
+    "delete_customer_on_terminate": {
+      "label": "Delete the customer on termination",
+      "help": "Only when the customer has no other subscriptions"
+    },
+    "api_key": {
+      "label": "API key",
+      "help": "Preferred over the password"
+    },
+    "password": {
+      "label": "Admin password"
+    }
+  },
+  "resellerclub": {
+    "reseller_id": {
+      "label": "Reseller ID (auth-userid)"
+    },
+    "sandbox": {
+      "label": "Test mode",
+      "help": "Use https://test.httpapi.com/api/ with demo-account credentials."
+    },
+    "base_url": {
+      "label": "API base URL (override)",
+      "help": "Leave empty to use the official live/sandbox endpoint."
+    },
+    "currency": {
+      "label": "Account currency",
+      "help": "ISO code of returned prices; empty = read from resellers/details.json."
+    },
+    "default_customer_id": {
+      "label": "Customer ID for all orders",
+      "help": "Empty = one ResellerClub customer per registrant e-mail (created on demand)."
+    },
+    "default_nameservers": {
+      "label": "Default nameservers",
+      "help": "One per line or comma separated; used when an order has no nameservers."
+    },
+    "price_source": {
+      "label": "TLD price source"
+    },
+    "language": {
+      "label": "Customer language (lang-pref)"
+    },
+    "timeout_secs": {
+      "label": "Request timeout (seconds)"
+    },
+    "api_key": {
+      "label": "API key"
+    }
+  },
+  "stripe": {
+    "mode": {
+      "label": "Mode",
+      "help": "Must match the API key prefix (sk_test_ / sk_live_)."
+    },
+    "api_version": {
+      "label": "API version (Stripe-Version)",
+      "help": "Optional. Pin it and use the same version on the webhook endpoint."
+    },
+    "session_expiry_minutes": {
+      "label": "Checkout session lifetime (minutes)",
+      "help": "30–1440. Empty = Stripe default (24 hours)."
+    },
+    "webhook_tolerance_secs": {
+      "label": "Webhook timestamp tolerance (seconds)"
+    },
+    "secret_key": {
+      "label": "Secret key"
+    },
+    "webhook_secret": {
+      "label": "Webhook signing secret"
+    }
+  },
+  "iyzico": {
+    "mode": {
+      "label": "Mode"
+    },
+    "display": {
+      "label": "Payment page"
+    },
+    "category": {
+      "label": "Basket item category"
+    },
+    "fallback_identity_number": {
+      "label": "Fallback national id (TCKN)",
+      "help": "Sent as buyer.identityNumber when the customer has none on file."
+    },
+    "enabled_installments": {
+      "label": "Installments offered",
+      "help": "Empty = iyzico default."
+    },
+    "api_key": {
+      "label": "API key"
+    },
+    "secret_key": {
+      "label": "Secret key"
+    }
+  },
+  "paytr": {
+    "merchant_id": {
+      "label": "Merchant id (Mağaza no)"
+    },
+    "mode": {
+      "label": "Mode",
+      "help": "Test = test_mode=1 on every request."
+    },
+    "no_installment": {
+      "label": "Single payment only"
+    },
+    "max_installment": {
+      "label": "Max installments",
+      "help": "0 = PayTR default, otherwise 2–12."
+    },
+    "timeout_limit": {
+      "label": "Payment timeout (minutes)"
+    },
+    "debug_on": {
+      "label": "Show integration errors"
+    },
+    "merchant_key": {
+      "label": "Merchant key"
+    },
+    "merchant_salt": {
+      "label": "Merchant salt"
+    }
+  },
+  "smtp": {
+    "host": {
+      "label": "Host"
+    },
+    "security": {
+      "label": "Security"
+    },
+    "port": {
+      "label": "Port",
+      "help": "Empty = default port of the security mode."
+    },
+    "username": {
+      "label": "Username"
+    },
+    "from_email": {
+      "label": "Sender address",
+      "help": "Default From address; must be verified with the provider."
+    },
+    "from_name": {
+      "label": "Sender name"
+    },
+    "timeout_secs": {
+      "label": "Timeout (seconds)",
+      "help": "Network timeout per request (1–120)."
+    },
+    "password": {
+      "label": "Password"
+    }
+  },
+  "anthropic": {
+    "model": {
+      "label": "Model",
+      "help": "Model id, e.g. claude-opus-5-5. Empty = HOS_AI_MODEL or claude-opus-5-5."
+    },
+    "default_effort": {
+      "label": "Default effort",
+      "help": "output_config.effort when a task does not set one (empty = model default)."
+    },
+    "refusal_fallback": {
+      "label": "Refusal fallback",
+      "help": "Send fallbacks: \"default\" so a safety refusal is retried on Anthropic's recommended fallback model."
+    },
+    "base_url": {
+      "label": "API base URL",
+      "help": "Only change for a gateway / proxy."
+    },
+    "api_version": {
+      "label": "anthropic-version"
+    },
+    "timeout_secs": {
+      "label": "Timeout (s)"
+    },
+    "max_retries": {
+      "label": "Max retries"
+    },
+    "api_key": {
+      "label": "API key"
+    }
+  },
+  "parasut": {
+    "company_id": {
+      "label": "Company ID (firma no)"
+    },
+    "client_id": {
+      "label": "OAuth client ID"
+    },
+    "username": {
+      "label": "User e-mail"
+    },
+    "commercial_scenario": {
+      "label": "Send e-Fatura as TICARIFATURA (commercial)",
+      "help": "Off: TEMELFATURA (basic scenario)."
+    },
+    "test_company": {
+      "label": "This is a Paraşüt test company",
+      "help": "Documents of a test company are marked as test documents."
+    },
+    "base_url": {
+      "label": "API base URL (override)",
+      "help": "Leave empty for https://api.parasut.com."
+    },
+    "timeout_secs": {
+      "label": "Request timeout (seconds)"
+    },
+    "client_secret": {
+      "label": "OAuth client secret"
+    },
+    "password": {
+      "label": "User password"
+    }
+  },
+  "nilvera": {
+    "environment": {
+      "label": "Environment"
+    },
+    "base_url": {
+      "label": "API base URL (override)",
+      "help": "Leave empty to use the official host of the environment."
+    },
+    "timeout_secs": {
+      "label": "Request timeout (seconds)"
+    },
+    "api_key": {
+      "label": "API key",
+      "help": "Created in the Nilvera portal (API Tanımları); test and live keys differ."
+    }
+  }
+}

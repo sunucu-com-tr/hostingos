@@ -1,0 +1,9 @@
+{% extends "layouts/auth.html" %}
+{% block card %}
+<div class="empty">
+  <div class="empty__icon">{{ icon_cls(icon_name, "icon--lg") }}</div>
+  <h1>{{ heading }}</h1>
+  <p>{{ text }}</p>
+  <a class="btn btn--primary" href="{{ action_href }}">{{ action_label }}</a>
+</div>
+{% endblock %}

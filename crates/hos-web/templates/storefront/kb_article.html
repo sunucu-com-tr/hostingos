@@ -1,0 +1,46 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<article>
+  <header class="page-hero">
+    <div class="container page-hero__inner">
+      {% call ui::breadcrumbs(crumbs) %}{% endcall %}
+      <h1>{{ title }}</h1>
+      <p class="article-meta">
+        {%- if is_faq %}<span class="badge badge--info">{{ t("storefront.kb.faq_badge") }}</span>{% endif %}
+        <span>{{ tv("storefront.content.by_support", "site", site_name) }}</span>
+        <span>{{ t("storefront.content.updated") }} <time datetime="{{ iso(updated_at) }}">{{ date(updated_at) }}</time></span>
+        <span>{{ tn("storefront.blog.minutes", minutes) }}</span>
+        <a href="{{ md_href }}" rel="alternate" type="text/markdown">{{ t("storefront.content.markdown") }}</a>
+      </p>
+    </div>
+  </header>
+  <div class="section section--tight">
+    <div class="container content-layout">
+      {%- if toc.len() > 2 %}
+      <nav class="toc" aria-labelledby="toc-title">
+        <h2 id="toc-title">{{ t("storefront.content.toc") }}</h2>
+        <ol>{% for h in toc %}<li class="lvl-{{ h.level }}"><a href="#{{ h.id }}">{{ h.text }}</a></li>{% endfor %}</ol>
+      </nav>
+      {%- endif %}
+      <div class="stack-lg">
+        <div class="prose">{{ body_html|safe }}</div>
+        <form class="helpful" method="post" action="{{ url("/kb/" ~ slug ~ "/vote") }}" hx-post="{{ url("/kb/" ~ slug ~ "/vote") }}" hx-swap="outerHTML">
+          {% call ui::csrf() %}{% endcall %}
+          <span>{{ t("storefront.kb.helpful") }}</span>
+          <button class="btn btn--soft btn--sm" type="submit" name="helpful" value="yes">{{ icon("check") }}{{ t("common.yes") }}</button>
+          <button class="btn btn--ghost btn--sm" type="submit" name="helpful" value="no">{{ icon("x") }}{{ t("common.no") }}</button>
+        </form>
+        {%- if !related.is_empty() %}
+        <section aria-labelledby="related-title">
+          <h2 id="related-title" class="label mb-4">{{ t("storefront.kb.related") }}</h2>
+          <ul class="list-links">
+            {%- for a in related %}<li><a href="{{ a.href }}">{{ icon("file-text") }}<span>{{ a.title }}</span></a></li>{% endfor %}
+          </ul>
+        </section>
+        {%- endif %}
+      </div>
+    </div>
+  </div>
+</article>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+{% include "admin/settings/_head.html" %}
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    <p class="muted">{{ t("admin_settings.domains.lead") }} <span class="badge">{{ limit_text() }}</span></p>
+    <div class="table-wrap"><table class="table table--stack">
+      <thead><tr><th>{{ t("admin_settings.domains.host") }}</th><th>{{ t("admin.common.status") }}</th><th>{{ t("admin_settings.domains.dns") }}</th><th class="actions"></th></tr></thead>
+      <tbody>
+      {%- for d in rows %}
+      <tr>
+        <td data-label="{{ t("admin_settings.domains.host") }}"><strong class="mono">{{ d.row.domain.host }}</strong>
+          {%- if d.row.domain.is_primary %} {{ badge(t("admin_settings.domains.primary"), "brand") }}{% endif %}
+          <span class="sub">{% if d.custom %}{{ t("admin_settings.domains.kind_custom") }}{% else %}{{ t("admin_settings.domains.kind_subdomain") }}{% endif %}</span></td>
+        <td data-label="{{ t("admin.common.status") }}">
+          {%- if d.verified || !d.custom %}{{ badge(t("admin_settings.domains.state_verified"), "success") }}
+          {%- else %}{{ badge(t("admin_settings.domains.state_pending"), "warning") }}
+            {%- match d.row.last_checked_at %}{% when Some(at) %}<span class="sub">{{ t("admin_settings.domains.last_check") }}: {{ datetime(at) }}</span>{% when None %}{% endmatch %}
+            {%- match d.row.check_error %}{% when Some(err) %}<span class="sub small">{{ err }}</span>{% when None %}{% endmatch %}
+          {%- endif %}</td>
+        <td data-label="{{ t("admin_settings.domains.dns") }}">
+          {%- if d.custom && !d.verified %}
+          <ul class="dns-steps small">
+            <li>TXT <code>{{ d.txt_name }}</code> = <code>{{ d.txt_value }}</code></li>
+            <li>{{ t("admin_settings.domains.or") }} CNAME <code>{{ d.row.domain.host }}</code> → <code>{{ cname_target }}</code></li>
+          </ul>
+          {%- else %}<span class="muted">—</span>{% endif %}</td>
+        <td class="actions"><div class="btn-row">
+          {%- if d.custom && !d.verified %}
+          <form method="post" action="{{ url("/admin/settings/domains/" ~ d.row.domain.id ~ "/verify") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--soft btn--sm" type="submit">{{ icon("refresh") }}{{ t("admin_settings.domains.verify_now") }}</button></form>
+          {%- endif %}
+          {%- if !d.row.domain.is_primary && (d.verified || !d.custom) %}
+          <form method="post" action="{{ url("/admin/settings/domains/" ~ d.row.domain.id ~ "/primary") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ t("admin_settings.domains.make_primary") }}</button></form>
+          {%- endif %}
+          {%- if d.custom && !d.row.domain.is_primary %}
+          <form method="post" action="{{ url("/admin/settings/domains/" ~ d.row.domain.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit" aria-label="{{ t("admin.common.delete") }}">{{ icon("x") }}</button></form>
+          {%- endif %}
+        </div></td>
+      </tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
+  </div>
+  <aside class="stack-lg">
+    {% call ui::card(t("admin_settings.domains.add")) %}
+    {%- if can_add %}
+    <form method="post" action="{{ url("/admin/settings/domains") }}" class="stack">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::field("host", t("admin_settings.domains.host"), "", required=true, placeholder="www.example.com", hint=t("admin_settings.domains.host_hint")) %}{% endcall %}
+      <button class="btn btn--primary" type="submit">{{ icon("plus") }}{{ t("admin.common.add") }}</button>
+    </form>
+    {%- else %}
+    {% call ui::alert("warning", t("admin_settings.limits.custom_domains")) %}{% endcall %}
+    {%- endif %}
+    {% endcall %}
+    {% call ui::card(t("admin_settings.domains.howto")) %}
+    <ol class="stack-sm small">
+      <li>{{ t("admin_settings.domains.howto_1") }}</li>
+      <li>{{ tv("admin_settings.domains.howto_2", "target", cname_target) }}</li>
+      <li>{{ t("admin_settings.domains.howto_3") }}</li>
+    </ol>
+    {% endcall %}
+  </aside>
+</div>
+{% endblock %}

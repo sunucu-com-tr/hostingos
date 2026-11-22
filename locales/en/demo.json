@@ -1,0 +1,32 @@
+{
+  "banner": {
+    "badge": "Demo",
+    "mailbox": "Demo mailbox",
+    "next": "Next reset in about {minutes} min.",
+    "soon": "The demo is being reset now; reload the page in a moment.",
+    "text": "This is a demo. Content here may have been entered by other visitors as test data, and you can add your own: everything entered is kept for at most {minutes} minutes and then deleted automatically. Do not enter real personal data."
+  },
+  "blocked": {
+    "text": "This action is switched off in the public demo."
+  },
+  "login": {
+    "client": "Customer",
+    "lead": "This is a demo: sign in with one click and add your own test content. Everything you enter is kept for at most {minutes} minutes and then deleted automatically. The demo passwords cannot be changed.",
+    "staff": "Hosting company admin",
+    "title": "Demo accounts",
+    "use": "Sign in"
+  },
+  "mailbox": {
+    "back": "Back to the mailbox",
+    "date": "Date",
+    "empty": "No messages yet. Place an order or open a ticket and the e-mails appear here.",
+    "from": "From",
+    "lead": "The demo sends no real e-mail. Messages it would have sent appear here until the next reset; addresses other than the demo accounts are masked.",
+    "subject": "Subject",
+    "title": "Demo mailbox",
+    "to": "To"
+  },
+  "reset": {
+    "notice": "The demo was just reset: everything entered in the last {minutes} minutes was deleted and the sample data was restored. Please sign in again to continue."
+  }
+}

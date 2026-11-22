@@ -1,0 +1,55 @@
+{% extends "layouts/auth.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block card %}
+<header class="auth-card__head">
+  <span class="badge badge--accent">{{ tn("platform.signup.trial_badge", trial_days) }}</span>
+  <h1>{{ t("platform.signup.title") }}</h1>
+  <p>{{ t("platform.signup.lead") }}</p>
+</header>
+{% call ui::form_errors(errors) %}{% endcall %}
+<form class="form pf-steps-form" method="post" action="/platform/signup" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::honeypot() %}{% endcall %}
+  <fieldset class="stack">
+    <legend>{{ t("platform.signup.section_company") }}</legend>
+    {% call ui::field("company", t("platform.tenant_new.company"), form.company, error=errors.get("company"), required=true, autocomplete="organization", autofocus=true) %}{% endcall %}
+    <div class="field{% if !errors.get("slug").is_empty() %} field--error{% endif %}">
+      <label class="field__label" for="f-slug">{{ t("platform.tenant_new.slug") }} <span class="field__req" aria-hidden="true">*</span></label>
+      <input class="input" id="f-slug" name="slug" type="text" value="{{ form.slug }}" required autocomplete="off" spellcheck="false" inputmode="url"
+        hx-get="/platform/signup/slug" hx-trigger="input changed delay:400ms" hx-target="#slug-status" hx-swap="innerHTML" aria-describedby="slug-status">
+      {%- if !errors.get("slug").is_empty() %}
+      <p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("slug") }}</p>
+      {%- endif %}
+      <p class="field__hint">{{ tv("platform.signup.slug_hint", "domain", base_domain) }}</p>
+      <div id="slug-status" aria-live="polite"></div>
+    </div>
+  </fieldset>
+  {%- if !plans.is_empty() %}
+  <fieldset class="stack">
+    <legend>{{ t("platform.signup.section_plan") }}</legend>
+    {%- if !errors.get("plan").is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("plan") }}</p>{% endif %}
+    <div class="pf-plans">
+      {%- for p in plans %}
+      <label class="pf-plan"><input type="radio" name="plan" value="{{ p.code }}"{% if p.code == form.plan %} checked{% endif %}><strong>{{ p.name }}</strong>
+        <span class="pf-plan__price">{{ money_in(p.price_monthly, p.currency) }}{{ t("platform.signup.per_month") }}</span>
+        {%- match p.description %}{% when Some(d) %}<span class="muted small">{{ d }}</span>{% when None %}{% endmatch %}
+      </label>
+      {%- endfor %}
+    </div>
+  </fieldset>
+  {%- endif %}
+  <fieldset class="stack">
+    <legend>{{ t("platform.signup.section_owner") }}</legend>
+    {% call ui::field("name", t("platform.signup.name"), form.name, error=errors.get("name"), required=true, autocomplete="name") %}{% endcall %}
+    {% call ui::field("email", t("auth.fields.email"), form.email, kind="email", error=errors.get("email"), required=true, autocomplete="email") %}{% endcall %}
+    {% call ui::field("password", t("auth.fields.password"), "", kind="password", error=errors.get("password"), required=true, autocomplete="new-password", hint=t("platform.signup.password_hint")) %}{% endcall %}
+  </fieldset>
+  <div class="field{% if !errors.get("terms").is_empty() %} field--error{% endif %}">
+    {% call ui::checkbox("terms", t("platform.signup.terms"), terms_checked) %}{% endcall %}
+    {%- if !errors.get("terms").is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("terms") }}</p>{% endif %}
+  </div>
+  <button type="submit" class="btn btn--primary btn--block btn--lg">{{ icon("zap") }}{{ t("platform.signup.submit") }}</button>
+</form>
+<p class="muted small mt-4">{{ t("platform.signup.verify_note") }}</p>
+{% endblock %}

@@ -1,0 +1,11 @@
+noVNC 1.7.0 — HTML5 VNC client library
+Upstream: https://github.com/novnc/noVNC (npm package @novnc/novnc@1.7.0,
+obtained with `npm pack @novnc/novnc@1.7.0`).
+
+Vendored unchanged: core/, vendor/pako/, AUTHORS, LICENSE.txt, docs/LICENSE.*
+(the app/ UI of noVNC is not included; HostingOS uses the RFB library from
+static/js/console.js as an ES module).
+
+Licence: noVNC is MPL-2.0 (see LICENSE.txt and docs/LICENSE.MPL-2.0);
+bundled pako is MIT (vendor/pako/LICENSE); see LICENSE.txt for the other
+licences of files it lists. Copyright noVNC authors (see AUTHORS).

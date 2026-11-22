@@ -1,0 +1,48 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<section class="page-hero">
+  <div class="container page-hero__inner">
+    <h1>{{ t("storefront.whois.title") }}</h1>
+    <p class="lead">{{ t("storefront.whois.lead") }}</p>
+    <form class="domain-search domain-search--mono" method="get" action="{{ url("/whois") }}" role="search">
+      <label class="domain-search__field">{{ icon("search") }}<span class="visually-hidden">{{ t("storefront.whois.label") }}</span>
+        <input type="search" name="domain" value="{{ q }}" placeholder="ornek.com.tr" autocomplete="off" autocapitalize="off" spellcheck="false" required></label>
+      <button class="btn btn--primary btn--lg" type="submit">{{ t("storefront.whois.submit") }}</button>
+    </form>
+  </div>
+</section>
+{%- if !result.state.is_empty() %}
+<section class="section section--tight">
+  <div class="container container--narrow stack">
+    {%- if result.state == "invalid" %}
+    {% call ui::alert("warning", t("storefront.domains.invalid")) %}{% endcall %}
+    {%- elif result.state == "available" %}
+    {% call ui::card(result.domain) %}
+      <p>{{ badge(t("storefront.domains.available"), "success") }} {{ t("storefront.whois.available_text") }}</p>
+      <p class="mt-4"><a class="btn btn--primary" href="{{ url("/domains") }}?q={{ result.domain|urlencode }}">{{ t("storefront.whois.register") }}</a></p>
+    {% endcall %}
+    {%- elif result.state == "registered" %}
+    {% call ui::card(result.domain, t("storefront.whois.registered_text")) %}
+      <dl class="spec-grid">
+        <div class="spec"><dt>{{ t("storefront.whois.registrar") }}</dt><dd>{% if result.registrar.is_empty() %}—{% else %}{{ result.registrar }}{% endif %}</dd></div>
+        <div class="spec"><dt>{{ t("storefront.whois.created") }}</dt><dd>{{ date_opt(result.created_at) }}</dd></div>
+        <div class="spec"><dt>{{ t("storefront.whois.expires") }}</dt><dd>{{ date_opt(result.expires_at) }}</dd></div>
+      </dl>
+      {%- if !result.nameservers.is_empty() %}
+      <h3 class="label mt-6">{{ t("storefront.whois.nameservers") }}</h3>
+      <ul class="cluster mt-2">{% for ns in result.nameservers %}<li class="tag mono">{{ ns }}</li>{% endfor %}</ul>
+      {%- endif %}
+      {%- if !result.statuses.is_empty() %}
+      <h3 class="label mt-6">{{ t("storefront.whois.statuses") }}</h3>
+      <ul class="cluster mt-2">{% for st in result.statuses %}<li class="tag">{{ st }}</li>{% endfor %}</ul>
+      {%- endif %}
+    {% endcall %}
+    {%- else %}
+    {% call ui::alert("warning", t("storefront.whois.unknown")) %}{% endcall %}
+    {%- endif %}
+    <p class="small muted mt-6">{{ t("storefront.whois.disclaimer") }}</p>
+  </div>
+</section>
+{%- endif %}
+{% endblock %}

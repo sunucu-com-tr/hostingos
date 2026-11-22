@@ -1,0 +1,69 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+{% include "client/_account_head.html" %}
+{%- if locked %}{% call ui::alert("warning", t("client.common.impersonation_locked")) %}{% endcall %}{% endif %}
+<div class="grid grid--2">
+  <section class="card">
+    <header class="card__head"><h2>{{ t("client.security.password") }}</h2></header>
+    <div class="card__body">
+    {%- if locked %}<p class="muted">{{ t("client.common.impersonation_locked") }}</p>{% else %}
+      <form class="stack" method="post" action="{{ url("/client/account/password") }}" novalidate>
+        {% call ui::csrf() %}{% endcall %}
+        {%- if has_password %}{% call ui::field("current", t("client.security.current"), "", kind="password", error=errors.get("current"), required=true, autocomplete="current-password") %}{% endcall %}{% else %}<p class="small muted">{{ t("client.security.no_password") }}</p>{% endif %}
+        {% call ui::field("new_password", t("client.security.new"), "", kind="password", error=errors.get("new_password"), required=true, autocomplete="new-password") %}{% endcall %}
+        {% call ui::field("confirm", t("client.security.confirm"), "", kind="password", error=errors.get("confirm"), required=true, autocomplete="new-password") %}{% endcall %}
+        <button type="submit" class="btn btn--primary">{{ t("client.security.change") }}</button>
+      </form>
+    {%- endif %}
+    </div>
+  </section>
+  <section class="card">
+    <header class="card__head"><h2>{{ t("client.security.twofa") }}</h2></header>
+    <div class="card__body stack">
+      <p>{% if totp %}{{ badge(t("client.common.on"), "success") }} {{ t("client.security.twofa_on") }}{% else %}{{ badge(t("client.common.off"), "warning") }} {{ t("client.security.twofa_off") }}{% endif %}</p>
+      {%- if !locked %}
+      {%- if totp %}
+      <form class="stack-sm" method="post" action="{{ url("/auth/2fa/disable") }}" data-confirm="{{ t("client.security.twofa_disable_confirm") }}">
+        {% call ui::csrf() %}{% endcall %}
+        {% call ui::field("password", t("client.security.current"), "", kind="password", required=true, autocomplete="current-password") %}{% endcall %}
+        {% call ui::field("code", t("client.security.twofa_code"), "", inputmode="numeric", autocomplete="one-time-code") %}{% endcall %}
+        <button type="submit" class="btn btn--ghost">{{ t("client.security.twofa_disable") }}</button>
+      </form>
+      {%- else %}
+      <a class="btn btn--primary" href="{{ url("/auth/2fa/setup") }}">{{ icon("shield") }}{{ t("client.security.twofa_enable") }}</a>
+      {%- endif %}
+      {%- endif %}
+    </div>
+  </section>
+</div>
+<section class="card mt-8">
+  <header class="card__head"><div><h2>{{ t("client.security.linked") }}</h2><p class="muted small">{{ t("client.security.linked_lead") }}</p></div></header>
+  <div class="card__body">
+    <ul class="row-list">
+    {%- for i in identities %}
+      <li><span>{{ icon(i.provider.as_str()) }} <strong>{{ i.provider.as_str()|capitalize }}</strong> <span class="muted small">{% match i.email %}{% when Some(e) %}{{ e }}{% when None %}{% endmatch %}</span></span>
+        {%- if !locked %}{% if can_unlink() %}<form method="post" action="{{ url("/client/account/identities/") }}{{ i.provider.as_str() }}/unlink" data-confirm="{{ t("client.security.unlink_confirm") }}">{% call ui::csrf() %}{% endcall %}<button type="submit" class="btn btn--ghost btn--sm">{{ t("client.security.unlink") }}</button></form>{% else %}<span class="small muted">{{ t("client.security.last_method") }}</span>{% endif %}{% endif %}</li>
+    {%- endfor %}
+    {%- for p in providers %}{% if !linked(p.kind) && !locked %}
+      <li><span>{{ icon(p.kind) }} <strong>{{ p.label }}</strong></span><form method="post" action="/auth/oauth/{{ p.kind }}/link">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="next" value="/client/account/security"><button type="submit" class="btn btn--soft btn--sm">{{ t("client.security.link") }}</button></form></li>
+    {%- endif %}{% endfor %}
+    </ul>
+    {%- if identities.is_empty() && providers.is_empty() %}<p class="muted">{{ t("client.security.no_providers") }}</p>{% endif %}
+    {%- if !providers.is_empty() %}<p class="small muted">{{ t("client.security.link_note") }}</p>{% endif %}
+  </div>
+</section>
+<section class="card mt-8">
+  <header class="card__head between"><h2>{{ t("client.security.sessions") }}</h2>
+    {%- if !locked && sessions.len() > 1 %}<form method="post" action="{{ url("/client/account/sessions/revoke-others") }}" data-confirm="{{ t("client.security.revoke_all_confirm") }}">{% call ui::csrf() %}{% endcall %}<button type="submit" class="btn btn--ghost btn--sm">{{ t("client.security.revoke_all") }}</button></form>{% endif %}
+  </header>
+  <div class="card__body">
+    <ul class="row-list">
+    {%- for se in sessions %}
+      <li><span><strong>{{ se.agent }}</strong>{% if se.current %} {{ badge(t("client.security.this_device"), "brand") }}{% endif %}{% if se.impersonated %} {{ badge(t("client.security.staff_session"), "warning") }}{% endif %}<span class="muted small">{{ se.ip }} · {{ datetime(se.last_seen) }}</span></span>
+        {%- if !se.current && !locked %}<form method="post" action="{{ url("/client/account/sessions/") }}{{ se.id }}/revoke">{% call ui::csrf() %}{% endcall %}<button type="submit" class="btn btn--ghost btn--sm">{{ t("client.security.revoke") }}</button></form>{% endif %}</li>
+    {%- endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

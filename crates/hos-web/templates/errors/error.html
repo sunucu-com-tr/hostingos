@@ -1,0 +1,43 @@
+{#- Error page (rendered by middleware::error_pages for 403/404/429/500 …).
+    Storefront paths get the site header/footer; everything else a bare page. -#}
+{% extends "layouts/base.html" %}
+{% block body %}
+{%- if storefront %}{% include "components/site_header.html" %}{% endif %}
+<main id="main" class="error-hero" data-error="{{ code }}">
+  <div class="container">
+    <div class="error-hero__inner">
+      <p class="error-hero__code" aria-hidden="true">{{ status }}</p>
+      <h1>{{ heading }}</h1>
+      <p class="lead">{{ text }}</p>
+      {%- if !detail.is_empty() %}<p class="muted">{{ detail }}</p>{% endif %}
+      <div class="btn-row">
+        {%- if storefront %}
+        <a class="btn btn--primary" href="{{ url("/") }}">{{ icon("home") }}{{ t("errors.actions.home") }}</a>
+        <a class="btn btn--soft" href="{{ url("/kb") }}">{{ icon("book") }}{{ t("errors.actions.help") }}</a>
+        {%- elif logged_in() %}
+        <a class="btn btn--primary" href="{{ home_url() }}">{{ icon("gauge") }}{{ t("errors.actions.panel") }}</a>
+        {%- else %}
+        <a class="btn btn--primary" href="{{ url("/") }}">{{ icon("home") }}{{ t("errors.actions.home") }}</a>
+        {%- endif %}
+      </div>
+      {%- if storefront && status == 404 %}
+      {%- let sc = store() %}
+      {%- if !sc.groups.is_empty() %}
+      <nav class="error-hero__links" aria-labelledby="error-links-title">
+        <h2 id="error-links-title" class="h6">{{ t("errors.popular") }}</h2>
+        <ul>
+          {%- for g in sc.groups %}<li><a href="{{ g.href }}">{{ icon(g.icon) }}<span>{{ g.label }}</span></a></li>{% endfor %}
+          <li><a href="{{ url("/domains") }}">{{ icon("globe") }}<span>{{ t("storefront.nav.domains") }}</span></a></li>
+          <li><a href="{{ url("/contact") }}">{{ icon("mail") }}<span>{{ t("storefront.nav.contact") }}</span></a></li>
+        </ul>
+      </nav>
+      {%- endif %}
+      {%- endif %}
+      {%- if !request_id.is_empty() && status >= 500 %}
+      <p class="small muted">{{ t("errors.reference") }}: <code>{{ request_id }}</code></p>
+      {%- endif %}
+    </div>
+  </div>
+</main>
+{%- if storefront %}{% include "components/site_footer.html" %}{% endif %}
+{% endblock %}

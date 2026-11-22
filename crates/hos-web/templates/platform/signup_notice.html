@@ -1,0 +1,24 @@
+{% extends "layouts/auth.html" %}
+{% import "components/ui.html" as ui %}
+{% block card %}
+<header class="auth-card__head">
+  <span class="badge badge--accent">{{ t("platform.area") }}</span>
+  <h1>{{ ctx.title }}</h1>
+</header>
+{%- if kind == "closed" %}
+{% call ui::alert("info", t("platform.signup.notice_closed_text")) %}{% endcall %}
+{%- elif kind == "sent" %}
+{% call ui::alert("success", t("platform.signup.notice_sent_text")) %}{% endcall %}
+<p class="muted small mt-4">{{ t("platform.signup.notice_sent_hint") }}</p>
+{%- elif kind == "invalid" %}
+{% call ui::alert("error", t("platform.signup.notice_invalid_text")) %}{% endcall %}
+<p class="mt-4"><a class="btn btn--soft" href="/platform/signup">{{ t("platform.signup.again") }}</a></p>
+{%- else %}
+{% call ui::alert("success", t("platform.signup.notice_done_text")) %}{% endcall %}
+<dl class="dl mt-4">
+  <dt>{{ t("platform.signup.your_url") }}</dt><dd><a href="{{ tenant_url }}">{{ tenant_url }}</a></dd>
+  <dt>{{ t("platform.signup.your_login") }}</dt><dd>{{ email }}</dd>
+</dl>
+<p class="mt-4"><a class="btn btn--primary btn--block" href="{{ tenant_url }}/admin">{{ icon("log-in") }}{{ t("platform.signup.go_admin") }}</a></p>
+{%- endif %}
+{% endblock %}

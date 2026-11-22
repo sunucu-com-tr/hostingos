@@ -1,0 +1,41 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.clients.groups_title") }}</h1><p>{{ t("admin.clients.groups_lead") }}</p></div></div>
+<div class="admin-grid admin-grid--side">
+  <div>
+  {%- if groups.is_empty() %}
+  {% call ui::empty("layers", t("admin.clients.groups_empty"), "") %}{% endcall %}
+  {%- else %}
+  <div class="stack">
+  {%- for g in groups %}
+    <form class="card" method="post" action="{{ url("/admin/clients/groups/" ~ g.id) }}"><div class="card__body">
+      {% call ui::csrf() %}{% endcall %}
+      <div class="form-grid">
+        <div class="field"><label class="field__label" for="gn-{{ g.id }}">{{ t("admin.common.name") }}</label><input class="input" id="gn-{{ g.id }}" name="name" value="{{ g.name }}" required></div>
+        <div class="field"><label class="field__label" for="gd-{{ g.id }}">{{ t("admin.clients.discount_percent") }}</label><input class="input" id="gd-{{ g.id }}" name="discount_percent" value="{{ dec(g.discount_percent) }}" inputmode="decimal"></div>
+        <div class="field"><label class="field__label" for="gc-{{ g.id }}">{{ t("admin.clients.color") }}</label><input class="input" id="gc-{{ g.id }}" name="color" type="color" value="{% match g.color %}{% when Some(c) %}{{ c }}{% when None %}#64748b{% endmatch %}"></div>
+        <div class="field span-all"><label class="field__label" for="gx-{{ g.id }}">{{ t("admin.common.description") }}</label><input class="input" id="gx-{{ g.id }}" name="description" value="{{ o(g.description) }}"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn--primary btn--sm" type="submit">{{ t("common.actions.save") }}</button>
+        <button class="btn btn--ghost btn--sm" type="submit" formaction="{{ url("/admin/clients/groups/" ~ g.id ~ "/delete") }}" data-no-busy>{{ icon("x") }}{{ t("admin.common.delete") }}</button>
+      </div>
+    </div></form>
+  {%- endfor %}
+  </div>
+  {%- endif %}
+  </div>
+  <aside>
+  {% call ui::card(t("admin.clients.group_new")) %}
+  <form class="stack" method="post" action="{{ url("/admin/clients/groups") }}">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::field("name", t("admin.common.name"), "", required=true) %}{% endcall %}
+    {% call ui::field("discount_percent", t("admin.clients.discount_percent"), "0", inputmode="decimal") %}{% endcall %}
+    <div class="field"><label class="field__label" for="f-color">{{ t("admin.clients.color") }}</label><input class="input" id="f-color" type="color" name="color" value="#2563eb"></div>
+    <button class="btn btn--primary" type="submit">{{ icon("plus") }}{{ t("admin.common.create") }}</button>
+  </form>
+  {% endcall %}
+  </aside>
+</div>
+{% endblock %}

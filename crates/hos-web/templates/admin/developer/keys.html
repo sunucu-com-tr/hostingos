@@ -1,0 +1,69 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+{% include "admin/developer/_head.html" %}
+{%- if !secret.is_empty() %}
+<section class="card secret-once">
+  <div class="card__body stack-sm">
+    {% call ui::alert("success", t("admin_settings.developer.key_created")) %}{% endcall %}
+    {% call ui::code("api-key-secret", t("admin_settings.developer.key_secret"), secret) %}{% endcall %}
+    <p class="small muted">{{ t("admin_settings.developer.secret_once") }}</p>
+    <p class="small">{{ t("admin_settings.developer.key_usage") }} <code>Authorization: Bearer …</code></p>
+  </div>
+</section>
+{%- endif %}
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    {%- if keys.is_empty() %}
+    {% call ui::empty("key", t("admin_settings.developer.keys_empty")) %}{% endcall %}
+    {%- else %}
+    <div class="table-wrap"><table class="table table--dense table--stack">
+      <thead><tr>
+        <th scope="col">{{ t("admin_settings.developer.key_name") }}</th>
+        <th scope="col">{{ t("admin_settings.developer.owner") }}</th>
+        <th scope="col">{{ t("admin_settings.developer.scopes") }}</th>
+        <th scope="col">{{ t("admin_settings.developer.last_used") }}</th>
+        <th scope="col">{{ t("admin.common.status") }}</th>
+        <th class="actions"></th>
+      </tr></thead>
+      <tbody>
+      {%- for k in keys %}
+      <tr>
+        <td data-label="{{ t("admin_settings.developer.key_name") }}"><strong>{{ k.key.name }}</strong><span class="sub mono small">{{ k.key.prefix }}…</span></td>
+        <td data-label="{{ t("admin_settings.developer.owner") }}">{{ k.owner }}{% if k.mine %} {{ badge(t("admin_settings.staff.you"), "") }}{% endif %}</td>
+        <td data-label="{{ t("admin_settings.developer.scopes") }}"><ul class="tag-list">{% for s in k.scopes %}<li>{{ badge(s, "") }}</li>{% endfor %}</ul></td>
+        <td data-label="{{ t("admin_settings.developer.last_used") }}" class="nowrap">{{ dtopt(k.key.last_used_at) }}{% match k.key.last_used_ip %}{% when Some(ip) %}<span class="sub mono small">{{ ip }}</span>{% when None %}{% endmatch %}</td>
+        <td data-label="{{ t("admin.common.status") }}">{{ sbadge(status(k.key)) }}{% match k.key.expires_at %}{% when Some(e) %}<span class="sub small">{{ t("admin_settings.developer.expires") }}: {{ date(e) }}</span>{% when None %}{% endmatch %}</td>
+        <td class="actions">
+          {%- if k.key.revoked_at.is_none() %}
+          <form method="post" action="{{ url("/admin/developer/keys/" ~ k.key.id ~ "/revoke") }}" data-confirm="{{ t("admin_settings.developer.revoke_confirm") }}">{% call ui::csrf() %}{% endcall %}
+            <button class="btn btn--ghost btn--sm" type="submit">{{ icon("x") }}{{ t("admin_settings.developer.revoke") }}</button></form>
+          {%- endif %}
+        </td>
+      </tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
+    {%- endif %}
+  </div>
+  <aside class="stack-lg">
+    {% call ui::card(t("admin_settings.developer.new_key"), t("admin_settings.developer.new_key_lead")) %}
+    <form method="post" action="{{ url("/admin/developer/keys") }}" class="stack" novalidate>
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::form_errors(errors) %}{% endcall %}
+      {% call ui::field("name", t("admin_settings.developer.key_name"), key_name, error=errors.get("name"), required=true, placeholder="CI deploy") %}{% endcall %}
+      {% call ui::field("expires_days", t("admin_settings.developer.expires_days"), expires_days, kind="number", error=errors.get("expires_days"), hint=t("admin_settings.developer.expires_days_hint"), inputmode="numeric") %}{% endcall %}
+      <fieldset class="stack-sm scope-list">
+        <legend class="field__label">{{ t("admin_settings.developer.scopes") }}</legend>
+        {%- for s in scopes %}
+        {% call ui::checkbox("scopes", s.label, s.checked, s.value) %}{% endcall %}
+        {%- endfor %}
+        <p class="field__hint">{{ t("admin_settings.developer.scopes_hint") }}</p>
+      </fieldset>
+      <button class="btn btn--primary" type="submit">{{ icon("key") }}{{ t("admin_settings.developer.create_key") }}</button>
+    </form>
+    {% endcall %}
+  </aside>
+</div>
+{% endblock %}

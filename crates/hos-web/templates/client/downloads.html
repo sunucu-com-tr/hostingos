@@ -1,0 +1,25 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}"><link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div><h1>{{ t("downloads.title") }}</h1><p>{{ t("downloads.lead") }}</p></div>
+</div>
+{%- if groups.is_empty() %}
+<div class="card"><div class="card__body">{% call ui::empty("download", t("downloads.empty"), t("downloads.empty_text")) %}{% endcall %}</div></div>
+{%- else %}
+{%- for g in groups %}
+<section class="card download-group" aria-label="{{ g.name }}">
+  <header class="card__head"><div><h2>{{ g.name }}</h2>{% if let Some(d) = g.description %}<p class="muted small">{{ d }}</p>{% endif %}</div></header>
+  <ul class="download-list">
+    {%- for d in g.items %}
+    <li>
+      <div class="download-list__text"><strong>{{ d.title }}</strong>{% if let Some(desc) = d.description %}<span class="muted small">{{ desc }}</span>{% endif %}<span class="muted small mono">{{ d.filename }} · {{ size(d) }}</span></div>
+      <a class="btn btn--soft btn--sm" href="{{ url("/client/downloads/") }}{{ d.id }}/file" rel="nofollow">{{ icon("download") }}{{ t("downloads.get") }}</a>
+    </li>
+    {%- endfor %}
+  </ul>
+</section>
+{%- endfor %}
+{%- endif %}
+{% endblock %}

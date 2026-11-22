@@ -1,0 +1,26 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.coupons.title") }}</h1><p>{{ t("admin.coupons.lead") }}</p></div>
+  {%- if can("billing.manage") %}<div class="page-head__actions"><a class="btn btn--primary" href="{{ url("/admin/billing/coupons/new") }}">{{ icon("plus") }}{{ t("admin.coupons.new_title") }}</a></div>{% endif %}</div>
+{%- if rows.is_empty() %}
+{% call ui::empty("tag", t("admin.coupons.empty_title"), t("admin.coupons.empty_text")) %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th>{{ t("admin.coupons.code") }}</th><th>{{ t("admin.coupons.type") }}</th><th class="num">{{ t("admin.coupons.value") }}</th><th class="num">{{ t("admin.coupons.uses") }}</th><th>{{ t("admin.coupons.valid") }}</th><th>{{ t("admin.common.status") }}</th><th class="actions"></th></tr></thead>
+  <tbody>
+  {%- for c in rows %}
+  <tr>
+    <td data-label="{{ t("admin.coupons.code") }}">{% if can("billing.manage") %}<a class="row-link mono" href="{{ url("/admin/billing/coupons/" ~ c.id) }}">{{ c.code }}</a>{% else %}<span class="mono">{{ c.code }}</span>{% endif %}{% match c.description %}{% when Some(dsc) %}<span class="sub">{{ dsc }}</span>{% when None %}{% endmatch %}</td>
+    <td data-label="{{ t("admin.coupons.type") }}">{{ lbl("admin.coupons.types", c.discount_type.as_str()) }}{% if c.recurring %} <span class="sub">{{ t("admin.coupons.recurring") }}</span>{% endif %}</td>
+    <td data-label="{{ t("admin.coupons.value") }}" class="num">{{ value_text(c) }}</td>
+    <td data-label="{{ t("admin.coupons.uses") }}" class="num">{{ c.uses_count }}{% match c.max_uses %}{% when Some(mx) %} / {{ mx }}{% when None %}{% endmatch %}</td>
+    <td data-label="{{ t("admin.coupons.valid") }}">{{ dtopt(c.starts_at) }} → {{ dtopt(c.expires_at) }}</td>
+    <td data-label="{{ t("admin.common.status") }}">{% if c.is_active %}{{ badge(t("admin.common.active"), "success") }}{% else %}{{ badge(t("admin.common.inactive"), "") }}{% endif %}</td>
+    <td class="actions">{% if can("billing.manage") %}<form method="post" action="{{ url("/admin/billing/coupons/" ~ c.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm btn--icon" type="submit" aria-label="{{ t("admin.common.delete") }}">{{ icon("x") }}</button></form>{% endif %}</td>
+  </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{%- endif %}
+{% endblock %}

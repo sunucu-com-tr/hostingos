@@ -1,0 +1,20 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head"><div><h1>{{ t("client.vm.console") }}</h1><p>{{ tv("client.vm.console_kind", "kind", kind) }}</p></div>
+  <div class="btn-row"><a class="btn btn--ghost" href="{{ url("/client/services/") }}{{ service_id }}/server">{{ t("client.common.back") }}</a></div></div>
+<section class="card">
+  <div class="card__body stack">
+    {%- if browser %}
+    <p><a class="btn btn--primary" href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ icon("external-link") }}{{ t("client.vm.console_open") }}</a></p>
+    {%- else %}
+    {% call ui::alert("info", t("client.vm.console_client")) %}{% endcall %}
+    {%- endif %}
+    {% call ui::code("con-url", t("client.vm.console_url"), url) %}{% endcall %}
+    {%- if !port.is_empty() %}<p>{{ t("client.vm.console_port") }}: <span class="mono">{{ port }}</span></p>{% endif %}
+    {%- if !password.is_empty() %}{% call ui::code("con-pass", t("client.vm.console_password"), password) %}{% endcall %}{% endif %}
+    {%- if !ticket.is_empty() %}{% call ui::code("con-ticket", t("client.vm.console_ticket"), ticket) %}{% endcall %}{% endif %}
+    {%- if !expires.is_empty() %}<p class="small muted">{{ tv("client.vm.console_expires", "date", expires) }}</p>{% endif %}
+  </div>
+</section>
+{% endblock %}

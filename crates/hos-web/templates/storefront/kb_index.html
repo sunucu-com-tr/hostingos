@@ -1,0 +1,50 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<section class="page-hero">
+  <div class="container page-hero__inner">
+    <h1>{{ t("storefront.kb.title") }}</h1>
+    <p class="lead">{{ t("storefront.kb.lead") }}</p>
+    {%- let search_value = "" %}
+    {% include "storefront/_kb_search_form.html" %}
+  </div>
+</section>
+<section class="section section--tight">
+  <div class="container stack-lg">
+    {%- if categories.is_empty() %}
+    {% call ui::empty("book", t("storefront.kb.empty_title"), t("storefront.kb.empty_text")) %}{% endcall %}
+    {%- else %}
+    <div class="cell-grid cell-grid--3 cell-grid--rows-4">
+      {%- for c in categories %}
+      <a class="group-card" href="{{ c.href }}">
+        <span class="icon-tile">{{ icon(c.icon) }}</span>
+        <span class="group-card__arrow">{{ icon("arrow-up-right") }}</span>
+        <h2 class="h4">{{ c.name }}</h2>
+        <p>{{ c.description }}</p>
+        <p class="group-card__from">{{ tn("storefront.kb.articles", c.count) }}</p>
+      </a>
+      {%- endfor %}
+    </div>
+    {%- endif %}
+    <div class="grid grid--2">
+      {%- if !popular.is_empty() %}
+      <section class="stack-sm" aria-labelledby="kb-popular">
+        <h2 class="label" id="kb-popular">{{ t("storefront.kb.popular") }}</h2>
+        <ul class="list-links">
+          {%- for a in popular %}<li><a href="{{ a.href }}">{{ icon("file-text") }}<span>{{ a.title }}<small>{{ a.excerpt }}</small></span></a></li>{% endfor %}
+        </ul>
+      </section>
+      {%- endif %}
+      {%- if !faqs.is_empty() %}
+      <section class="stack-sm" aria-labelledby="kb-faq">
+        <h2 class="label" id="kb-faq">{{ t("storefront.kb.faq") }}</h2>
+        <div class="accordion">
+          {%- for (q, a) in faqs %}<details><summary>{{ q }}</summary><div class="prose">{{ a|safe }}</div></details>{% endfor %}
+        </div>
+      </section>
+      {%- endif %}
+    </div>
+    <p class="muted">{{ t("storefront.kb.not_found_help") }} <a href="{{ url("/contact") }}">{{ t("storefront.nav.contact") }}</a></p>
+  </div>
+</section>
+{% endblock %}

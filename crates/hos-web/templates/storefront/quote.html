@@ -1,0 +1,27 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container biz-narrow">
+    <div class="biz-toolbar"><a class="btn btn--soft btn--sm" href="{{ action_base }}/pdf?token={{ token }}" rel="nofollow">{{ icon("download") }}{{ t("quotes.actions.pdf") }}</a></div>
+    {% include "quotes/_doc.html" %}
+    {%- if needs_login %}
+    <section class="biz-answer" aria-labelledby="login-title">
+      <h2 id="login-title" class="biz-h3">{{ t("quotes.public.answer_title") }}</h2>
+      <p>{{ t("quotes.public.login_needed") }}</p>
+      <p class="biz-actions"><a class="btn btn--primary" href="{{ login_url }}">{{ icon("log-in") }}{{ t("quotes.public.login") }}</a><a class="btn btn--soft" href="{{ register_url }}">{{ icon("user-plus") }}{{ t("quotes.public.register") }}</a></p>
+      <form method="post" action="{{ action_base }}/decline" class="biz-answer__card" data-confirm="{{ t("quotes.public.decline_confirm") }}">
+        {% call ui::csrf() %}{% endcall %}
+        <input type="hidden" name="token" value="{{ token }}">
+        <div class="field"><label class="field__label" for="decline-reason">{{ t("quotes.public.decline_reason") }}</label>
+          <textarea class="textarea" id="decline-reason" name="reason" rows="3" maxlength="1000"></textarea></div>
+        <button class="btn btn--soft" type="submit">{{ icon("x") }}{{ t("quotes.actions.decline") }}</button>
+      </form>
+    </section>
+    {%- else %}
+    {% include "quotes/_answer.html" %}
+    {%- endif %}
+  </div>
+</section>
+{% endblock %}

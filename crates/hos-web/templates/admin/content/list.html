@@ -1,0 +1,83 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/_macros.html" as ax %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_content.css") }}">{% endblock %}
+{% block content %}
+{%- let filtered = !q.is_empty() || !status.is_empty() || missing || !category.is_empty() || !kb_kind.is_empty() %}
+{%- let mut mv = "" %}{% if missing %}{% mut mv = "1" %}{% endif %}
+<div class="page-head">
+  <div><h1>{{ heading }}</h1><p>{{ lead }} · {{ tn("admin_content.list.count", pager.total) }}</p></div>
+  <div class="page-head__actions">
+    {%- if is_kb %}
+    <a class="btn btn--ghost" href="{{ url("/admin/support/kb/categories") }}">{{ icon("layers") }}{{ t("admin_support.kb.categories_title") }}</a>
+    {%- endif %}
+    {%- if can_edit %}
+    <a class="btn btn--primary" href="{{ url(base ~ "/new") }}">{{ icon("plus") }}{{ new_label }}</a>
+    {%- endif %}
+  </div>
+</div>
+<form class="filters" method="get" action="{{ url(base) }}" role="search">
+  <div class="field field--grow">{{ icon("search") }}<label class="visually-hidden" for="f-q">{{ t("admin.common.search") }}</label>
+    <input class="input" id="f-q" type="search" name="q" value="{{ q }}" placeholder="{{ t("admin_content.list.search_placeholder") }}"></div>
+  <div class="field"><label class="field__label" for="f-status">{{ t("admin.common.status") }}</label>
+    <select class="select" id="f-status" name="status" data-autosubmit>
+      <option value="">{{ t("admin.common.all") }}</option>
+      {%- for (v, l) in statuses %}<option value="{{ v }}"{{ sel(v, status) }}>{{ l }}</option>{% endfor %}
+    </select></div>
+  {%- if is_kb %}
+  <div class="field"><label class="field__label" for="f-cat">{{ t("admin_support.kb.category") }}</label>
+    <select class="select" id="f-cat" name="category" data-autosubmit>
+      <option value="">{{ t("admin.common.all") }}</option>
+      {%- for c in categories %}<option value="{{ c.id }}"{{ sel(c.id.to_string().as_str(), category) }}>{{ c.name }}</option>{% endfor %}
+    </select></div>
+  <div class="field"><label class="field__label" for="f-kind">{{ t("admin_support.kb.kind") }}</label>
+    <select class="select" id="f-kind" name="kind" data-autosubmit>
+      <option value="">{{ t("admin.common.all") }}</option>
+      <option value="article"{{ sel("article", kb_kind) }}>{{ t("admin_support.kb.kind_article") }}</option>
+      <option value="faq"{{ sel("faq", kb_kind) }}>{{ t("admin_support.kb.kind_faq") }}</option>
+    </select></div>
+  {%- endif %}
+  <label class="check" title="{{ t("admin_content.list.translation") }}"><input type="checkbox" name="missing" value="1"{% if missing %} checked{% endif %}> <span>{{ t("admin_content.list.missing_only") }}</span></label>
+  <div class="filters__actions"><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("admin.common.filter") }}</button></div>
+</form>
+{%- if filtered %}
+<div class="ax-chips" role="group" aria-label="{{ t("admin.shell.filters") }}">
+  {%- if !q.is_empty() %}<a class="ax-chip" href="{{ url(base ~ "?status=" ~ (status|urlencode) ~ "&category=" ~ (category|urlencode) ~ "&kind=" ~ (kb_kind|urlencode) ~ "&missing=" ~ mv) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.common.search") }}:</span><span class="ax-chip__value">{{ q }}</span>{{ icon("x") }}</a>{% endif %}
+  {%- for (v, l) in statuses %}{% if v.as_str() == status.as_str() %}<a class="ax-chip" href="{{ url(base ~ "?q=" ~ (q|urlencode) ~ "&category=" ~ (category|urlencode) ~ "&kind=" ~ (kb_kind|urlencode) ~ "&missing=" ~ mv) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.common.status") }}:</span><span class="ax-chip__value">{{ l }}</span>{{ icon("x") }}</a>{% endif %}{% endfor %}
+  {%- for c in categories %}{% if c.id.to_string().as_str() == category.as_str() %}<a class="ax-chip" href="{{ url(base ~ "?q=" ~ (q|urlencode) ~ "&status=" ~ (status|urlencode) ~ "&kind=" ~ (kb_kind|urlencode) ~ "&missing=" ~ mv) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin_support.kb.category") }}:</span><span class="ax-chip__value">{{ c.name }}</span>{{ icon("x") }}</a>{% endif %}{% endfor %}
+  {%- if !kb_kind.is_empty() %}<a class="ax-chip" href="{{ url(base ~ "?q=" ~ (q|urlencode) ~ "&status=" ~ (status|urlencode) ~ "&category=" ~ (category|urlencode) ~ "&missing=" ~ mv) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin_support.kb.kind") }}:</span><span class="ax-chip__value">{% if kb_kind.as_str() == "faq" %}{{ t("admin_support.kb.kind_faq") }}{% else %}{{ t("admin_support.kb.kind_article") }}{% endif %}</span>{{ icon("x") }}</a>{% endif %}
+  {%- if missing %}<a class="ax-chip" href="{{ url(base ~ "?q=" ~ (q|urlencode) ~ "&status=" ~ (status|urlencode) ~ "&category=" ~ (category|urlencode) ~ "&kind=" ~ (kb_kind|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin_content.list.translation") }}:</span><span class="ax-chip__value">{{ t("admin_content.list.missing_only") }}</span>{{ icon("x") }}</a>{% endif %}
+  <a class="ax-chips__clear" href="{{ url(base) }}">{{ t("admin.shell.clear_all") }}</a>
+</div>
+{%- endif %}
+{%- if rows.is_empty() %}
+{% call ui::empty("file-text", empty_title, empty_text) %}
+  {%- if filtered %}<a class="btn btn--soft" href="{{ url(base) }}">{{ icon("x") }}{{ t("admin.shell.clear_all") }}</a>
+  {%- elif can_edit %}<a class="btn btn--primary" href="{{ url(base ~ "/new") }}">{{ icon("plus") }}{{ new_label }}</a>{% endif %}
+{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr>
+    <th scope="col">{{ t("admin_content.list.col_title") }}</th>
+    {%- if default_locale.as_str() == "en" %}<th scope="col">EN</th><th scope="col">TR</th>{% else %}<th scope="col">TR</th><th scope="col">EN</th>{% endif %}
+    <th scope="col">{{ t("admin_content.list.col_updated") }}</th>
+  </tr></thead>
+  <tbody>
+  {%- for r in rows %}
+    <tr>
+      <td data-label="{{ t("admin_content.list.col_title") }}"><a class="row-link" href="{{ url(base ~ "/" ~ r.group) }}">{{ r.title }}</a>
+        <span class="sub mono">{{ r.slug }}</span>
+        {%- if r.missing %} {{ badge(t("admin_content.list.missing_badge"), "warning") }}{% endif %}</td>
+      {%- for c in r.cells %}
+      <td data-label="{{ c.locale|upper }}">
+        {%- if c.status.is_empty() %}<span class="muted">{{ t("admin_content.list.none") }}</span>
+        {%- else %}{{ sbadge(c.status) }}{% if !c.live_url.is_empty() %} <a class="btn btn--ghost btn--icon btn--sm" href="{{ c.live_url }}" target="_blank" rel="noopener" aria-label="{{ t("admin_content.list.view_live") }} ({{ c.locale|upper }})" title="{{ t("admin_content.list.view_live") }}">{{ icon("external-link") }}</a>{% endif %}{% endif %}</td>
+      {%- endfor %}
+      <td data-label="{{ t("admin_content.list.col_updated") }}" class="muted nowrap">{{ datetime(r.updated_at) }}</td>
+    </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% call ax::pager(pager) %}{% endcall %}
+{%- endif %}
+{% endblock %}

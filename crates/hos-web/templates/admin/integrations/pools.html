@@ -1,0 +1,36 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.ip.title") }}</h1><p>{{ t("admin.ip.lead") }}</p></div></div>
+<div class="admin-grid admin-grid--side">
+  <div>
+  {%- if pools.is_empty() %}
+  {% call ui::empty("hard-drive", t("admin.ip.empty_title"), t("admin.ip.empty_text")) %}{% endcall %}
+  {%- else %}
+  <div class="table-wrap"><table class="table table--dense table--stack">
+    <thead><tr><th>{{ t("admin.common.name") }}</th><th>{{ t("admin.ip.network") }}</th><th class="num">{{ t("admin.ip.free") }}</th><th class="num">{{ t("admin.ip.total") }}</th><th>{{ t("admin.common.status") }}</th></tr></thead>
+    <tbody>{% for p in pools %}<tr>
+      <td data-label="{{ t("admin.common.name") }}"><a class="row-link" href="{{ url("/admin/ip-pools/" ~ p.pool.id) }}">{{ p.pool.name }}</a></td>
+      <td data-label="{{ t("admin.ip.network") }}" class="mono">{{ p.pool.network }}</td>
+      <td data-label="{{ t("admin.ip.free") }}" class="num">{{ p.free }}</td>
+      <td data-label="{{ t("admin.ip.total") }}" class="num">{{ p.total }}</td>
+      <td data-label="{{ t("admin.common.status") }}">{% if p.pool.is_active %}{{ badge(t("admin.common.active"), "success") }}{% else %}{{ badge(t("admin.common.inactive"), "") }}{% endif %}{% if p.free == 0 && p.total > 0 %} {{ badge(t("admin.ip.exhausted"), "danger") }}{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {%- endif %}
+  </div>
+  <aside>
+  {% call ui::card(t("admin.ip.new")) %}
+  <form class="stack" method="post" action="{{ url("/admin/ip-pools") }}">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::field("name", t("admin.common.name"), "", required=true) %}{% endcall %}
+    {% call ui::field("network", t("admin.ip.network"), "", required=true, placeholder="192.0.2.0/24", hint=t("admin.ip.network_hint")) %}{% endcall %}
+    {% call ui::field("gateway", t("admin.ip.gateway"), "", placeholder="192.0.2.1") %}{% endcall %}
+    {% call ui::field("nameservers", t("admin.ip.nameservers"), "", placeholder="1.1.1.1, 8.8.8.8") %}{% endcall %}
+    <div class="field"><label class="field__label" for="p-int">{{ t("admin.ip.integration") }}</label><select class="select" id="p-int" name="integration_id"><option value="">—</option>{% for i in virts %}<option value="{{ i.id }}">{{ i.name }}</option>{% endfor %}</select></div>
+    {% call ui::checkbox("generate", t("admin.ip.generate"), true) %}{% endcall %}
+    <button class="btn btn--primary" type="submit">{{ icon("plus") }}{{ t("admin.common.create") }}</button>
+  </form>
+  {% endcall %}
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{#- Public demo (docs/DEMO.md): the e-mails the demo "sent". Nothing leaves
+    the server; addresses other than the demo logins are masked. -#}
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<section class="page-hero">
+  <div class="container page-hero__inner">
+    <h1>{{ t("demo.mailbox.title") }}</h1>
+    <p class="lead">{{ t("demo.mailbox.lead") }}</p>
+  </div>
+</section>
+<section class="section section--tight">
+  <div class="container stack">
+    {%- if let Some(m) = open %}
+    <article class="card">
+      <div class="card__body stack">
+        <h2>{{ m.subject }}</h2>
+        <p class="small muted">{{ t("demo.mailbox.to") }}: {{ m.to }} · {{ t("demo.mailbox.from") }}: {{ m.from }} · {{ datetime(m.at) }}</p>
+        <pre class="demo-mail__body">{{ m.body }}</pre>
+        <p><a class="btn btn--ghost btn--sm" href="{{ url("/demo/mailbox") }}">{{ icon("arrow-left") }}{{ t("demo.mailbox.back") }}</a></p>
+      </div>
+    </article>
+    {%- endif %}
+    {%- if rows.is_empty() %}
+    {% call ui::alert("info", t("demo.mailbox.empty")) %}{% endcall %}
+    {%- else %}
+    <div class="table-wrap">
+      <table class="table table--stack">
+        <thead>
+          <tr><th>{{ t("demo.mailbox.subject") }}</th><th>{{ t("demo.mailbox.to") }}</th><th>{{ t("demo.mailbox.date") }}</th></tr>
+        </thead>
+        <tbody>
+          {%- for r in rows %}
+          <tr>
+            <td data-label="{{ t("demo.mailbox.subject") }}"><a href="{{ url("/demo/mailbox/" ~ r.id) }}">{{ r.subject }}</a></td>
+            <td data-label="{{ t("demo.mailbox.to") }}">{{ r.to }}</td>
+            <td data-label="{{ t("demo.mailbox.date") }}">{{ datetime(r.at) }}</td>
+          </tr>
+          {%- endfor %}
+        </tbody>
+      </table>
+    </div>
+    {%- endif %}
+  </div>
+</section>
+{% endblock %}

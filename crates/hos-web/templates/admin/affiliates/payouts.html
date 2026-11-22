@@ -1,0 +1,31 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("affiliates.admin.title") }}</h1><p>{{ t("affiliates.admin.payouts_lead") }}</p></div></div>
+<div class="mt-2">{% call ui::tabs(tabs.as_slice(), url("/admin/affiliates/payouts")) %}{% endcall %}</div>
+<div class="mt-4">
+{%- if rows.is_empty() %}
+{% call ui::empty("wallet", t("affiliates.admin.payouts_empty"), "") %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th scope="col">{{ t("affiliates.fields.date") }}</th><th scope="col">{{ t("affiliates.fields.affiliate") }}</th><th scope="col">{{ t("affiliates.fields.method") }}</th><th scope="col" class="num">{{ t("affiliates.fields.amount") }}</th><th scope="col">{{ t("admin.common.status") }}</th><th scope="col"><span class="visually-hidden">{{ t("affiliates.fields.actions") }}</span></th></tr></thead>
+  <tbody>{% for r in rows %}<tr>
+    <td data-label="{{ t("affiliates.fields.date") }}" class="nowrap">{{ datetime(r.payout.created_at) }}</td>
+    <td data-label="{{ t("affiliates.fields.affiliate") }}"><a href="{{ url("/admin/affiliates/" ~ r.payout.affiliate_id) }}">{{ r.client_name }}</a><span class="sub mono">{{ r.code }}</span></td>
+    <td data-label="{{ t("affiliates.fields.method") }}">{{ lbl("affiliates.method", r.payout.method.as_str()) }}{% match r.payout.details %}{% when Some(dt) %}<span class="sub">{{ nl2br(dt) }}</span>{% when None %}{% endmatch %}</td>
+    <td data-label="{{ t("affiliates.fields.amount") }}" class="num">{{ m(r.payout.amount, r.payout.currency) }}</td>
+    <td data-label="{{ t("admin.common.status") }}">{{ pbadge(r.payout.status.as_str()) }}{% match r.payout.staff_note %}{% when Some(n) %}<span class="sub">{{ n }}</span>{% when None %}{% endmatch %}</td>
+    <td class="num biz-cellact">
+      {%- if r.payout.status.as_str() == "requested" && can("affiliates.manage") %}
+      <form method="post" action="{{ url("/admin/affiliates/payouts/" ~ r.payout.id ~ "/approve") }}" class="biz-inline" data-confirm="{% if r.payout.method.as_str() == "credit" %}{{ t("affiliates.admin.approve_credit_confirm") }}{% else %}{{ t("affiliates.admin.approve_manual_confirm") }}{% endif %}">{% call ui::csrf() %}{% endcall %}
+        <label class="visually-hidden" for="n-{{ r.payout.id }}">{{ t("affiliates.fields.note") }}</label><input class="input input--sm" id="n-{{ r.payout.id }}" name="note" maxlength="500" placeholder="{{ t("affiliates.fields.note") }}">
+        <button class="btn btn--primary btn--sm" type="submit">{{ icon("check") }}{{ t("affiliates.admin.approve") }}</button></form>
+      <form method="post" action="{{ url("/admin/affiliates/payouts/" ~ r.payout.id ~ "/reject") }}" data-confirm="{{ t("affiliates.admin.reject_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ icon("x") }}{{ t("affiliates.admin.reject") }}</button></form>
+      {%- endif %}
+    </td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{%- endif %}
+</div>
+{% endblock %}

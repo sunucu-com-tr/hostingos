@@ -1,0 +1,45 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/_macros.html" as ax %}
+{% block content %}
+{%- let filtered = !q.is_empty() || !status.is_empty() %}
+<div class="page-head">
+  <div><h1>{{ t("admin.domains.title") }}</h1><p>{{ tn("admin.domains.count", pager.total) }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/domains/expiring") }}">{{ icon("clock") }}{{ t("admin.domains.expiring") }}</a>{% if can("products.manage") %}<a class="btn btn--ghost" href="{{ url("/admin/catalog/tlds") }}">{{ icon("globe") }}{{ t("admin.tlds.title") }}</a>{% endif %}</div>
+</div>
+<form class="filters" method="get" action="{{ url("/admin/domains") }}" role="search">
+  <div class="field field--grow">{{ icon("search") }}<label class="visually-hidden" for="f-q">{{ t("admin.common.search") }}</label><input class="input" id="f-q" type="search" name="q" value="{{ q }}" placeholder="example.com"></div>
+  <div class="field"><label class="field__label" for="f-s">{{ t("admin.common.status") }}</label>
+    <select class="select" id="f-s" name="status" data-autosubmit><option value="">{{ t("admin.common.all") }}</option>{% for (v, l) in statuses %}<option value="{{ v }}"{{ sel(v, status) }}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="filters__actions"><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("admin.common.filter") }}</button></div>
+</form>
+{%- if filtered %}
+<div class="ax-chips" role="group" aria-label="{{ t("admin.shell.filters") }}">
+  {%- if !q.is_empty() %}<a class="ax-chip" href="{{ url("/admin/domains?status=" ~ (status|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.common.search") }}:</span><span class="ax-chip__value">{{ q }}</span>{{ icon("x") }}</a>{% endif %}
+  {%- for (v, l) in statuses %}{% if v.as_str() == status.as_str() %}<a class="ax-chip" href="{{ url("/admin/domains?q=" ~ (q|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.common.status") }}:</span><span class="ax-chip__value">{{ l }}</span>{{ icon("x") }}</a>{% endif %}{% endfor %}
+  <a class="ax-chips__clear" href="{{ url("/admin/domains") }}">{{ t("admin.shell.clear_all") }}</a>
+</div>
+{%- endif %}
+{%- if rows.is_empty() %}
+{% call ui::empty("globe", t("admin.domains.empty_title"), t("admin.domains.empty_text")) %}
+{%- if filtered %}<a class="btn btn--soft" href="{{ url("/admin/domains") }}">{{ icon("x") }}{{ t("admin.shell.clear_all") }}</a>{% endif %}
+{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th scope="col">{{ t("admin.domains.col_name") }}</th><th scope="col">{{ t("admin.domains.registration") }}</th><th scope="col">{{ t("admin.domains.col_expires") }}</th><th scope="col" class="num">{{ t("admin.services.col_amount") }}</th><th scope="col">{{ t("admin.domains.col_auto_renew") }}</th><th scope="col">{{ t("admin.common.status") }}</th><th scope="col" class="col-actions"><span class="visually-hidden">{{ t("admin.common.actions") }}</span></th></tr></thead>
+  <tbody>
+  {%- for d in rows %}
+  <tr>
+    <td data-label="{{ t("admin.domains.col_name") }}"><a class="row-link mono" href="{{ url("/admin/domains/" ~ d.id) }}">{{ d.name }}</a>{% if d.sync_error.is_some() %}<span class="sub text-danger">{{ t("admin.domains.sync_error") }}</span>{% endif %}</td>
+    <td data-label="{{ t("admin.domains.registration") }}">{{ lbl("admin.domains.types", d.registration_type.as_str()) }}</td>
+    <td data-label="{{ t("admin.domains.col_expires") }}" class="nowrap">{{ dtopt(d.expires_at) }}</td>
+    <td data-label="{{ t("admin.services.col_amount") }}" class="num">{{ m(d.recurring_amount, d.currency) }}</td>
+    <td data-label="{{ t("admin.domains.col_auto_renew") }}">{% if d.auto_renew %}{{ badge(yesno(d.auto_renew), "success") }}{% else %}<span class="muted">{{ yesno(d.auto_renew) }}</span>{% endif %}</td>
+    <td data-label="{{ t("admin.common.status") }}">{{ sbadge(d.status.as_str()) }}</td>
+  <td class="col-actions">{% call ax::row_menu(t("admin.common.actions")) %}<a role="menuitem" href="{{ url("/admin/domains/" ~ d.id) }}">{{ icon("globe") }}<span>{{ t("admin.common.open") }}</span></a><a role="menuitem" href="{{ url("/admin/clients/" ~ d.client_id) }}">{{ icon("user") }}<span>{{ t("admin.orders.col_client") }}</span></a><a role="menuitem" href="https://{{ d.name }}" target="_blank" rel="noopener">{{ icon("external-link") }}<span>{{ t("admin.common.visit") }}</span></a>{% endcall %}</td></tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% call ax::pager(pager) %}{% endcall %}
+{%- endif %}
+{% endblock %}

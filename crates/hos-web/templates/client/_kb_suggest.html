@@ -1,0 +1,7 @@
+{#- Knowledge-base suggestions while typing a ticket subject. -#}
+{%- if !articles.is_empty() %}
+<div class="kb-suggest">
+  <p class="small"><strong>{{ t("client.tickets.kb_title") }}</strong></p>
+  <ul class="list-links">{% for a in articles %}<li><a href="{{ url("/kb/") }}{{ a.slug }}" target="_blank" rel="noopener">{{ icon("book") }}{{ a.title }}</a></li>{% endfor %}</ul>
+</div>
+{%- endif %}

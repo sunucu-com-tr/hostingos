@@ -1,0 +1,12 @@
+<section aria-labelledby="notices-title">
+  <h2 id="notices-title" class="visually-hidden">{{ t("netstatus.client.title") }}</h2>
+  <ul class="notice-list">
+  {%- for (i, services) in notices %}
+    <li class="notice-item" data-kind="{{ i.kind.as_str() }}">
+      <strong>{{ icon("alert-triangle") }} {{ i.title }}</strong>
+      <p>{{ notice_status(i.status.as_str()) }}{% match i.scheduled_start %}{% when Some(s) %} · {{ datetime(s) }}{% match i.scheduled_end %}{% when Some(e) %} – {{ datetime(e) }}{% when None %}{% endmatch %}{% when None %}{% endmatch %}</p>
+      <p>{{ t("netstatus.client.affects") }}: {{ services.join(", ") }} · <a href="{{ url("/status/incidents/" ~ i.id) }}">{{ t("netstatus.client.details") }}</a></p>
+    </li>
+  {%- endfor %}
+  </ul>
+</section>

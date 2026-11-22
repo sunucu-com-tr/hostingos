@@ -1,0 +1,46 @@
+{#- Corporate template: split hero (message + two actions + checklist on
+    the left, a domain-search card with the TLD price table on the right)
+    over a faint network-map drawing (scaled to fit inside the hero, so no
+    node is ever cropped). Included by storefront/home.html. -#}
+<section class="hero hero--corporate">
+  <svg class="hero-art hero-art--network" viewBox="0 0 1440 520" width="1440" height="520" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+    <g class="art-links"><path d="M80 420L300 300 520 360 760 220 980 280 1200 140 1380 200M300 300L360 120 620 80 760 220M980 280L1060 440 1300 400M520 360L600 500"/></g>
+    <g class="art-nodes"><circle cx="80" cy="420" r="4"/><circle cx="300" cy="300" r="6"/><circle cx="520" cy="360" r="4"/><circle cx="760" cy="220" r="7"/><circle cx="980" cy="280" r="5"/><circle cx="1200" cy="140" r="6"/><circle cx="1380" cy="200" r="4"/><circle cx="360" cy="120" r="4"/><circle cx="620" cy="80" r="5"/><circle cx="1060" cy="440" r="4"/><circle cx="1300" cy="400" r="5"/><circle cx="600" cy="500" r="4"/></g>
+  </svg>
+  <div class="container hero__inner">
+    <div class="hero__main">
+      {%- if !posts.is_empty() %}
+      {%- let latest = posts[0].clone() %}
+      <a class="pill-link" href="{{ latest.href }}"><span class="badge badge--brand">{{ t("storefront.home.new") }}</span><span>{{ latest.title }}</span>{{ icon("arrow-right") }}</a>
+      {%- endif %}
+      <h1>{{ hero_title }}</h1>
+      <p class="hero__lead">{{ hero_lead }}</p>
+      {% include "themes/_hero_actions.html" %}
+      <ul class="hero__checks">
+        <li>{{ icon("check-circle") }}<span>{{ t("storefront.home.why_setup_title") }}</span></li>
+        <li>{{ icon("check-circle") }}<span>{{ t("storefront.home.why_secure_title") }}</span></li>
+        <li>{{ icon("check-circle") }}<span>{{ t("storefront.home.why_support_title") }}</span></li>
+      </ul>
+    </div>
+    <aside class="hero__panel corp-search" aria-labelledby="corp-search-title">
+      <div class="corp-search__head">
+        <h2 id="corp-search-title">{{ t("storefront.theme.domain_card_title") }}</h2>
+        <p>{{ t("storefront.theme.domain_card_text") }}</p>
+      </div>
+      <div class="corp-search__body">
+        {% call cat::domain_search("") %}{% endcall %}
+        {%- if !tlds.is_empty() %}
+        <table class="spec-panel__table corp-search__table">
+          <caption class="visually-hidden">{{ t("storefront.home.tld_prices") }}</caption>
+          <tbody>
+            {%- for c in tlds %}
+            <tr><th scope="row">.{{ c.tld }}</th><td>{% match c.price %}{% when Some(p) %}{{ money(p) }}<small>{{ t("common.per.annual") }}</small>{% when None %}—{% endmatch %}</td></tr>
+            {%- endfor %}
+          </tbody>
+        </table>
+        {%- endif %}
+      </div>
+      <a class="corp-search__foot" href="{{ url("/domains") }}"><span>{{ num(facts.tlds) }} · {{ t("storefront.home.fact_tlds") }}</span>{{ icon("arrow-right") }}</a>
+    </aside>
+  </div>
+</section>

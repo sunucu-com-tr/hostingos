@@ -1,0 +1,55 @@
+{#- Generic key/value settings tab (routes/admin/settings/mod.rs::render_form). -#}
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+{% include "admin/settings/_head.html" %}
+<form method="post" action="{{ action }}" class="ax-form settings-form" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::form_errors(errors) %}{% endcall %}
+  {%- if !lead.is_empty() || !notes.is_empty() %}
+  <div class="settings-intro">
+    {%- if !lead.is_empty() %}<p class="muted">{{ lead }}</p>{% endif %}
+    {%- for n in notes %}{% call ui::alert("info", n) %}{% endcall %}{% endfor %}
+  </div>
+  {%- endif %}
+  {%- for s in sections %}
+  <section class="form-section{% if loop.first %} form-section--first{% endif %}">
+    <div class="form-section__intro"><h2>{{ s.title }}</h2>{% if !s.lead.is_empty() %}<p>{{ s.lead }}</p>{% endif %}</div>
+    <div class="form-section__body"><div class="form-grid settings-grid">
+    {%- for f in s.fields %}
+      {%- if f.kind == "checkbox" %}
+      <div class="field settings-grid__wide">
+        <label class="check"><input type="checkbox" name="{{ f.name }}" value="1"{% if f.checked %} checked{% endif %}> <span>{{ f.label }}</span></label>
+        {%- if !f.error.is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ f.error }}</p>{% elif !f.hint.is_empty() %}<p class="field__hint">{{ f.hint }}</p>{% endif %}
+      </div>
+      {%- elif f.kind == "select" %}
+      <div class="field{% if !f.error.is_empty() %} field--error{% endif %}">
+        <label class="field__label" for="f-{{ f.name }}">{{ f.label }}</label>
+        <select class="select" id="f-{{ f.name }}" name="{{ f.name }}"{% if !f.error.is_empty() %} aria-invalid="true"{% endif %}>
+          {%- for (v, l) in f.options %}<option value="{{ v }}"{% if *v == f.value %} selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+        {%- if !f.error.is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ f.error }}</p>{% elif !f.hint.is_empty() %}<p class="field__hint">{{ f.hint }}</p>{% endif %}
+      </div>
+      {%- elif f.kind == "textarea" %}
+      <div class="field settings-grid__wide{% if !f.error.is_empty() %} field--error{% endif %}">
+        <label class="field__label" for="f-{{ f.name }}">{{ f.label }}</label>
+        <textarea class="textarea input--code" id="f-{{ f.name }}" name="{{ f.name }}" rows="4"{% if !f.error.is_empty() %} aria-invalid="true"{% endif %}>{{ f.value }}</textarea>
+        {%- if !f.error.is_empty() %}<p class="field__error">{{ icon("alert-triangle") }}{{ f.error }}</p>{% elif !f.hint.is_empty() %}<p class="field__hint">{{ f.hint }}</p>{% endif %}
+      </div>
+      {%- else %}
+      <div class="field{% if f.wide %} settings-grid__wide{% endif %}{% if !f.error.is_empty() %} field--error{% endif %}">
+        <label class="field__label" for="f-{{ f.name }}">{{ f.label }}</label>
+        <input class="input" id="f-{{ f.name }}" name="{{ f.name }}" type="{{ f.kind }}" value="{{ f.value }}"
+          {%- if !f.inputmode.is_empty() %} inputmode="{{ f.inputmode }}"{% endif %}
+          {%- if !f.error.is_empty() %} aria-invalid="true" aria-describedby="f-{{ f.name }}-err"{% elif !f.hint.is_empty() %} aria-describedby="f-{{ f.name }}-hint"{% endif %}>
+        {%- if !f.error.is_empty() %}<p class="field__error" id="f-{{ f.name }}-err">{{ icon("alert-triangle") }}{{ f.error }}</p>{% elif !f.hint.is_empty() %}<p class="field__hint" id="f-{{ f.name }}-hint">{{ f.hint }}</p>{% endif %}
+      </div>
+      {%- endif %}
+    {%- endfor %}
+    </div></div>
+  </section>
+  {%- endfor %}
+  <div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--ghost form-actions__reset" type="reset">{{ t("admin.shell.discard") }}</button><button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button></div>
+</form>
+{% endblock %}

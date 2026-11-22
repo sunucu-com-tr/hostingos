@@ -1,0 +1,40 @@
+{
+  "menu": "Fraud screening",
+  "admin": {
+    "title": "Fraud screening",
+    "lead": "Rules run when an order is accepted, and the ban list. Orders at or above the threshold are held for review on the order page.",
+    "held_orders": "Held orders",
+    "rules_title": "Rules",
+    "rules_hint": "Each rule adds to a risk score; at the threshold the order is moved to “fraud” and nothing is provisioned.",
+    "enabled": "Run the built-in rules",
+    "block_disposable": "Score disposable e-mail addresses (60)",
+    "hold_score": "Hold threshold",
+    "hold_score_hint": "Ban list 100, disposable e-mail 60, card stored by another client 50, IP velocity 40, other accounts from the IP 40, client velocity 30 points.",
+    "max_orders_per_ip": "Max. orders from one IP in 24 h",
+    "max_clients_per_ip": "Other accounts from one IP in 24 h",
+    "max_orders_per_client": "Max. orders of one client in 24 h",
+    "saved": "Rules saved.",
+    "invalid": "Invalid value.",
+    "invalid_value": "Not a valid value for this kind (e-mail, domain or IP / CIDR).",
+    "bans_title": "Ban list",
+    "bans_hint": "Orders from listed e-mail addresses, domains (including subdomains) or IP networks are held.",
+    "bans_empty": "The ban list is empty.",
+    "ban_add": "Add a ban",
+    "ban_added": "Ban added.",
+    "ban_deleted": "Ban removed.",
+    "value_hint": "name@domain.com, domain.com, 203.0.113.7 or 203.0.113.0/24",
+    "delete_confirm": "Remove this ban?"
+  },
+  "fields": {
+    "kind": "Kind",
+    "value": "Value",
+    "reason": "Reason",
+    "added": "Added",
+    "actions": "Actions"
+  },
+  "kind": {
+    "email": "E-mail address",
+    "domain": "E-mail domain",
+    "ip": "IP address / network"
+  }
+}

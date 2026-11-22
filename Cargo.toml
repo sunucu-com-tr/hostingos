@@ -1,0 +1,252 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/hos-core",
+    "crates/hos-db",
+    "crates/hos-auth",
+    "crates/hos-virt",
+    "crates/hos-panels",
+    "crates/hos-domains",
+    "crates/hos-payments",
+    "crates/hos-billing",
+    "crates/hos-seo",
+    "crates/hos-mail",
+    "crates/hos-jobs",
+    "crates/hos-web",
+    "crates/hos-einvoice",
+    "crates/hos-pdf",
+    "crates/hos-import",
+    "crates/hos-update",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-only"
+publish = false
+
+# Lints shared by every crate (`[lints] workspace = true` in each member).
+# `todo!`/`unimplemented!` are banned by docs/ARCHITECTURE.md §4; with
+# `cargo clippy -- -D warnings` these turn into hard errors.
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.cargo]
+# Skeleton crates don't use most workspace dependencies yet; re-enable once filled in.
+unused_workspace_dependencies = "allow"
+
+[workspace.lints.clippy]
+todo = "warn"
+unimplemented = "warn"
+dbg_macro = "warn"
+
+[workspace.dependencies]
+# Features of external crates are set here, once, and members add none of
+# their own (`{ workspace = true }` only). A feature added by one member makes
+# `cargo test -p <that member>`, `-p <another>` and `--workspace` resolve
+# different feature sets, and every such set is a separate copy of the crate
+# and of everything built on top of it in `target/`.
+# ---- internal crates -------------------------------------------------------
+# `default-features = false`: crates opt into DB support with `features = ["sqlx"]`.
+hos-core = { path = "crates/hos-core", default-features = false }
+hos-db = { path = "crates/hos-db" }
+hos-auth = { path = "crates/hos-auth" }
+hos-virt = { path = "crates/hos-virt" }
+hos-panels = { path = "crates/hos-panels" }
+hos-domains = { path = "crates/hos-domains" }
+hos-payments = { path = "crates/hos-payments" }
+hos-billing = { path = "crates/hos-billing" }
+hos-seo = { path = "crates/hos-seo" }
+hos-mail = { path = "crates/hos-mail" }
+hos-jobs = { path = "crates/hos-jobs" }
+hos-einvoice = { path = "crates/hos-einvoice" }
+hos-pdf = { path = "crates/hos-pdf" }
+hos-import = { path = "crates/hos-import" }
+hos-update = { path = "crates/hos-update" }
+
+# ---- self-update (hos-update) ----------------------------------------------
+# Verify-only, dependency-free minisign (Ed25519) signature check of release
+# manifests and artefacts. The signing side lives in CI (minisign CLI).
+minisign-verify = "0.3.0"
+# Test-only: generates throw-away key pairs and signatures in hos-update tests.
+minisign = "0.10.0"
+# Release versions (`0.2.0`, `0.3.0-beta.1`): ordering and pre-release rules.
+semver = "1.0.28"
+# Release tarballs (`.tar.gz`): pure-Rust reader, no xattr support needed.
+tar = { version = "0.4.46", default-features = false }
+flate2 = "1.1.11"
+
+# ---- data import (hos-import, hos-auth legacy hashes) ------------------------
+# MySQL client for the WHMCS database connector. Not `sqlx-mysql` (it pulls in
+# `rsa`, RUSTSEC-2023-0071); mysql_async → mysql_common 0.38 has no `rsa`
+# dependency. rustls (aws-lc-rs, like reqwest) for TLS to the source server.
+mysql_async = { version = "0.37.1", default-features = false, features = ["default-rustls"] }
+# Verify-only: WHMCS bcrypt client hashes (`$2y$`) and the legacy salted MD5.
+bcrypt = "0.19.3"
+md-5 = "0.11.0"
+# WHMCS field encryption (`encrypt()` / `decrypt()` of configuration.php's
+# cc_encryption_hash) is SHA-1 based.
+sha1 = "0.11.0"
+# `hostingos import whmcs`: secrets typed at a prompt are not echoed.
+rpassword = "7.5.5"
+# Tree type of `scraper` (HTML → Markdown of imported rich text).
+ego-tree = "0.11.1"
+
+# ---- e-invoice / PDF (hos-einvoice, hos-pdf) --------------------------------
+# krilla: pure-Rust PDF writer (font subsetting, ToUnicode → selectable text).
+krilla = { version = "0.8.2", default-features = false, features = ["simple-text", "raster-images"] }
+# wuff: pure-Rust WOFF2 decoder for the bundled OFL font.
+wuff = "0.2.10"
+# Text measurement with the shaper krilla itself uses (same version).
+rustybuzz = "0.20.1"
+# Test-only PDF text extraction.
+pdf-extract = "0.12.1"
+
+# ---- async runtime / web ---------------------------------------------------
+tokio = { version = "1.54.1", features = ["full"] }
+axum = { version = "0.8.9", features = ["macros", "multipart", "ws"] }
+axum-extra = { version = "0.12.6", features = ["cookie", "typed-header"] }
+tower = { version = "0.5.3", features = ["util"] }
+tower-http = { version = "0.7.1", features = [
+    "trace",
+    "fs",
+    "compression-gzip",
+    "compression-br",
+    "set-header",
+    "request-id",
+    "timeout",
+    "limit",
+    "catch-panic",
+    "cors",
+] }
+http = "1.5.0"
+# hos-virt: reads the HTTP/1 reason phrase (`hyper::ext::ReasonPhrase`) that reqwest keeps in
+# response extensions — Proxmox VE puts its error message there.
+hyper = { version = "1.12.0", default-features = false, features = ["http1"] }
+# hos-web: the accept loop of `hostingos serve` (`hos_web::server`). Unlike
+# `axum::serve` it gives hyper a timer, without which hyper applies no
+# header-read timeout. Only features axum and reqwest enable already.
+hyper-util = { version = "0.1.21", default-features = false, features = ["server", "service", "tokio", "http1"] }
+bytes = "1.12.1"
+futures = "0.3.34"
+async-trait = "0.1.92"
+
+# ---- database (sqlx 0.8 — runtime queries only, `query!` is banned) ---------
+sqlx = { version = "0.8.6", default-features = false, features = [
+    "runtime-tokio",
+    "tls-rustls",
+    "postgres",
+    "uuid",
+    "chrono",
+    "json",
+    "rust_decimal",
+    "migrate",
+    "macros",
+    # hos-db: `inet`/`cidr` <-> `std::net::IpAddr` / `ipnet::IpNet` mappings.
+    "ipnet",
+] }
+
+# ---- serialization / errors ------------------------------------------------
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+quick-xml = { version = "0.42.0", features = ["serialize"] }
+thiserror = "2.0.21"
+anyhow = "1.0.104"
+
+# ---- domain primitives -----------------------------------------------------
+uuid = { version = "1.29.2", features = ["v7", "serde"] }
+chrono = { version = "0.4.45", features = ["serde"] }
+rust_decimal = { version = "1.43.0", features = ["serde"] }
+rust_decimal_macros = "1.40.0"
+url = { version = "2.5.8", features = ["serde"] }
+regex = "1.13.1"
+cron = "0.17.0"
+idna = "1.1.0"
+psl = "2.1.255"
+ipnet = { version = "2.12.2", features = ["serde"] }
+
+# ---- HTTP client (reqwest 0.13: `rustls` replaces 0.12's `rustls-tls`) ------
+reqwest = { version = "0.13.5", default-features = false, features = [
+    "rustls",
+    "json",
+    "query",
+    "form",
+    "http2",
+    "charset",
+    # hos-mail: Mailgun's form-data API.
+    "multipart",
+] }
+
+# ---- mail ------------------------------------------------------------------
+lettre = { version = "0.11.23", default-features = false, features = [
+    "builder",
+    "hostname",
+    "smtp-transport",
+    "pool",
+    "tokio1-rustls-tls",
+] }
+# Inbound e-mail (ticket piping): pure-Rust RFC 5322 / MIME parser.
+mail-parser = { version = "1.0.1", features = ["full_encoding"] }
+
+# ---- templates / observability / config ------------------------------------
+askama = "0.16.1"
+scraper = { version = "0.29.0", default-features = false }
+unicode-segmentation = "1.13.3"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt", "json"] }
+dotenvy = "0.15.7"
+
+# ---- crypto / auth ---------------------------------------------------------
+argon2 = "0.6.0"
+aes-gcm = "0.11.1"
+base64 = "0.23.1"
+rand = "0.10.4"
+sha2 = "0.11.1"
+hmac = "0.13.0"
+hex = "0.4.3"
+subtle = "2.6.1"
+totp-rs = { version = "6.0.0", features = ["otpauth"] }
+ring = "0.17.14"
+
+# ---- VM console relay (hos-virt console upstream, hos-web relay) ------------
+# Websocket client to the hypervisor (same major as axum's `ws` feature).
+tokio-tungstenite = { version = "0.29.0", default-features = false, features = ["handshake"] }
+tokio-rustls = { version = "0.26.6", default-features = false }
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+# Same certificate verification as reqwest's `rustls` feature.
+rustls-platform-verifier = "0.7.1"
+# RFB "VNC authentication" (DES challenge-response) done server-side.
+des = "0.8.1"
+
+# ---- testing ---------------------------------------------------------------
+wiremock = "0.6.5"
+
+# ---- web (hos-web) ----------------------------------------------------------
+clap = { version = "4.6.7", features = ["derive", "env"] }
+qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
+pulldown-cmark = { version = "0.13.6", default-features = false, features = ["html"] }
+chrono-tz = "0.10.4"
+hickory-resolver = "0.26.3"
+
+[profile.dev]
+# Keep `target/` small. Debug info and the incremental cache together grew
+# the build directory past 100 GB in a day of heavy rebuilding, so both are
+# off by default. For a debugging session override locally with
+# `CARGO_PROFILE_DEV_DEBUG=line-tables-only` or `CARGO_INCREMENTAL=1`.
+debug = false
+incremental = false
+
+[profile.dev.package."*"]
+# Stays in force when `CARGO_PROFILE_DEV_DEBUG` turns debug info on for the
+# workspace crates: dependencies keep building without it.
+debug = false
+# Dependencies are rarely debugged; optimise them a bit so tests (argon2,
+# aes-gcm, askama, krilla) stay fast. Measured on the workspace: at
+# opt-level 0 `cargo test --workspace` needs ~3.4x the CPU time (99 s vs
+# 29 s; the unit tests alone 15 s vs 5 s) and the test binaries are 20–45 %
+# larger (hos-web's `it`: 198 MB vs 163 MB), so this costs nothing in
+# `target/` size; a clean build takes about as long.
+opt-level = 1
+
+# `[profile.test]` inherits `[profile.dev]` (no debug info, no incremental
+# cache); nothing to add.

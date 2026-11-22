@@ -1,0 +1,37 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ t("platform.system.title") }}</h1>
+    <p>{{ tv("platform.system.lead", "version", version) }}</p>
+  </div>
+</div>
+<div class="stack-lg">
+<section class="stats">
+  {% call ui::stat(t("platform.system.database"), t(db_label()), tv("platform.system.latency", "ms", db_ms), "", "database") %}{% endcall %}
+  {% call ui::stat(t("platform.system.uptime"), uptime, version, "", "clock") %}{% endcall %}
+  {% call ui::stat(t("platform.jobs.pending"), num(jobs.pending), tv("platform.jobs.stale", "count", num(jobs.stale)), "", "activity") %}{% endcall %}
+  {%- if !single_company() %}
+  {% call ui::stat(t("platform.system.admins"), num(admins_active), "", "", "users") %}{% endcall %}
+  {%- endif %}
+</section>
+{% call ui::card(t("platform.system.runtime")) %}
+<dl class="dl">
+  <dt>{{ t("platform.system.version") }}</dt><dd><code>{{ version }}</code></dd>
+  <dt>{{ t("platform.system.migrations") }}</dt><dd>{% match migrations %}{% when Some(m) %}{{ tn("platform.system.migrations_applied", m.applied) }}{% match m.latest %}{% when Some(v) %} · <code>{{ v }}</code>{% when None %}{% endmatch %}{% match m.latest_description %}{% when Some(d) %} <span class="muted small">{{ d }}</span>{% when None %}{% endmatch %}{% when None %}<span class="muted">—</span>{% endmatch %}</dd>
+  <dt>{{ t("platform.system.base_url") }}</dt><dd><code>{{ base_url }}</code></dd>
+  {%- if !single_company() %}
+  <dt>{{ t("platform.system.base_domain") }}</dt><dd><code>{{ base_domain }}</code></dd>
+  {%- endif %}
+  <dt>{{ t("platform.system.flags") }}</dt><dd>
+    {%- if debug %}{{ badge("debug", "warning") }}{% else %}{{ badge("release", "success") }}{% endif %}
+    {% if secure %}{{ badge(t("platform.system.secure_cookies"), "success") }}{% else %}{{ badge(t("platform.system.insecure_cookies"), "warning") }}{% endif %}
+    {% if trust_proxy %}{{ badge(t("platform.system.trust_proxy"), "info") }}{% endif %}</dd>
+  <dt>{{ t("platform.jobs.last_completed_label") }}</dt><dd>{{ date_opt(jobs.last_completed_at) }}</dd>
+  <dt>{{ t("platform.system.health") }}</dt><dd><a href="/healthz"><code>/healthz</code></a> · <a href="/readyz"><code>/readyz</code></a></dd>
+</dl>
+{% endcall %}
+</div>
+{% endblock %}

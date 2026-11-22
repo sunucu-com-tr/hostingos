@@ -1,0 +1,45 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_content.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("admin_content.ai.title") }}</h1><p>{{ t("admin_content.ai.lead") }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/ai/history") }}">{{ icon("clock") }}{{ t("admin_content.ai.history") }}</a></div>
+</div>
+{%- if !ready %}
+{% include "admin/ai/_not_ready.html" %}
+{%- else %}
+<div class="stats">
+  {% call ui::stat(t("admin_content.ai.month_generations"), num(month.generations), month.month, "", "sparkles") %}{% endcall %}
+  {% call ui::stat(t("admin_content.ai.month_input"), num(month.input_tokens), t("admin_content.ai.tokens"), "", "download") %}{% endcall %}
+  {% call ui::stat(t("admin_content.ai.month_output"), num(month.output_tokens), t("admin_content.ai.tokens"), "", "send") %}{% endcall %}
+</div>
+<h2 class="mt-6">{{ t("admin_content.ai.pick_task") }}</h2>
+<p class="muted small">{{ t("admin_content.ai.review_note") }}</p>
+<div class="grid grid--4 mt-4 ai-tasks">
+  {%- for c in tasks %}
+  <a class="card card--link card--hover ai-task" href="{{ url("/admin/ai/new?task=" ~ c.key) }}">
+    <div class="card__body"><span class="icon-tile">{{ icon(c.icon) }}</span><h3 class="h4">{{ c.title }}</h3><p class="muted small">{{ c.text }}</p></div>
+  </a>
+  {%- endfor %}
+</div>
+{%- endif %}
+<div class="admin-grid admin-grid--side mt-8">
+  <section aria-labelledby="recent-h">
+    <div class="between"><h2 id="recent-h">{{ t("admin_content.ai.recent") }}</h2><a class="small" href="{{ url("/admin/ai/history") }}">{{ t("admin_content.ai.all_history") }}</a></div>
+    {%- if recent.is_empty() %}
+    <p class="muted">{{ t("admin_content.ai.no_history") }}</p>
+    {%- else %}
+    {%- let rows = recent.as_slice() %}
+    {% include "admin/ai/_gen_rows.html" %}
+    {%- endif %}
+  </section>
+  {% call ui::card(t("admin_content.ai.usage_title"), t("admin_content.ai.usage_lead")) %}
+  {%- if months.is_empty() %}<p class="muted small">{{ t("admin_content.ai.no_usage") }}</p>{% else %}
+  <table class="table table--dense">
+    <thead><tr><th scope="col">{{ t("admin_content.ai.col_month") }}</th><th scope="col" class="num">{{ t("admin_content.ai.col_count") }}</th><th scope="col" class="num">{{ t("admin_content.ai.col_tokens") }}</th></tr></thead>
+    <tbody>{% for u in months %}<tr><td>{{ u.month }}</td><td class="num">{{ num(u.generations) }}</td><td class="num">{{ num(u.input_tokens + u.output_tokens) }}</td></tr>{% endfor %}</tbody>
+  </table>{% endif %}
+  {% endcall %}
+</div>
+{% endblock %}

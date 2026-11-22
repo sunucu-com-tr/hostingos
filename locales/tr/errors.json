@@ -1,0 +1,57 @@
+{
+  "actions": {
+    "help": "Yardım merkezi",
+    "home": "Ana sayfaya dön",
+    "panel": "Panele dön"
+  },
+  "bad_request": {
+    "text": "Gönderilen bilgiler işlenemedi. Lütfen kontrol edip tekrar deneyin.",
+    "title": "Geçersiz istek"
+  },
+  "conflict": {
+    "text": "Bu kayıt başka bir işlemle değiştirilmiş. Sayfayı yenileyin.",
+    "title": "Çakışma"
+  },
+  "csrf": {
+    "text": "Güvenlik doğrulaması başarısız oldu. Sayfayı yenileyip tekrar deneyin.",
+    "title": "Oturum doğrulanamadı"
+  },
+  "demo_disabled": {
+    "text": "Demonun herkes için kullanılabilir ve güvenli kalması için bu işlem herkese açık demoda kapalıdır. Denemek için HostingOS'u kendi sunucunuza kurun.",
+    "title": "Demoda kullanılamaz"
+  },
+  "forbidden": {
+    "text": "Bu sayfa için yetkiniz bulunmuyor. Farklı bir hesapla giriş yapmayı deneyin.",
+    "title": "Erişim izniniz yok"
+  },
+  "internal": {
+    "text": "Ekibimiz bilgilendirildi. Lütfen daha sonra tekrar deneyin.",
+    "title": "Beklenmeyen bir hata oluştu"
+  },
+  "not_found": {
+    "text": "Aradığınız sayfa taşınmış ya da hiç var olmamış olabilir.",
+    "title": "Sayfa bulunamadı"
+  },
+  "payload_too_large": {
+    "text": "Gönderdiğiniz içerik izin verilen boyutu aşıyor.",
+    "title": "Dosya çok büyük"
+  },
+  "popular": "Belki bunlardan birini arıyordunuz",
+  "rate_limited": {
+    "text": "Kısa sürede çok fazla deneme yaptınız. Lütfen biraz bekleyip tekrar deneyin.",
+    "title": "Çok fazla istek"
+  },
+  "reference": "Hata referansı",
+  "suspended": {
+    "text": "Bu site şu anda hizmet vermiyor. Lütfen daha sonra tekrar ziyaret edin.",
+    "title": "Hizmet geçici olarak durduruldu"
+  },
+  "unauthorized": {
+    "text": "Bu sayfayı görmek için hesabınıza giriş yapın.",
+    "title": "Giriş yapmanız gerekiyor"
+  },
+  "unavailable": {
+    "text": "Bu hizmet şu anda yanıt vermiyor. Lütfen birkaç dakika sonra tekrar deneyin.",
+    "title": "Hizmet geçici olarak kullanılamıyor"
+  }
+}

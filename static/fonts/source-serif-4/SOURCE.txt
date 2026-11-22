@@ -1,0 +1,5 @@
+Source Serif 4 (variable, wght axis), latin + latin-ext subsets
+Licence: SIL Open Font License 1.1 (OFL.txt in this directory)
+Upstream: https://github.com/google/fonts
+Copied from the npm package @fontsource-variable/source-serif-4@5.3.1 (files/source-serif-4-latin-wght-normal.woff2, files/source-serif-4-latin-ext-wght-normal.woff2), unmodified.
+OFL.txt is ofl/sourceserif4/OFL.txt from https://github.com/google/fonts (commit 01aa15d05749e35be9167f3f44e6a243f00cd2fc), unmodified; the npm package's LICENSE names only "Google Inc." as copyright holder.

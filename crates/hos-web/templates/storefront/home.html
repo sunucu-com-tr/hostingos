@@ -1,0 +1,168 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% import "components/catalog.html" as cat %}
+{% import "components/blocks.html" as blk %}
+{% block content %}
+{#- The hero is where the design templates differ most (theme partials,
+    crate::theme); the sections below are shared and restyled by CSS. The
+    copy comes from the `home` CMS page (routes::storefront::landing). -#}
+{%- if tpl() == "cloud" %}
+{% include "themes/cloud/home_hero.html" %}
+{%- elif tpl() == "corporate" %}
+{% include "themes/corporate/home_hero.html" %}
+{%- elif tpl() == "terminal" %}
+{% include "themes/terminal/home_hero.html" %}
+{%- elif tpl() == "studio" %}
+{% include "themes/studio/home_hero.html" %}
+{%- elif tpl() == "editorial" %}
+{% include "themes/editorial/home_hero.html" %}
+{%- else %}
+{% include "themes/classic/home_hero.html" %}
+{%- endif %}
+
+<section class="trust-strip" aria-label="{{ t("storefront.home.trust_label") }}">
+  <div class="container">
+    <ul class="trust-strip__list">
+      {%- if facts.plans > 0 %}<li>{{ icon("layers") }}<span><strong>{{ num(facts.plans) }}</strong> {{ t("storefront.home.fact_plans") }}</span></li>{% endif %}
+      {%- if facts.tlds > 0 %}<li>{{ icon("globe") }}<span><strong>{{ num(facts.tlds) }}</strong> {{ t("storefront.home.fact_tlds") }}</span></li>{% endif %}
+      {%- if facts.articles > 0 %}<li>{{ icon("book") }}<span><strong>{{ num(facts.articles) }}</strong> {{ t("storefront.home.fact_articles") }}</span></li>{% endif %}
+      <li>{{ icon("lock") }}<span>{{ t("storefront.home.trust_checkout") }}</span></li>
+      <li>{{ icon("receipt") }}<span>{{ t("storefront.home.trust_invoice") }}</span></li>
+    </ul>
+  </div>
+</section>
+
+{%- if !groups.is_empty() %}
+<section class="section section--groups" aria-labelledby="groups-title">
+  <div class="container">
+    <header class="section__head">
+      <p class="eyebrow">{{ t("storefront.home.groups_eyebrow") }}</p>
+      <h2 id="groups-title">{{ t("storefront.home.groups_title") }}</h2>
+      <p>{{ t("storefront.home.groups_lead") }}</p>
+    </header>
+    <div class="cell-grid cell-grid--{% if groups.len() % 3 == 0 %}3{% else %}4{% endif %} cell-grid--rows-4 group-grid">
+      {%- for g in groups %}
+      <a class="group-card" href="{{ g.href }}">
+        <span class="icon-tile">{{ icon(g.icon) }}</span>
+        <span class="group-card__arrow">{{ icon("arrow-up-right") }}</span>
+        <h3>{{ g.name }}</h3>
+        <p>{{ g.tagline }}</p>
+        <p class="group-card__from">{% match g.from %}{% when Some(f) %}<span>{{ t("storefront.catalog.from_label") }}</span> <strong>{{ money(f) }}</strong><span>{{ t("common.per.monthly") }}</span>{% when None %}{{ tn("storefront.catalog.plans", g.count) }}{% endmatch %}</p>
+      </a>
+      {%- endfor %}
+    </div>
+  </div>
+</section>
+{%- endif %}
+
+{%- if !featured.is_empty() %}
+<section class="section section--alt section--featured" aria-labelledby="featured-title">
+  <div class="container js-cycle-scope">
+    <header class="section__head">
+      <p class="eyebrow">{{ t("storefront.home.featured_eyebrow") }}</p>
+      <h2 id="featured-title">{{ t("storefront.home.featured_title") }}</h2>
+      <div class="section__aside">{% call cat::cycle_switch(saving, "home") %}{% endcall %}</div>
+    </header>
+    <div class="price-grid">
+      {%- for card in featured %}{% call cat::price_card(card) %}{% endcall %}{% endfor %}
+    </div>
+    <p class="small muted price-grid__note">{% if store().prices_include_tax %}{{ t("storefront.product.tax_note_included") }}{% else %}{{ t("storefront.product.tax_note") }}{% endif %}</p>
+  </div>
+</section>
+{%- endif %}
+
+{%- if blocks.is_empty() %}
+<section class="section" aria-labelledby="why-title">
+  <div class="container">
+    <header class="section__head">
+      <p class="eyebrow">{{ t("storefront.home.why_eyebrow") }}</p>
+      <h2 id="why-title">{{ tv("storefront.home.why_title", "site", site_name) }}</h2>
+    </header>
+    <div class="cell-grid cell-grid--3 cell-grid--rows-3 feature-grid">
+      <article class="feature-card"><span class="icon-tile">{{ icon("zap") }}</span><h3>{{ t("storefront.home.why_setup_title") }}</h3><p>{{ t("storefront.home.why_setup_text") }}</p></article>
+      <article class="feature-card"><span class="icon-tile">{{ icon("shield") }}</span><h3>{{ t("storefront.home.why_secure_title") }}</h3><p>{{ t("storefront.home.why_secure_text") }}</p></article>
+      <article class="feature-card"><span class="icon-tile">{{ icon("life-buoy") }}</span><h3>{{ t("storefront.home.why_support_title") }}</h3><p>{{ t("storefront.home.why_support_text") }}</p></article>
+      <article class="feature-card"><span class="icon-tile">{{ icon("receipt") }}</span><h3>{{ t("storefront.home.why_billing_title") }}</h3><p>{{ t("storefront.home.why_billing_text") }}</p></article>
+      <article class="feature-card"><span class="icon-tile">{{ icon("globe") }}</span><h3>{{ t("storefront.home.why_domains_title") }}</h3><p>{{ t("storefront.home.why_domains_text") }}</p></article>
+      <article class="feature-card"><span class="icon-tile">{{ icon("terminal") }}</span><h3>{{ t("storefront.home.why_panel_title") }}</h3><p>{{ t("storefront.home.why_panel_text") }}</p></article>
+    </div>
+  </div>
+</section>
+{%- else %}
+<div class="home-blocks">{% call blk::render(blocks) %}{% endcall %}</div>
+{%- endif %}
+
+{%- if !faqs.is_empty() %}
+<section class="section" aria-labelledby="faq-title">
+  <div class="container faq-layout">
+    <header class="section__head">
+      <p class="eyebrow">{{ t("storefront.home.faq_eyebrow") }}</p>
+      <h2 id="faq-title">{{ t("storefront.home.faq_title") }}</h2>
+    </header>
+    <div class="faq-layout__body">
+      <div class="accordion">
+        {%- for f in faqs %}
+        <details{% if loop.first %} open{% endif %}><summary><h3 class="faq__q">{{ f.question }}</h3></summary><div class="prose">{{ f.answer_html|safe }}</div></details>
+        {%- endfor %}
+      </div>
+      <a class="btn btn--soft" href="{{ url("/kb") }}">{{ t("storefront.home.faq_more") }}{{ icon("arrow-right") }}</a>
+    </div>
+  </div>
+</section>
+{%- endif %}
+
+{%- if !posts.is_empty() %}
+<section class="section section--alt" aria-labelledby="blog-title">
+  <div class="container">
+    <header class="section__head">
+      <p class="eyebrow">{{ t("storefront.nav.blog") }}</p>
+      <h2 id="blog-title">{{ t("storefront.home.blog_title") }}</h2>
+      <div class="section__aside"><a class="link-arrow" href="{{ url("/blog") }}">{{ t("storefront.home.blog_all") }}{{ icon("arrow-right") }}</a></div>
+    </header>
+    <div class="cell-grid cell-grid--3 cell-grid--rows-3">
+      {%- for p in posts %}
+      <article class="post-card">
+        <p class="article-meta"><time datetime="{{ iso(p.published_at) }}">{{ date(p.published_at) }}</time><span>{{ tn("storefront.blog.minutes", p.minutes) }}</span></p>
+        <h3><a href="{{ p.href }}">{{ p.title }}</a></h3>
+        <p>{{ p.excerpt }}</p>
+      </article>
+      {%- endfor %}
+    </div>
+  </div>
+</section>
+{%- endif %}
+
+<section class="section section--about" aria-labelledby="facts-title">
+  <div class="container about-band">
+    <div class="about-band__text">
+      <h2 id="facts-title">{{ tv("storefront.home.about_title", "site", site_name) }}</h2>
+      <p>{{ summary }}</p>
+      <p><a class="link-arrow" href="{{ url("/contact") }}">{{ t("storefront.home.cta_contact") }}{{ icon("arrow-right") }}</a></p>
+    </div>
+    <dl class="facts">
+      {%- let company = store().company.clone() %}
+      {%- if !company.legal_name.is_empty() %}<div class="fact"><dt>{{ t("storefront.home.fact_company") }}</dt><dd>{{ company.legal_name }}</dd></div>{% endif %}
+      {%- if !company.tax_number.is_empty() %}<div class="fact"><dt>{{ t("storefront.home.fact_tax") }}</dt><dd class="mono">{{ company.tax_office }} / {{ company.tax_number }}</dd></div>{% endif %}
+      {%- if !company.address.is_empty() %}<div class="fact"><dt>{{ t("storefront.home.fact_address") }}</dt><dd>{{ company.address }}</dd></div>{% endif %}
+      {%- if !facts.support_email.is_empty() %}<div class="fact"><dt>{{ t("storefront.home.fact_support") }}</dt><dd class="mono"><a href="mailto:{{ facts.support_email }}">{{ facts.support_email }}</a></dd></div>{% endif %}
+    </dl>
+  </div>
+</section>
+
+{%- if !has_cta %}
+<section class="section section--cta">
+  <div class="container">
+    <div class="cta-band">
+      <div>
+        <h2>{{ t("storefront.home.cta_title") }}</h2>
+        <p>{{ t("storefront.home.cta_text") }}</p>
+      </div>
+      <div class="btn-row">
+        <a class="btn btn--primary btn--lg" href="{{ url("/auth/register") }}">{{ t("storefront.home.cta_register") }}</a>
+        <a class="btn btn--lg" href="{{ url("/contact") }}">{{ t("storefront.home.cta_contact") }}</a>
+      </div>
+    </div>
+  </div>
+</section>
+{%- endif %}
+{% endblock %}

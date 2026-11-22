@@ -1,0 +1,36 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("admin_settings.notifications.title") }}</h1><p>{{ tn("admin_settings.notifications.unread", unread) }}</p></div>
+  {%- if unread > 0 %}
+  <div class="page-head__actions">
+    <form method="post" action="{{ url("/admin/notifications/read-all") }}">{% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--soft" type="submit">{{ icon("check") }}{{ t("admin_settings.notifications.mark_all") }}</button></form>
+  </div>
+  {%- endif %}
+</div>
+{%- if rows.is_empty() %}
+{% call ui::empty("bell", t("admin_settings.notifications.empty")) %}{% endcall %}
+{%- else %}
+<ul class="notice-list">
+  {%- for n in rows %}
+  <li class="notice{% if n.read_at.is_none() %} notice--unread{% endif %}">
+    <div class="notice__body">
+      <p class="notice__title">{{ n.title }}</p>
+      {%- match n.body %}{% when Some(b) %}<p class="notice__text small">{{ b }}</p>{% when None %}{% endmatch %}
+      <p class="muted small">{{ datetime(n.created_at) }}</p>
+    </div>
+    <form method="post" action="{{ url("/admin/notifications/" ~ n.id ~ "/read") }}">{% call ui::csrf() %}{% endcall %}
+      {%- if link(n) %}
+      <button class="btn btn--soft btn--sm" type="submit">{{ icon("arrow-right") }}{{ t("admin_settings.notifications.open") }}</button>
+      {%- else if n.read_at.is_none() %}
+      <button class="btn btn--ghost btn--sm" type="submit">{{ icon("check") }}{{ t("admin_settings.notifications.mark_read") }}</button>
+      {%- endif %}
+    </form>
+  </li>
+  {%- endfor %}
+</ul>
+{%- endif %}
+{% endblock %}

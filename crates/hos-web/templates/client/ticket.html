@@ -1,0 +1,57 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head">
+  <div><h1>{{ tk.subject }}</h1><p>#{{ tk.number }} · {{ department }} · {{ st(tk.status.as_str()) }}{% if !related.is_empty() %} · <a href="{{ related_href }}">{{ related }}</a>{% endif %}</p></div>
+  <div class="btn-row">
+    {%- if closed() %}
+    <form method="post" action="{{ url("/client/tickets/") }}{{ tk.id }}/reopen">{% call ui::csrf() %}{% endcall %}<button type="submit" class="btn btn--soft">{{ t("client.tickets.reopen") }}</button></form>
+    {%- else %}
+    <form method="post" action="{{ url("/client/tickets/") }}{{ tk.id }}/close" data-confirm="{{ t("client.tickets.close_confirm") }}">{% call ui::csrf() %}{% endcall %}<button type="submit" class="btn btn--ghost">{{ t("client.tickets.close") }}</button></form>
+    {%- endif %}
+  </div>
+</div>
+{%- if closed() %}
+<section class="card mb-8">
+  <div class="card__body">
+  {%- match tk.rating %}{% when Some(r) %}
+    <p>{{ tv("client.tickets.rated_value", "rating", r) }}</p>
+  {%- when None %}
+    <form class="cluster" method="post" action="{{ url("/client/tickets/") }}{{ tk.id }}/rate">
+      {% call ui::csrf() %}{% endcall %}
+      <span>{{ t("client.tickets.rate_prompt") }}</span>
+      {%- for n in 1..=5 %}<button type="submit" name="rating" value="{{ n }}" class="btn btn--ghost btn--sm" aria-label="{{ tv("client.tickets.rate_n", "n", n) }}">{{ n }} ★</button>{% endfor %}
+    </form>
+  {%- endmatch %}
+  </div>
+</section>
+{%- endif %}
+<ol class="thread">
+{%- for mv in messages %}
+  <li class="thread__msg{% if mv.m.author_kind.as_str() == "staff" %} thread__msg--staff{% endif %}" id="m-{{ mv.m.id }}">
+    <header><strong>{{ mv.m.author_name }}</strong>{% if mv.m.author_kind.as_str() == "staff" %} {{ badge(t("client.tickets.staff"), "brand") }}{% endif %}{% if mv.m.source.as_str() == "email" %} {{ badge(t("client.tickets.by_email"), "") }}{% if mv.m.sender_verified != Some(true) %} {{ badge(t("client.tickets.sender_unverified"), "warning") }}{% endif %}{% endif %}<time datetime="{{ iso(mv.m.created_at) }}">{{ datetime(mv.m.created_at) }}</time></header>
+    <div class="prose">{{ mv.html|safe }}</div>
+    {%- if !mv.files.is_empty() %}
+    <ul class="attachments">{% for f in mv.files %}<li><a href="{{ url("/client/tickets/") }}{{ tk.id }}/attachments/{{ f.id }}" download>{{ icon("download") }}{{ f.filename }}</a> <span class="muted small">{{ size(f) }}</span></li>{% endfor %}</ul>
+    {%- endif %}
+  </li>
+{%- endfor %}
+</ol>
+<section class="card mt-8" id="reply">
+  <header class="card__head"><h2>{{ t("client.tickets.reply") }}</h2></header>
+  <form method="post" action="{{ url("/client/tickets/") }}{{ tk.id }}/reply" enctype="multipart/form-data" novalidate>
+    <div class="card__body stack">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::form_errors(errors) %}{% endcall %}
+      {%- if closed() %}<p class="small muted">{{ t("client.tickets.reply_reopens") }}</p>{% endif %}
+      <div class="field{% if errors.has("body") %} field--error{% endif %}">
+        <label class="visually-hidden" for="f-body">{{ t("client.tickets.message") }}</label>
+        <textarea class="textarea" id="f-body" name="body" rows="6" required>{{ body }}</textarea>
+        {%- if errors.has("body") %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("body") }}</p>{% else %}<p class="field__hint">{{ t("client.tickets.markdown_hint") }}</p>{% endif %}
+      </div>
+      {% include "client/_attach_field.html" %}
+    </div>
+    <div class="card__foot"><button type="submit" class="btn btn--primary">{{ icon("send") }}{{ t("client.tickets.send") }}</button></div>
+  </form>
+</section>
+{% endblock %}

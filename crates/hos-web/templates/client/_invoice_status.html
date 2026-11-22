@@ -1,0 +1,8 @@
+{#- Payment verification state (polled by htmx; HX-Refresh once paid). -#}
+{%- if paid %}
+<div class="alert alert--success" role="status">{{ icon("check-circle") }}<div><strong>{{ t("client.invoices.payment_received") }}</strong></div></div>
+{%- elif pending %}
+<div class="alert alert--info" role="status"><span class="spinner" aria-hidden="true"></span><div><strong>{{ t("client.invoices.payment_pending") }}</strong><p>{{ t("client.invoices.payment_pending_text") }}</p></div></div>
+{%- else %}
+<div class="alert alert--info" role="status"><span class="spinner" aria-hidden="true"></span><div><strong>{{ t("client.invoices.verifying") }}</strong><p>{{ t("client.invoices.verifying_text") }}</p></div></div>
+{%- endif %}

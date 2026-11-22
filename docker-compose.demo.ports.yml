@@ -1,0 +1,14 @@
+# Optional addition to docker-compose.demo.yml for a plain Docker host whose
+# reverse proxy runs outside Docker: publishes the app on the loopback
+# interface only (the proxy forwards to it; nothing else can reach it).
+# Not needed with Coolify, whose proxy reaches the app over Docker's network.
+#
+#   docker compose -f docker-compose.demo.yml -f docker-compose.demo.ports.yml \
+#     --env-file .env.demo up -d --build
+#
+# HOS_DEMO_PUBLISH changes the address, e.g. 127.0.0.1:18080 if 8080 is taken.
+
+services:
+  app:
+    ports:
+      - "${HOS_DEMO_PUBLISH:-127.0.0.1:8080}:8080"

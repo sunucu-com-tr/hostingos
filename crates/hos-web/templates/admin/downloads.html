@@ -1,0 +1,97 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ ctx.title }}</h1><p>{{ t("downloads.admin.lead") }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/downloads") }}" target="_blank" rel="noopener">{{ icon("external-link") }}{{ t("downloads.admin.public_link") }}</a></div>
+</div>
+<div class="admin-grid admin-grid--side">
+  <div class="stack">
+  {%- if rows.is_empty() %}
+  {% call ui::empty("download", t("downloads.admin.empty_title"), t("downloads.admin.empty_text")) %}{% endcall %}
+  {%- else %}
+  <div class="table-wrap"><table class="table table--dense table--stack">
+    <thead><tr><th scope="col">{{ t("downloads.fields.title") }}</th><th scope="col">{{ t("downloads.fields.category") }}</th><th scope="col">{{ t("downloads.fields.access") }}</th><th scope="col" class="num">{{ t("downloads.fields.size") }}</th><th scope="col" class="num">{{ t("downloads.fields.count") }}</th><th scope="col"><span class="visually-hidden">{{ t("downloads.fields.actions") }}</span></th></tr></thead>
+    <tbody>{% for r in rows %}<tr{% if is_editing(r) %} aria-current="true"{% endif %}>
+      <td data-label="{{ t("downloads.fields.title") }}"><a class="row-link" href="{{ url("/admin/downloads/" ~ r.id) }}">{{ r.title }}</a><span class="sub">{{ r.filename }}</span>{% if r.is_hidden %} <span class="badge">{{ t("downloads.admin.hidden") }}</span>{% endif %}{% if !r.has_file %} <span class="badge badge--warning">{{ t("downloads.admin.no_file") }}</span>{% endif %}</td>
+      <td data-label="{{ t("downloads.fields.category") }}">{{ category_name(r) }}</td>
+      <td data-label="{{ t("downloads.fields.access") }}">{{ access_label(r.access) }}{% if !r.product_ids.is_empty() %}<span class="sub">{{ tv("downloads.admin.products_n", "count", r.product_ids.len()) }}</span>{% endif %}</td>
+      <td data-label="{{ t("downloads.fields.size") }}" class="num nowrap">{{ size(r) }}</td>
+      <td data-label="{{ t("downloads.fields.count") }}" class="num">{{ r.download_count }}</td>
+      <td class="num biz-cellact">{% if r.has_file %}<a class="btn btn--ghost btn--sm" href="{{ url("/admin/downloads/" ~ r.id ~ "/file") }}">{{ icon("download") }}<span class="visually-hidden">{{ t("downloads.get") }}</span></a>{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {%- endif %}
+
+  {% call ui::card(t("downloads.admin.categories")) %}
+  <p class="biz-muted">{{ t("downloads.admin.categories_hint") }}</p>
+  {%- for c in categories %}
+  <div class="download-cat">
+  <form method="post" action="{{ url("/admin/downloads/categories/" ~ c.id) }}" class="download-cat__form">
+    {% call ui::csrf() %}{% endcall %}
+    <label class="visually-hidden" for="cat-name-{{ c.id }}">{{ t("downloads.fields.name") }}</label>
+    <input class="input" id="cat-name-{{ c.id }}" name="name" value="{{ c.name }}" maxlength="120" required>
+    <label class="visually-hidden" for="cat-sort-{{ c.id }}">{{ t("downloads.fields.sort_order") }}</label>
+    <input class="input download-cat__sort" id="cat-sort-{{ c.id }}" name="sort_order" value="{{ c.sort_order }}" inputmode="numeric">
+    <label class="check"><input type="checkbox" name="is_hidden" value="1"{{ chk(c.is_hidden) }}> <span>{{ t("downloads.admin.hidden") }}</span></label>
+    <button class="btn btn--soft btn--sm" type="submit">{{ t("common.actions.save") }}</button>
+  </form>
+  <form method="post" action="{{ url("/admin/downloads/categories/" ~ c.id ~ "/delete") }}" data-confirm="{{ t("downloads.admin.category_delete_confirm") }}">
+    {% call ui::csrf() %}{% endcall %}
+    <button class="btn btn--ghost btn--sm" type="submit" aria-label="{{ t("admin.common.delete") }}: {{ c.name }}">{{ icon("trash") }}</button>
+  </form>
+  </div>
+  {%- endfor %}
+  <form method="post" action="{{ url("/admin/downloads/categories") }}" class="download-cat download-cat--new">
+    {% call ui::csrf() %}{% endcall %}
+    <label class="visually-hidden" for="cat-name-new">{{ t("downloads.fields.name") }}</label>
+    <input class="input" id="cat-name-new" name="name" maxlength="120" placeholder="{{ t("downloads.admin.category_new") }}" required>
+    <input type="hidden" name="sort_order" value="0">
+    <button class="btn btn--primary btn--sm" type="submit">{{ icon("plus") }}{{ t("downloads.admin.category_add") }}</button>
+  </form>
+  {% endcall %}
+  </div>
+
+  <aside>
+    {% call ui::card(form_title()) %}
+    <form method="post" action="{{ form_action() }}" enctype="multipart/form-data" class="stack">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::field("title", t("downloads.fields.title"), edit_value("title"), required=true) %}{% endcall %}
+      {% call ui::textarea("description", t("downloads.fields.description"), edit_value("description"), rows=3) %}{% endcall %}
+      <div class="field"><label class="field__label" for="f-category_id">{{ t("downloads.fields.category") }}</label>
+        <select class="select" id="f-category_id" name="category_id">
+          <option value="">{{ t("downloads.admin.no_category") }}</option>
+          {%- for c in categories %}<option value="{{ c.id }}"{{ cat_sel(c) }}>{{ c.name }}</option>{% endfor %}
+        </select></div>
+      {%- let av = edit_value("access") %}
+      <div class="field"><label class="field__label" for="f-access">{{ t("downloads.fields.access") }}</label>
+        <select class="select" id="f-access" name="access">
+          {%- for (v, l) in access_options() %}<option value="{{ v }}"{{ sel(v, av) }}>{{ l }}</option>{% endfor %}
+        </select>
+        <p class="field__hint">{{ t("downloads.admin.access_hint") }}</p></div>
+      {%- if !products.is_empty() %}
+      <fieldset class="field"><legend class="field__label">{{ t("downloads.fields.products") }}</legend>
+        <div class="download-products">
+        {%- for (pid, pname) in products %}
+        <label class="check"><input type="checkbox" name="product_ids" value="{{ pid }}"{% if product_checked(pid) %} checked{% endif %}> <span>{{ pname }}</span></label>
+        {%- endfor %}
+        </div></fieldset>
+      {%- endif %}
+      <div class="field"><label class="field__label" for="f-file">{{ t("downloads.fields.file") }}</label>
+        <input class="input" type="file" id="f-file" name="file"{% if editing.is_none() %} required{% endif %}>
+        <p class="field__hint">{{ tv("downloads.admin.file_hint", "kb", max_kb) }}</p></div>
+      {% call ui::field("sort_order", t("downloads.fields.sort_order"), edit_value("sort"), inputmode="numeric") %}{% endcall %}
+      {% call ui::checkbox("is_hidden", t("downloads.admin.hidden"), checked=edit_hidden()) %}{% endcall %}
+      <div class="biz-actions">
+        <button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button>
+        {%- if editing.is_some() %}<a class="btn btn--ghost" href="{{ url("/admin/downloads") }}">{{ t("common.actions.cancel") }}</a>{% endif %}
+      </div>
+    </form>
+    {%- match editing %}{% when Some(ed) %}
+    <form method="post" action="{{ url("/admin/downloads/" ~ ed.id ~ "/delete") }}" class="mt-4" data-confirm="{{ t("downloads.admin.delete_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--danger btn--sm" type="submit">{{ icon("trash") }}{{ t("admin.common.delete") }}</button></form>
+    {%- when None %}{% endmatch %}
+    {% endcall %}
+  </aside>
+</div>
+{% endblock %}

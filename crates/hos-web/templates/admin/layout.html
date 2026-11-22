@@ -1,0 +1,173 @@
+{#- Admin shell (own layout, not layouts/panel.html): sidebar from `panel`
+    (sections + items are already filtered by permission in menu.rs),
+    collapsible to an icon rail (admin_boot.js applies the remembered state
+    before first paint), a drawer on phones (app.js data-sidebar-toggle), a
+    compact top bar (crumbs, command palette trigger, quick-create,
+    notifications, theme, account menu), the command palette and the shared
+    confirm dialog. Styles: static/css/admin.css, behaviour: static/js/admin.js.
+    Every link to a permission-gated area is behind `can(…)`. -#}
+{% extends "layouts/base.html" %}
+{% block head %}
+<script src="{{ asset("js/admin_boot.js") }}"></script>
+<link rel="stylesheet" href="{{ asset("css/admin.css") }}">
+<script src="{{ asset("js/admin.js") }}" defer></script>
+{%- block admin_head %}{% endblock %}
+{% endblock %}
+{% block body %}
+{%- let can_new = can("clients.manage") || can("billing.manage") || can("support.manage") || can("products.manage") || can("content.manage") %}
+<div class="ax" id="ax" data-selected-text="{{ t("admin.shell.selected") }}" data-unsaved-text="{{ t("admin.shell.unsaved") }}" data-collapse-text="{{ t("admin.shell.collapse") }}" data-expand-text="{{ t("admin.shell.expand") }}">
+  <aside class="ax-side" id="sidebar" aria-label="{{ t("common.a11y.sidebar") }}">
+    <div class="ax-side__head">
+      <a class="ax-brand" href="{{ url("/admin") }}" data-tip="{{ site_name }}">
+        <span class="ax-brand__mark" aria-hidden="true">{{ icon("forge") }}</span>
+        <span class="ax-brand__text"><strong>{{ site_name }}</strong><span>{% match panel %}{% when Some(p) %}{{ p.area_label }}{% when None %}{{ t("admin.area") }}{% endmatch %}</span></span>
+      </a>
+      <button type="button" class="ax-iconbtn ax-side__close" data-sidebar-toggle aria-controls="sidebar" aria-label="{{ t("common.actions.close") }}">{{ icon("x") }}</button>
+    </div>
+    <nav class="ax-nav" aria-label="{{ t("admin.area") }}">
+      {%- match panel %}{% when Some(p) %}
+      {%- for section in p.sections %}
+      <div class="ax-nav__group">
+        {%- if !section.label.is_empty() %}<p class="ax-nav__title">{{ section.label }}</p>{% endif %}
+        <ul>
+          {%- for item in section.items %}
+          <li><a class="ax-nav__link" href="{{ item.href }}" data-tip="{{ item.label }}"{% if item.active %} aria-current="page"{% endif %}>{{ icon(item.icon) }}<span class="ax-nav__label">{{ item.label }}</span>{% if !item.badge.is_empty() %}<span class="ax-nav__badge">{{ item.badge }}</span>{% endif %}</a></li>
+          {%- endfor %}
+        </ul>
+      </div>
+      {%- endfor %}
+      {%- when None %}{% endmatch %}
+    </nav>
+    <div class="ax-side__foot">
+      <a class="ax-nav__link" href="{{ url("/") }}" target="_blank" rel="noopener" data-tip="{{ t("common.nav.storefront") }}">{{ icon("external-link") }}<span class="ax-nav__label">{{ t("common.nav.storefront") }}</span></a>
+      <button type="button" class="ax-nav__link ax-rail-toggle" data-rail-toggle aria-pressed="false" data-tip="{{ t("admin.shell.expand") }}">{{ icon("panel-left") }}<span class="ax-nav__label">{{ t("admin.shell.collapse") }}</span></button>
+    </div>
+  </aside>
+  <div class="sidebar-backdrop" hidden></div>
+
+  <div class="ax-main">
+    <header class="ax-top">
+      <button type="button" class="ax-iconbtn ax-top__menu" data-sidebar-toggle aria-controls="sidebar" aria-expanded="false" aria-label="{{ t("common.a11y.menu") }}">{{ icon("menu") }}</button>
+      {%- match panel %}{% when Some(p) %}
+      {%- if !p.crumbs.is_empty() %}
+      <nav class="ax-crumbs" aria-label="{{ t("common.a11y.breadcrumbs") }}"><ol>
+        {%- for c in p.crumbs %}
+        <li>{% match c.href %}{% when Some(href) %}<a href="{{ href }}">{{ c.label }}</a>{% when None %}<span aria-current="page">{{ c.label }}</span>{% endmatch %}</li>
+        {%- endfor %}
+      </ol></nav>
+      {%- endif %}
+      {%- when None %}{% endmatch %}
+      <div class="ax-top__actions">
+        {%- if platform_impersonation() %}
+        {#- Platform operator signed in as the store owner: exit back to the console. -#}
+        <form class="impersonation-chip" method="post" action="{{ url("/admin/impersonation/end") }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf }}">
+          <span class="badge badge--warning badge--dot">{{ t("admin_settings.impersonation.platform") }}</span>
+          <button class="btn btn--soft btn--sm" type="submit">{{ icon("log-out") }}<span>{{ t("admin_settings.impersonation.exit") }}</span></button>
+        </form>
+        {%- endif %}
+        <a class="ax-search" href="{{ url("/admin/search") }}" data-cmdk-open aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K /">
+          {{ icon("search") }}<span class="ax-search__text">{{ t("admin.shell.search_trigger") }}</span><kbd class="ax-kbd"><span class="ax-kbd__mac">⌘K</span><span class="ax-kbd__pc">Ctrl K</span></kbd>
+        </a>
+        {%- if can_new %}
+        <details class="menu ax-new" data-menu>
+          <summary class="btn btn--primary btn--sm" aria-label="{{ t("admin.shell.new") }}">{{ icon("plus") }}<span class="ax-new__text">{{ t("admin.shell.new") }}</span></summary>
+          <div class="menu__panel" role="menu">
+            <p class="menu__head">{{ t("admin.shell.create") }}</p>
+            {%- if can("clients.manage") %}<a role="menuitem" href="{{ url("/admin/clients/new") }}">{{ icon("user-plus") }}<span>{{ t("admin.shell.new_client") }}</span></a>{% endif %}
+            {%- if can("billing.manage") %}<a role="menuitem" href="{{ url("/admin/invoices/new") }}">{{ icon("file-plus") }}<span>{{ t("admin.shell.new_invoice") }}</span></a>
+            <a role="menuitem" href="{{ url("/admin/billing/coupons/new") }}">{{ icon("tag") }}<span>{{ t("admin.shell.new_coupon") }}</span></a>{% endif %}
+            {%- if can("support.manage") %}<a role="menuitem" href="{{ url("/admin/support/tickets/new") }}">{{ icon("ticket") }}<span>{{ t("admin.shell.new_ticket") }}</span></a>{% endif %}
+            {%- if can("products.manage") %}<a role="menuitem" href="{{ url("/admin/catalog/products/new") }}">{{ icon("box") }}<span>{{ t("admin.shell.new_product") }}</span></a>{% endif %}
+            {%- if can("content.manage") %}<a role="menuitem" href="{{ url("/admin/content/pages/new") }}">{{ icon("file-text") }}<span>{{ t("admin.shell.new_page") }}</span></a>
+            <a role="menuitem" href="{{ url("/admin/content/posts/new") }}">{{ icon("newspaper") }}<span>{{ t("admin.shell.new_post") }}</span></a>{% endif %}
+          </div>
+        </details>
+        {%- endif %}
+        {#- Update indicator for platform operators (empty for everyone else). -#}
+        <span hx-get="{{ url("/admin/update-indicator") }}" hx-trigger="load" hx-swap="outerHTML"></span>
+        {#- Notification bell: the unread count is loaded (and refreshed) by htmx. -#}
+        <a class="ax-iconbtn bell" id="admin-bell" href="{{ url("/admin/notifications") }}" hx-get="{{ url("/admin/notifications/bell") }}" hx-trigger="load" hx-swap="outerHTML" aria-label="{{ t("admin_settings.notifications.title") }}" data-tip="{{ t("admin_settings.notifications.title") }}">{{ icon("bell") }}</a>
+        <button type="button" class="ax-iconbtn theme-toggle ax-top__theme" data-theme-toggle aria-label="{{ t("common.actions.toggle_theme") }}" data-tip="{{ t("common.actions.toggle_theme") }}"><span class="icon-sun">{{ icon("sun") }}</span><span class="icon-moon">{{ icon("moon") }}</span></button>
+        <details class="menu ax-user" data-menu>
+          <summary class="ax-user__button" aria-label="{{ t("admin.shell.account_menu") }}"><span class="ax-avatar" aria-hidden="true">{{ user_initials() }}</span></summary>
+          <div class="menu__panel" role="menu">
+            <div class="menu__who">
+              <span class="ax-avatar ax-avatar--lg" aria-hidden="true">{{ user_initials() }}</span>
+              <span><strong>{{ user_name() }}</strong><span>{% match session %}{% when Some(s) %}{{ s.email() }}{% when None %}{% endmatch %}</span></span>
+            </div>
+            <hr class="menu__sep">
+            <a role="menuitem" href="{{ url("/admin/notifications") }}">{{ icon("bell") }}<span>{{ t("admin_settings.notifications.title") }}</span></a>
+            <a role="menuitem" href="{{ url("/") }}" target="_blank" rel="noopener">{{ icon("external-link") }}<span>{{ t("common.nav.storefront") }}</span></a>
+            <a role="menuitem" href="{{ switch_url(other_locale().as_str()) }}" hreflang="{{ other_locale().as_str() }}">{{ icon("globe") }}<span>{{ t("common.lang.switch") }}</span><span class="menu__hint" lang="{{ other_locale().as_str() }}">{{ other_locale().as_str()|upper }}</span></a>
+            <button type="button" role="menuitem" class="theme-toggle" data-theme-toggle><span class="icon-sun">{{ icon("sun") }}</span><span class="icon-moon">{{ icon("moon") }}</span><span>{{ t("common.actions.toggle_theme") }}</span></button>
+            <hr class="menu__sep">
+            <form method="post" action="/auth/logout"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button type="submit" role="menuitem">{{ icon("log-out") }}<span>{{ t("common.actions.logout") }}</span></button></form>
+          </div>
+        </details>
+      </div>
+    </header>
+    <main id="main" class="ax-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  {#- Command palette: empty query → pages + quick actions (local, already
+      permission-filtered); 2+ characters → /admin/search results (htmx). -#}
+  <dialog class="ax-cmdk" id="ax-cmdk" aria-label="{{ t("admin.search.label") }}">
+    <form class="ax-cmdk__bar" role="search" method="get" action="{{ url("/admin/search") }}">
+      {{ icon("search") }}
+      <label class="visually-hidden" for="cmdk-q">{{ t("admin.search.label") }}</label>
+      <input class="ax-cmdk__input" id="cmdk-q" type="search" name="q" placeholder="{{ t("admin.shell.palette_placeholder") }}" autocomplete="off" spellcheck="false"
+        hx-get="{{ url("/admin/search") }}" hx-trigger="input changed delay:200ms, search" hx-target="#cmdk-results" hx-swap="innerHTML" hx-sync="this:replace" hx-indicator=".ax-cmdk"
+        data-cmdk role="combobox" aria-expanded="true" aria-controls="cmdk-list" aria-autocomplete="list">
+      <span class="spinner ax-cmdk__spin" aria-hidden="true"></span>
+      <button type="button" class="ax-kbd ax-cmdk__esc" data-dialog-close>Esc</button>
+    </form>
+    <div class="ax-cmdk__body" id="cmdk-list" role="listbox" aria-label="{{ t("admin.search.label") }}">
+      <div class="cmdk__results" id="cmdk-results" aria-live="polite"></div>
+      <div class="ax-cmdk__local" data-cmdk-local>
+        {%- if can_new %}
+        <p class="cmdk__group">{{ t("admin.shell.palette_actions") }}</p>
+        {%- if can("clients.manage") %}<a class="cmdk__item" href="{{ url("/admin/clients/new") }}">{{ icon("user-plus") }}<span>{{ t("admin.shell.new_client") }}</span></a>{% endif %}
+        {%- if can("billing.manage") %}<a class="cmdk__item" href="{{ url("/admin/invoices/new") }}">{{ icon("file-plus") }}<span>{{ t("admin.shell.new_invoice") }}</span></a>{% endif %}
+        {%- if can("support.manage") %}<a class="cmdk__item" href="{{ url("/admin/support/tickets/new") }}">{{ icon("ticket") }}<span>{{ t("admin.shell.new_ticket") }}</span></a>{% endif %}
+        {%- if can("products.manage") %}<a class="cmdk__item" href="{{ url("/admin/catalog/products/new") }}">{{ icon("box") }}<span>{{ t("admin.shell.new_product") }}</span></a>{% endif %}
+        {%- if can("content.manage") %}<a class="cmdk__item" href="{{ url("/admin/content/posts/new") }}">{{ icon("newspaper") }}<span>{{ t("admin.shell.new_post") }}</span></a>{% endif %}
+        {%- endif %}
+        {%- match panel %}{% when Some(p) %}
+        {%- for section in p.sections %}
+        <p class="cmdk__group">{% if section.label.is_empty() %}{{ t("admin.search.pages") }}{% else %}{{ section.label }}{% endif %}</p>
+        {%- for item in section.items %}
+        <a class="cmdk__item" href="{{ item.href }}">{{ icon(item.icon) }}<span>{{ item.label }}</span><small>{% if section.label.is_empty() %}{{ t("admin.search.pages") }}{% else %}{{ section.label }}{% endif %}</small></a>
+        {%- endfor %}
+        {%- endfor %}
+        {%- when None %}{% endmatch %}
+      </div>
+    </div>
+    <footer class="ax-cmdk__foot" aria-hidden="true">
+      <span><kbd class="ax-kbd">↑</kbd><kbd class="ax-kbd">↓</kbd>{{ t("admin.shell.kbd_navigate") }}</span>
+      <span><kbd class="ax-kbd">↵</kbd>{{ t("admin.shell.kbd_open") }}</span>
+      <span><kbd class="ax-kbd">Esc</kbd>{{ t("admin.shell.kbd_close") }}</span>
+    </footer>
+  </dialog>
+
+  {#- Confirm dialog for every form[data-confirm] (admin.js; app.js falls back
+      to window.confirm when this script is missing). -#}
+  <dialog class="dialog ax-confirm" id="ax-confirm" aria-labelledby="ax-confirm-title" aria-describedby="ax-confirm-text">
+    <form method="dialog" class="ax-confirm__form">
+      <div class="ax-confirm__body">
+        <span class="ax-confirm__icon" aria-hidden="true">{{ icon("alert-triangle") }}</span>
+        <div>
+          <h2 id="ax-confirm-title">{{ t("admin.shell.confirm_title") }}</h2>
+          <p id="ax-confirm-text"></p>
+        </div>
+      </div>
+      <div class="ax-confirm__foot">
+        <button class="btn btn--ghost" type="submit" value="cancel" data-confirm-cancel data-no-busy>{{ t("common.actions.cancel") }}</button>
+        <button class="btn btn--danger" type="submit" value="ok" data-confirm-ok data-no-busy data-default-label="{{ t("admin.shell.confirm_ok") }}">{{ t("admin.shell.confirm_ok") }}</button>
+      </div>
+    </form>
+  </dialog>
+</div>
+{% endblock %}

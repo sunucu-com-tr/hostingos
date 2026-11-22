@@ -1,0 +1,41 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_content.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("admin_content.seo.sitemap.title") }}</h1><p>{{ t("admin_content.seo.sitemap.lead") }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/sitemap.xml") }}" target="_blank" rel="noopener">{{ icon("external-link") }}sitemap.xml</a></div>
+</div>
+{% include "admin/seo/_tabs.html" %}
+<div class="grid grid--3 mt-4">
+  {% call ui::card("sitemap.xml") %}
+  {%- if ok %}
+  <p class="check-pass">{{ icon("check-circle") }} {{ t("admin_content.seo.sitemap.ok") }}</p>
+  <p class="small">{{ tn("admin_content.seo.sitemap.urls", total) }}{% if files > 1 %} · {{ tn("admin_content.seo.sitemap.files", files) }}{% endif %}</p>
+  {%- else %}
+  <p class="check-fail">{{ icon("x-circle") }} {{ t("admin_content.seo.sitemap.error") }}</p>
+  {%- endif %}
+  {% endcall %}
+  {% call ui::card("robots.txt") %}
+  {%- if robots_ok %}<p class="check-pass">{{ icon("check-circle") }} {{ t("admin_content.seo.sitemap.ok") }}</p>{% else %}<p class="check-fail">{{ icon("x-circle") }} {{ t("admin_content.seo.sitemap.error") }}</p>{% endif %}
+  <p class="small {% if robots_lists_sitemap %}check-pass{% else %}check-warn{% endif %}">{% if robots_lists_sitemap %}{{ t("admin_content.seo.sitemap.robots_links") }}{% else %}{{ t("admin_content.seo.sitemap.robots_no_link") }}{% endif %}</p>
+  <a class="small" href="{{ url("/admin/seo/crawlers") }}">{{ t("admin_content.seo.tabs.crawlers") }}</a>
+  {% endcall %}
+  {% call ui::card("llms.txt") %}
+  {%- if llms_ok %}<p class="check-pass">{{ icon("check-circle") }} {{ t("admin_content.seo.sitemap.ok") }}</p>{% else %}<p class="check-fail">{{ icon("x-circle") }} {{ t("admin_content.seo.sitemap.error") }}</p>{% endif %}
+  <a class="small" href="{{ url("/admin/seo/llms") }}">{{ t("admin_content.seo.tabs.llms") }}</a>
+  {% endcall %}
+</div>
+{%- if ok %}
+<div class="grid grid--2 mt-6">
+  {% call ui::card(t("admin_content.seo.sitemap.by_section")) %}
+  {%- if groups.is_empty() %}<p class="muted small">—</p>{% else %}
+  <table class="table table--dense"><tbody>{% for g in groups %}<tr><td>{{ g.label }}</td><td class="num">{{ num(g.count) }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+  {% endcall %}
+  {% call ui::card(t("admin_content.seo.sitemap.sample")) %}
+  <ul class="side-list mono">{% for u in sample %}<li>{{ u }}</li>{% endfor %}</ul>
+  {% endcall %}
+</div>
+{%- endif %}
+<p class="field__hint mt-4">{{ t("admin_content.seo.sitemap.hint") }} <span class="mono">{{ origin }}</span></p>
+{% endblock %}

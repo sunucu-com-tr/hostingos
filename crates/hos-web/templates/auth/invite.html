@@ -1,0 +1,28 @@
+{% extends "layouts/auth.html" %}
+{% import "components/ui.html" as ui %}
+{% block card %}
+<header class="auth-card__head">
+  <h1>{{ t("admin_settings.invite.title") }}</h1>
+  {%- match invite %}{% when Some(i) %}
+  <p>{{ tv("admin_settings.invite.lead", "email", i.email) }}</p>
+  {%- when None %}
+  <p>{{ t("admin_settings.invite.invalid") }}</p>
+  {%- endmatch %}
+</header>
+{%- match invite %}{% when Some(i) %}
+{% call ui::form_errors(errors) %}{% endcall %}
+<form class="form" method="post" action="{{ url("/auth/invite") }}" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  <input type="hidden" name="token" value="{{ token }}">
+  <div class="field"><label class="field__label" for="f-email">{{ t("auth.fields.email") }}</label>
+    <input class="input" id="f-email" type="email" value="{{ i.email }}" autocomplete="username" readonly></div>
+  {% call ui::field("first_name", t("admin_settings.staff.first_name"), first_name, error=errors.get("first_name"), required=true, autocomplete="given-name") %}{% endcall %}
+  {% call ui::field("last_name", t("admin_settings.staff.last_name"), last_name, autocomplete="family-name") %}{% endcall %}
+  {% call ui::field("password", t("auth.fields.password"), "", kind="password", error=errors.get("password"), hint=t("auth.register.password_hint"), required=true, autocomplete="new-password", autofocus=true) %}{% endcall %}
+  {% call ui::field("password_confirm", t("auth.reset.confirm"), "", kind="password", error=errors.get("password_confirm"), required=true, autocomplete="new-password") %}{% endcall %}
+  <button type="submit" class="btn btn--primary btn--block btn--lg">{{ icon("check") }}{{ t("admin_settings.invite.submit") }}</button>
+</form>
+{%- when None %}
+<p><a class="btn btn--primary btn--block" href="{{ url("/auth/login") }}">{{ t("auth.login.title") }}</a></p>
+{%- endmatch %}
+{% endblock %}

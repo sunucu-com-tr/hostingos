@@ -1,0 +1,18 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.domains.expiring") }}</h1><p>{{ tv("admin.domains.expiring_lead", "days", days) }}</p></div></div>
+<nav class="chips" aria-label="{{ t("admin.domains.window") }}">{% for n in [30, 60, 90, 180] %}<a class="chip{% if days == *n %} chip--active{% endif %}" href="{{ url("/admin/domains/expiring?days=" ~ n) }}">{{ tv("admin.domains.days", "n", n) }}</a>{% endfor %}</nav>
+{%- if rows.is_empty() %}
+{% call ui::empty("check", t("admin.domains.none_expiring"), "") %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th>{{ t("admin.domains.col_name") }}</th><th>{{ t("admin.domains.col_expires") }}</th><th>{{ t("admin.domains.col_auto_renew") }}</th><th>{{ t("admin.common.status") }}</th></tr></thead>
+  <tbody>{% for d in rows %}<tr>
+    <td data-label="{{ t("admin.domains.col_name") }}"><a class="row-link mono" href="{{ url("/admin/domains/" ~ d.id) }}">{{ d.name }}</a></td>
+    <td data-label="{{ t("admin.domains.col_expires") }}">{{ dtopt(d.expires_at) }}</td>
+    <td data-label="{{ t("admin.domains.col_auto_renew") }}">{% if d.auto_renew %}{{ badge(t("admin.common.yes"), "success") }}{% else %}{{ badge(t("admin.common.no"), "warning") }}{% endif %}</td>
+    <td data-label="{{ t("admin.common.status") }}">{{ sbadge(d.status.as_str()) }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{%- endif %}
+{% endblock %}

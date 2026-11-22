@@ -1,0 +1,70 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/_macros.html" as ax %}
+{% block content %}
+{%- let filtered = !q.is_empty() || !status.is_empty() %}
+<div class="page-head">
+  <div><h1>{{ t("admin.invoices.title") }}</h1><p>{{ tn("admin.invoices.count", pager.total) }}</p></div>
+  <div class="page-head__actions">
+    {%- if can("billing.view") %}<a class="btn btn--ghost" href="{{ url("/admin/transactions") }}">{{ icon("credit-card") }}{{ t("admin.menu.transactions") }}</a>{% endif %}
+    {%- if can("billing.manage") %}<a class="btn btn--primary" href="{{ url("/admin/invoices/new") }}">{{ icon("plus") }}{{ t("admin.invoices.new_title") }}</a>{% endif %}
+  </div>
+</div>
+<form class="filters" method="get" action="{{ url("/admin/invoices") }}" role="search">
+  <div class="field field--grow">{{ icon("search") }}<label class="visually-hidden" for="f-q">{{ t("admin.common.search") }}</label>
+    <input class="input" id="f-q" type="search" name="q" value="{{ q }}" placeholder="{{ t("admin.invoices.search_placeholder") }}"></div>
+  <div class="field"><label class="field__label" for="f-status">{{ t("admin.common.status") }}</label>
+    <select class="select" id="f-status" name="status" data-autosubmit><option value="">{{ t("admin.common.all") }}</option>
+    {%- for (v, l) in statuses %}<option value="{{ v }}"{{ sel(v, status) }}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="filters__actions"><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("admin.common.filter") }}</button></div>
+</form>
+{%- if filtered %}
+<div class="ax-chips" role="group" aria-label="{{ t("admin.shell.filters") }}">
+  {%- if !q.is_empty() %}<a class="ax-chip" href="{{ url("/admin/invoices?status=" ~ (status|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.common.search") }}:</span><span class="ax-chip__value">{{ q }}</span>{{ icon("x") }}</a>{% endif %}
+  {%- for (v, l) in statuses %}{% if v.as_str() == status.as_str() %}<a class="ax-chip" href="{{ url("/admin/invoices?q=" ~ (q|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.common.status") }}:</span><span class="ax-chip__value">{{ l }}</span>{{ icon("x") }}</a>{% endif %}{% endfor %}
+  <a class="ax-chips__clear" href="{{ url("/admin/invoices") }}">{{ t("admin.shell.clear_all") }}</a>
+</div>
+{%- endif %}
+{%- if rows.is_empty() %}
+{% call ui::empty("receipt", t("admin.invoices.empty_title"), t("admin.invoices.empty_text")) %}
+{%- if filtered %}<a class="btn btn--soft" href="{{ url("/admin/invoices") }}">{{ icon("x") }}{{ t("admin.shell.clear_all") }}</a>
+{%- elif can("billing.manage") %}<a class="btn btn--primary" href="{{ url("/admin/invoices/new") }}">{{ icon("plus") }}{{ t("admin.invoices.new_title") }}</a>{% endif %}
+{% endcall %}
+{%- else %}
+{%- let manage = can("billing.manage") %}
+<form method="post" action="{{ url("/admin/invoices/bulk") }}"{% if manage %} data-confirm="{{ t("admin.invoices.bulk_confirm") }}"{% endif %}>
+{%- if manage %}
+  {% call ui::csrf() %}{% endcall %}
+  <input type="hidden" name="back" value="{{ back }}">
+  <div class="bulkbar">
+    <span class="bulkbar__count" aria-live="polite">{{ tv("admin.shell.selected", "count", 0) }}</span>
+    <label class="visually-hidden" for="b-action">{{ t("admin.common.bulk_action") }}</label>
+    <select class="select select--sm" id="b-action" name="action">
+      <option value="remind">{{ t("admin.invoices.bulk_remind") }}</option>
+      <option value="publish">{{ t("admin.invoices.bulk_publish") }}</option>
+      <option value="cancel">{{ t("admin.invoices.bulk_cancel") }}</option>
+    </select>
+    <button class="btn btn--soft btn--sm" type="submit">{{ t("admin.common.apply_selected") }}</button>
+  </div>
+{%- endif %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr>{% if manage %}<th scope="col" class="check"><input type="checkbox" data-check-all="ids" aria-label="{{ t("admin.common.select_all") }}"></th>{% endif %}<th scope="col">{{ t("admin.invoices.col_number") }}</th><th scope="col">{{ t("admin.orders.col_client") }}</th><th scope="col">{{ t("admin.invoices.col_issue") }}</th><th scope="col">{{ t("admin.invoices.col_due") }}</th><th scope="col" class="num">{{ t("admin.invoices.col_total") }}</th><th scope="col" class="num">{{ t("admin.invoices.col_balance") }}</th><th scope="col">{{ t("admin.common.status") }}</th><th scope="col" class="col-actions"><span class="visually-hidden">{{ t("admin.common.actions") }}</span></th></tr></thead>
+  <tbody>
+  {%- for r in rows %}
+  <tr>
+    {%- if manage %}<td class="check"><input type="checkbox" name="ids" value="{{ r.invoice.id }}" aria-label="{% match r.invoice.number %}{% when Some(n) %}{{ n }}{% when None %}{{ t("admin.invoices.draft_label") }}{% endmatch %}"></td>{% endif %}
+    <td data-label="{{ t("admin.invoices.col_number") }}"><a class="row-link mono" href="{{ url("/admin/invoices/" ~ r.invoice.id) }}">{% match r.invoice.number %}{% when Some(n) %}{{ n }}{% when None %}{{ t("admin.invoices.draft_label") }}{% endmatch %}</a></td>
+    <td data-label="{{ t("admin.orders.col_client") }}"><a href="{{ url("/admin/clients/" ~ r.invoice.client_id) }}">{{ r.client_name }}</a></td>
+    <td data-label="{{ t("admin.invoices.col_issue") }}" class="muted nowrap">{{ d(r.invoice.issue_date) }}</td>
+    <td data-label="{{ t("admin.invoices.col_due") }}" class="nowrap">{{ d(r.invoice.due_date) }}{% if overdue(r.invoice) %} {{ badge(t("admin.status.overdue"), "danger") }}{% endif %}</td>
+    <td data-label="{{ t("admin.invoices.col_total") }}" class="num">{{ m(r.invoice.total, r.invoice.currency) }}</td>
+    <td data-label="{{ t("admin.invoices.col_balance") }}" class="num">{% if r.invoice.balance.is_zero() %}<span class="muted">{{ m(r.invoice.balance, r.invoice.currency) }}</span>{% else %}{{ m(r.invoice.balance, r.invoice.currency) }}{% endif %}</td>
+    <td data-label="{{ t("admin.common.status") }}">{{ sbadge(r.invoice.status.as_str()) }}</td>
+  <td class="col-actions">{% call ax::row_menu(t("admin.common.actions")) %}<a role="menuitem" href="{{ url("/admin/invoices/" ~ r.invoice.id) }}">{{ icon("receipt") }}<span>{{ t("admin.common.open") }}</span></a><a role="menuitem" href="{{ url("/admin/invoices/" ~ r.invoice.id ~ "/print") }}" target="_blank" rel="noopener">{{ icon("file-text") }}<span>{{ t("admin.common.print") }}</span></a><a role="menuitem" href="{{ url("/admin/invoices/" ~ r.invoice.id ~ "/pdf") }}">{{ icon("download") }}<span>PDF</span></a><a role="menuitem" href="{{ url("/admin/clients/" ~ r.invoice.client_id) }}">{{ icon("user") }}<span>{{ t("admin.orders.col_client") }}</span></a>{% endcall %}</td></tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+</form>
+{% call ax::pager(pager) %}{% endcall %}
+{%- endif %}
+{% endblock %}

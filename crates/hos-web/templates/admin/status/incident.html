@@ -1,0 +1,83 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ ctx.title }}{% match incident %}{% when Some(i) %} {{ ibadge(i.status) }}{% when None %}{% endmatch %}</h1>
+    {%- match incident %}{% when Some(i) %}<p>{{ lbl("netstatus.kind", i.kind.as_str()) }} · {{ lbl("netstatus.impact", i.impact.as_str()) }}{% if i.is_public %} · <a href="{{ url("/status/incidents/" ~ i.id) }}">{{ t("netstatus.admin.public_link") }}</a>{% endif %}</p>{% when None %}{% endmatch %}</div>
+  {%- match incident %}{% when Some(i) %}
+  <div class="page-head__actions">
+    {%- if i.is_public %}
+    {%- match i.notified_at %}
+    {%- when Some(n) %}<span class="biz-muted">{{ t("netstatus.admin.notified_at") }} {{ datetime(n) }}</span>
+    {%- when None %}<form method="post" action="{{ url("/admin/status/incidents/" ~ i.id ~ "/notify") }}" data-confirm="{{ t("netstatus.admin.notify_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--soft" type="submit">{{ icon("mail") }}{{ t("netstatus.admin.notify") }}</button></form>
+    {%- endmatch %}
+    {%- endif %}
+    <form method="post" action="{{ url("/admin/status/incidents/" ~ i.id ~ "/delete") }}" data-confirm="{{ t("netstatus.admin.incident_delete_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--danger" type="submit">{{ icon("trash") }}{{ t("admin.common.delete") }}</button></form>
+  </div>
+  {%- when None %}{% endmatch %}
+</div>
+{%- if !error.is_empty() %}{% call ui::alert("error", error) %}{% endcall %}{% endif %}
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    {%- match incident %}{% when Some(i) %}
+    {% call ui::card(t("netstatus.admin.add_update")) %}
+    <form method="post" action="{{ url("/admin/status/incidents/" ~ i.id ~ "/updates") }}" class="stack">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::select("status", t("netstatus.fields.status"), statuses_for_kind(), i.status.as_str()) %}{% endcall %}
+      {% call ui::textarea("message", t("netstatus.fields.message"), "", hint=t("netstatus.admin.message_hint"), rows=5, required=true) %}{% endcall %}
+      <div><button class="btn btn--primary" type="submit">{{ icon("send") }}{{ t("netstatus.admin.post_update") }}</button></div>
+    </form>
+    {% endcall %}
+    {% call ui::card(t("netstatus.admin.timeline")) %}
+    <ol class="incident__timeline">
+    {%- for u in updates %}
+      <li><p>{{ ibadge(u.status) }} <time datetime="{{ u.created_at.to_rfc3339() }}">{{ datetime(u.created_at) }}</time></p><div class="prose">{{ md(u.body) }}</div></li>
+    {%- endfor %}
+    </ol>
+    {% endcall %}
+    {%- when None %}{% endmatch %}
+    <form method="post" action="{% match id %}{% when Some(iid) %}{{ url("/admin/status/incidents/" ~ iid) }}{% when None %}{{ url("/admin/status/incidents") }}{% endmatch %}" class="stack-lg">
+      {% call ui::csrf() %}{% endcall %}
+      <input type="hidden" name="kind" value="{{ form.kind }}">
+      {% call ui::card(t("netstatus.admin.details")) %}
+      <div class="stack">
+        {% call ui::field("title", t("netstatus.fields.title"), form.title, required=true) %}{% endcall %}
+        <div class="form-grid form-grid--2">
+          {% call ui::select("impact", t("netstatus.fields.impact"), impacts, form.impact.as_str()) %}{% endcall %}
+          {%- if id.is_none() %}
+          {% call ui::select("status", t("netstatus.fields.status"), statuses_for_kind(), form.status.as_str()) %}{% endcall %}
+          {%- endif %}
+        </div>
+        <div class="form-grid form-grid--2">
+          {% call ui::field("scheduled_start", t("netstatus.fields.scheduled_start"), form.scheduled_start, kind="datetime-local", hint=t("netstatus.admin.tz_hint")) %}{% endcall %}
+          {% call ui::field("scheduled_end", t("netstatus.fields.scheduled_end"), form.scheduled_end, kind="datetime-local") %}{% endcall %}
+        </div>
+        {% call ui::checkbox("is_public", t("netstatus.admin.is_public_incident"), form.is_public) %}{% endcall %}
+        {%- if id.is_none() %}
+        {% call ui::textarea("message", t("netstatus.fields.message"), form.message, hint=t("netstatus.admin.message_hint"), rows=5, required=true) %}{% endcall %}
+        {%- endif %}
+      </div>
+      {% endcall %}
+      {% call ui::card(t("netstatus.admin.affected"), t("netstatus.admin.affected_hint")) %}
+      {%- if components.is_empty() %}<p class="biz-muted">{{ t("netstatus.admin.components_empty") }}</p>{% else %}
+      <fieldset class="biz-checks"><legend class="visually-hidden">{{ t("netstatus.admin.affected") }}</legend>
+      {%- for c in components %}
+        <label class="check"><input type="checkbox" name="components" value="{{ c.id }}"{% if checked_component(c.id) %} checked{% endif %}> <span>{{ c.name }}{% if !c.group_name.is_empty() %} <span class="biz-muted">· {{ c.group_name }}</span>{% endif %}</span></label>
+      {%- endfor %}
+      </fieldset>
+      {%- endif %}
+      {% endcall %}
+      <div class="biz-actions">
+        <button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button>
+        <a class="btn btn--ghost" href="{{ url("/admin/status") }}">{{ t("common.actions.cancel") }}</a>
+      </div>
+    </form>
+  </div>
+  <aside class="stack-lg">
+    {% call ui::card(t("netstatus.admin.help_title")) %}
+    <p class="biz-muted">{{ t("netstatus.admin.help_text") }}</p>
+    {% endcall %}
+  </aside>
+</div>
+{% endblock %}

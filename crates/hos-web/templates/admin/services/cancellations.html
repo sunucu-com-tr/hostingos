@@ -1,0 +1,19 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.services.cancellations") }}</h1><p>{{ t("admin.services.cancellations_lead") }}</p></div></div>
+{%- if rows.is_empty() %}
+{% call ui::empty("check", t("admin.services.no_cancellations"), "") %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th>{{ t("admin.services.col_product") }}</th><th>{{ t("admin.orders.col_client") }}</th><th>{{ t("admin.services.cancel_type") }}</th><th>{{ t("admin.services.cancel_reason") }}</th><th>{{ t("admin.common.date") }}</th><th>{{ t("admin.services.col_due") }}</th></tr></thead>
+  <tbody>{% for r in rows %}<tr>
+    <td data-label="{{ t("admin.services.col_product") }}"><a class="row-link" href="{{ url("/admin/services/" ~ r.service.id) }}">{{ r.product_name }}</a><span class="sub">{{ o(r.service.domain) }}</span></td>
+    <td data-label="{{ t("admin.orders.col_client") }}"><a href="{{ url("/admin/clients/" ~ r.service.client_id) }}">{{ r.client_name }}</a></td>
+    <td data-label="{{ t("admin.services.cancel_type") }}">{% match r.service.cancellation_type %}{% when Some(ct) %}{{ lbl("admin.services.cancel_types", ct.as_str()) }}{% when None %}—{% endmatch %}</td>
+    <td data-label="{{ t("admin.services.cancel_reason") }}">{{ o(r.service.cancellation_reason) }}</td>
+    <td data-label="{{ t("admin.common.date") }}">{{ dtopt(r.service.cancellation_requested_at) }}</td>
+    <td data-label="{{ t("admin.services.col_due") }}">{{ dopt(r.service.next_due_date) }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{%- endif %}
+{% endblock %}

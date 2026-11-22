@@ -1,0 +1,157 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+{#- 12-month revenue: max (sparkline scale) and total, computed here from the
+    series the handler already passes (no extra query). -#}
+{%- let zero = rust_decimal::Decimal::ZERO %}
+{%- let mut rmax = rust_decimal::Decimal::ZERO %}
+{%- let mut rsum = rust_decimal::Decimal::ZERO %}
+{%- for p in revenue %}{% if p.value > rmax %}{% mut rmax = p.value %}{% endif %}{% mut rsum += p.value %}{% endfor %}
+<div class="page-head">
+  <div>
+    <h1>{{ t("admin.dashboard.title") }}</h1>
+    <p>{{ tv("admin.dashboard.hello", "name", first_name) }}</p>
+  </div>
+  <div class="page-head__actions">
+    {%- if can("reports.view") %}<a class="btn btn--ghost" href="{{ url("/admin/reports") }}">{{ icon("bar-chart") }}{{ t("admin.menu.reports") }}</a>{% endif %}
+    {%- if can("billing.manage") %}<a class="btn btn--primary" href="{{ url("/admin/invoices/new") }}">{{ icon("plus") }}{{ t("admin.shell.new_invoice") }}</a>{% endif %}
+  </div>
+</div>
+
+<div class="ax-dash">
+{%- match stats %}
+{%- when Some(s) %}
+<div id="kpi-trends" class="kpi-trends" hx-get="{{ url("/admin/dashboard/kpis") }}?range={{ range }}" hx-trigger="load" hx-swap="outerHTML" aria-busy="true" aria-label="{{ t("admin.dashboard.overview") }}">
+  <div class="kpis kpis--trend" aria-hidden="true">
+    {%- for _i in 0..8 %}<div class="kpi kpi--skeleton"><div class="skeleton skeleton--line"></div><div class="skeleton skeleton--title"></div><div class="skeleton skeleton--line"></div></div>{% endfor %}
+  </div>
+  <noscript><p><a href="{{ url("/admin/dashboard/kpis") }}?range={{ range }}">{{ t("admin.dashboard.overview") }}</a></p></noscript>
+</div>
+{%- when None %}
+{% call ui::alert("info", t("admin.dashboard.limited_text")) %}{% endcall %}
+{%- endmatch %}
+
+<div class="ax-dash__row">
+  <div class="stack-lg">
+    {%- match stats %}{% when Some(s) %}
+    {%- if !revenue.is_empty() %}
+    <section class="card ax-revenue">
+      <header class="card__head">
+        <div><h2>{{ t("admin.dashboard.revenue_title") }}</h2><p>{{ t("admin.dashboard.revenue_lead") }}</p></div>
+        <p class="ax-figure"><span class="ax-figure__label">{{ t("admin.dashboard.total_12") }}</span><span class="ax-figure__value">{{ money_in(rsum, s.currency) }}</span></p>
+      </header>
+      <div class="card__body">
+        <div class="ax-chart">{{ chart_svg|safe }}</div>
+        <details class="chart-table">
+          <summary>{{ icon("list") }}{{ t("admin.common.show_table") }}</summary>
+          <div class="table-wrap mt-2"><table class="table table--dense">
+            <thead><tr><th scope="col">{{ t("admin.dashboard.month") }}</th><th scope="col" class="num">{{ t("admin.dashboard.amount") }}</th></tr></thead>
+            <tbody>{% for p in revenue %}<tr><td>{{ p.label }}</td><td class="num">{{ p.display }}</td></tr>{% endfor %}</tbody>
+          </table></div>
+        </details>
+      </div>
+    </section>
+    {%- endif %}
+    {%- when None %}{% endmatch %}
+
+    <section class="card">
+      <header class="card__head">
+        <div><h2>{{ t("admin.dashboard.activity_title") }}</h2></div>
+        {%- if can("settings.manage") && !activity.is_empty() %}<a class="ax-card-link" href="{{ url("/admin/system/audit") }}">{{ t("admin.dashboard.activity_all") }}{{ icon("arrow-right") }}</a>{% endif %}
+      </header>
+      {%- if activity.is_empty() %}
+      <div class="card__body">{% call ui::empty("history", t("admin.dashboard.activity_empty"), "") %}{% endcall %}</div>
+      {%- else %}
+      <ul class="activity">
+        {%- for a in activity %}
+        <li>
+          <span class="activity__avatar" aria-hidden="true">{% match a.actor.chars().next() %}{% when Some(ch) %}{{ ch.to_uppercase() }}{% when None %}·{% endmatch %}</span>
+          <div class="activity__text">{% if a.link.is_empty() %}{{ a.action }}{% else %}<a href="{{ a.link }}">{{ a.action }}</a>{% endif %}<span class="activity__meta">{{ a.actor }}</span></div>
+          <time datetime="{{ iso(a.at) }}">{{ datetime(a.at) }}</time>
+        </li>
+        {%- endfor %}
+      </ul>
+      {%- endif %}
+    </section>
+  </div>
+
+  <aside class="stack-lg">
+    {#- Work waiting on the team: only queues this role may open. -#}
+    {%- let mut open_work = 0 %}
+    {%- match stats %}{% when Some(s) %}
+    {%- if can("billing.view") %}{% mut open_work += s.overdue_invoices %}{% endif %}
+    {%- if can("support.view") %}{% mut open_work += s.tickets_awaiting_staff %}{% endif %}
+    {%- if can("domains.manage") %}{% mut open_work += s.domains_expiring_30d %}{% endif %}
+    {%- when None %}{% endmatch %}
+    {%- if can("billing.view") %}{% mut open_work += work.pending_orders %}{% endif %}
+    {%- if can("services.view") %}{% mut open_work += work.manual_provisioning + work.failed_services + work.cancellation_requests %}{% endif %}
+    {%- if can("settings.manage") %}{% mut open_work += queue.failed %}{% endif %}
+    <section class="card" aria-labelledby="attention-title">
+      <header class="card__head"><div><h2 id="attention-title">{{ t("admin.dashboard.attention_title") }}</h2><p>{{ t("admin.dashboard.attention_lead") }}</p></div></header>
+      {%- if open_work == 0 %}
+      <p class="worklist__clear">{{ icon("check-circle") }}{{ t("admin.dashboard.attention_clear") }}</p>
+      {%- endif %}
+      <ul class="worklist">
+        {%- match stats %}{% when Some(s) %}
+        {%- if can("billing.view") %}
+        <li{% if s.overdue_invoices == 0 %} class="worklist__zero"{% endif %}><a href="{{ url("/admin/invoices?status=overdue") }}"><span class="worklist__icon">{{ icon("alert-triangle") }}</span><span class="worklist__label">{{ t("admin.dashboard.work_overdue") }}</span><span class="worklist__count"{% if s.overdue_invoices > 0 %} data-tone="danger"{% endif %}>{{ num(s.overdue_invoices) }}</span>{{ icon_cls("chevron-right", "worklist__chev") }}</a></li>
+        {%- endif %}
+        {%- if can("support.view") %}
+        <li{% if s.tickets_awaiting_staff == 0 %} class="worklist__zero"{% endif %}><a href="{{ url("/admin/support/tickets?status=awaiting") }}"><span class="worklist__icon">{{ icon("ticket") }}</span><span class="worklist__label">{{ t("admin.dashboard.work_tickets") }}</span><span class="worklist__count"{% if s.tickets_awaiting_staff > 0 %} data-tone="warning"{% endif %}>{{ num(s.tickets_awaiting_staff) }}</span>{{ icon_cls("chevron-right", "worklist__chev") }}</a></li>
+        {%- endif %}
+        {%- when None %}{% endmatch %}
+        {%- if can("services.view") %}
+        <li{% if work.failed_services == 0 %} class="worklist__zero"{% endif %}><a href="{{ url("/admin/services?status=failed") }}"><span class="worklist__icon">{{ icon("x-circle") }}</span><span class="worklist__label">{{ t("admin.dashboard.work_failed_services") }}</span><span class="worklist__count"{% if work.failed_services > 0 %} data-tone="danger"{% endif %}>{{ num(work.failed_services) }}</span>{{ icon_cls("chevron-right", "worklist__chev") }}</a></li>
+        {%- endif %}
+        {%- if can("billing.view") %}
+        <li{% if work.pending_orders == 0 %} class="worklist__zero"{% endif %}><a href="{{ url("/admin/orders?status=pending") }}"><span class="worklist__icon">{{ icon("cart") }}</span><span class="worklist__label">{{ t("admin.dashboard.work_orders") }}</span><span class="worklist__count"{% if work.pending_orders > 0 %} data-tone="info"{% endif %}>{{ num(work.pending_orders) }}</span>{{ icon_cls("chevron-right", "worklist__chev") }}</a></li>
+        {%- endif %}
+        {%- if can("services.view") %}
+        <li{% if work.manual_provisioning == 0 %} class="worklist__zero"{% endif %}><a href="{{ url("/admin/orders/provisioning") }}"><span class="worklist__icon">{{ icon("server") }}</span><span class="worklist__label">{{ t("admin.dashboard.work_manual") }}</span><span class="worklist__count"{% if work.manual_provisioning > 0 %} data-tone="info"{% endif %}>{{ num(work.manual_provisioning) }}</span>{{ icon_cls("chevron-right", "worklist__chev") }}</a></li>
+        <li{% if work.cancellation_requests == 0 %} class="worklist__zero"{% endif %}><a href="{{ url("/admin/services/cancellations") }}"><span class="worklist__icon">{{ icon("log-out") }}</span><span class="worklist__label">{{ t("admin.dashboard.work_cancellations") }}</span><span class="worklist__count"{% if work.cancellation_requests > 0 %} data-tone="warning"{% endif %}>{{ num(work.cancellation_requests) }}</span>{{ icon_cls("chevron-right", "worklist__chev") }}</a></li>
+        {%- endif %}
+        {%- match stats %}{% when Some(s) %}
+        {%- if can("domains.manage") %}
+        <li{% if s.domains_expiring_30d == 0 %} class="worklist__zero"{% endif %}><a href="{{ url("/admin/domains/expiring") }}"><span class="worklist__icon">{{ icon("globe") }}</span><span class="worklist__label">{{ t("admin.dashboard.work_domains") }}</span><span class="worklist__count"{% if s.domains_expiring_30d > 0 %} data-tone="warning"{% endif %}>{{ num(s.domains_expiring_30d) }}</span>{{ icon_cls("chevron-right", "worklist__chev") }}</a></li>
+        {%- endif %}
+        {%- when None %}{% endmatch %}
+        {%- if can("settings.manage") %}
+        <li{% if queue.failed == 0 %} class="worklist__zero"{% endif %}><a href="{{ url("/admin/system/jobs?status=failed") }}"><span class="worklist__icon">{{ icon("zap") }}</span><span class="worklist__label">{{ t("admin.dashboard.work_failed_jobs") }}</span><span class="worklist__count"{% if queue.failed > 0 %} data-tone="danger"{% endif %}>{{ num(queue.failed) }}</span>{{ icon_cls("chevron-right", "worklist__chev") }}</a></li>
+        {%- endif %}
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="health-title">
+      <header class="card__head"><div><h2 id="health-title">{{ t("admin.dashboard.health_title") }}</h2></div>{{ badge(lag(), lag_tone()) }}</header>
+      <dl class="ax-meters" aria-label="{{ t("admin.dashboard.queue_title") }}">
+        <div><dt>{{ t("admin.dashboard.queue_pending") }}</dt><dd>{{ num(queue.pending) }}</dd></div>
+        <div><dt>{{ t("admin.dashboard.queue_running") }}</dt><dd>{{ num(queue.running) }}</dd></div>
+        <div><dt>{{ t("admin.dashboard.queue_failed") }}</dt><dd{% if queue.failed > 0 %} data-tone="danger"{% endif %}>{{ num(queue.failed) }}</dd></div>
+      </dl>
+      {%- if !failed.is_empty() %}
+      <p class="ax-subhead">{{ t("admin.dashboard.failed_jobs") }}</p>
+      <ul class="ax-status-list">
+        {%- for j in failed %}
+        <li><code class="small">{{ j.kind }}</code><span class="muted small nowrap">{{ dtopt(j.failed_at) }}</span></li>
+        {%- endfor %}
+      </ul>
+      {%- endif %}
+      {%- if !integrations.is_empty() %}
+      <p class="ax-subhead">{{ t("admin.dashboard.integrations") }}</p>
+      <ul class="ax-status-list">
+        {%- for i in integrations %}
+        <li><a href="{{ url("/admin/integrations/" ~ i.id) }}">{{ i.name }}</a>
+          {%- if !i.is_active %}{{ badge(t("admin.integrations.inactive"), "") }}
+          {%- else %}{% match i.last_test_ok %}{% when Some(true) %}{{ badge(t("admin.integrations.test_ok"), "success") }}{% when Some(false) %}{{ badge(t("admin.integrations.test_failed"), "danger") }}{% when None %}{{ badge(t("admin.integrations.untested"), "warning") }}{% endmatch %}{% endif %}
+        </li>
+        {%- endfor %}
+      </ul>
+      {%- endif %}
+      {%- if can("settings.manage") %}
+      <footer class="card__foot"><a class="ax-card-link" href="{{ url("/admin/system/jobs") }}">{{ t("admin.dashboard.jobs_all") }}{{ icon("arrow-right") }}</a></footer>
+      {%- endif %}
+    </section>
+  </aside>
+</div>
+</div>
+{% endblock %}

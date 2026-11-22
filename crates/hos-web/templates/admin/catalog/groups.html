@@ -1,0 +1,51 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.catalog.groups_title") }}</h1><p>{{ t("admin.catalog.groups_lead") }}</p></div></div>
+<div class="admin-grid admin-grid--side">
+  <div class="stack">
+  {%- if groups.is_empty() %}
+  {% call ui::empty("layers", t("admin.catalog.groups_empty"), "") %}{% endcall %}
+  {%- endif %}
+  {%- for g in groups %}
+  <details class="card">
+    <summary class="card__body"><strong>{{ g.name }}</strong> <span class="muted mono">/{{ g.slug }}</span>{% if g.is_hidden %} {{ badge(t("admin.catalog.hidden"), "warning") }}{% endif %}</summary>
+    <form class="card__body stack" method="post" action="{{ url("/admin/catalog/groups/" ~ g.id) }}">
+      {% call ui::csrf() %}{% endcall %}
+      <div class="form-grid">
+        {% call ui::field("name", t("admin.common.name"), g.name, required=true) %}{% endcall %}
+        {% call ui::field("slug", t("admin.catalog.slug"), g.slug, required=true) %}{% endcall %}
+        {% call ui::field("tagline", t("admin.catalog.tagline"), g.tagline.clone().unwrap_or_default()) %}{% endcall %}
+        {% call ui::field("icon", t("admin.catalog.icon"), g.icon.clone().unwrap_or_default(), placeholder="server") %}{% endcall %}
+        {% call ui::field("sort_order", t("admin.catalog.sort_order"), g.sort_order.to_string(), inputmode="numeric") %}{% endcall %}
+      </div>
+      {% call ui::textarea("description", t("admin.common.description"), g.description.clone().unwrap_or_default(), rows=3) %}{% endcall %}
+      <fieldset class="fieldset"><legend>{{ t("admin.catalog.translation") }} ({{ other }})</legend>
+        <div class="form-grid">
+          {% call ui::field("name_tr", t("admin.common.name"), tr_field(g, "name")) %}{% endcall %}
+          {% call ui::field("tagline_tr", t("admin.catalog.tagline"), tr_field(g, "tagline")) %}{% endcall %}
+        </div>
+        {% call ui::textarea("description_tr", t("admin.common.description"), tr_field(g, "description"), rows=3) %}{% endcall %}
+      </fieldset>
+      {% call ui::checkbox("is_hidden", t("admin.catalog.hidden_label"), g.is_hidden) %}{% endcall %}
+      <div class="form-actions">
+        <button class="btn btn--primary btn--sm" type="submit">{{ t("common.actions.save") }}</button>
+        <button class="btn btn--ghost btn--sm" type="submit" formaction="{{ url("/admin/catalog/groups/" ~ g.id ~ "/delete") }}">{{ icon("x") }}{{ t("admin.common.delete") }}</button>
+      </div>
+    </form>
+  </details>
+  {%- endfor %}
+  </div>
+  <aside>
+  {% call ui::card(t("admin.catalog.group_new")) %}
+  <form class="stack" method="post" action="{{ url("/admin/catalog/groups") }}">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::field("name", t("admin.common.name"), "", required=true) %}{% endcall %}
+    {% call ui::field("slug", t("admin.catalog.slug"), "", hint=t("admin.catalog.slug_hint")) %}{% endcall %}
+    {% call ui::field("tagline", t("admin.catalog.tagline"), "") %}{% endcall %}
+    <button class="btn btn--primary" type="submit">{{ icon("plus") }}{{ t("admin.common.create") }}</button>
+  </form>
+  {% endcall %}
+  </aside>
+</div>
+{% endblock %}

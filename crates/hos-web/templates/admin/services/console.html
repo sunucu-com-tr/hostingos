@@ -1,0 +1,15 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.vm.console") }}</h1><p>{{ kind }}{% if !expires.is_empty() %} · {{ tv("admin.vm.expires", "at", expires) }}{% endif %}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/services/" ~ s.id ~ "/vm") }}">{{ icon("chevron-left") }}{{ t("admin.common.back") }}</a></div></div>
+{% call ui::card() %}
+<p>{{ t("admin.vm.console_lead") }}</p>
+<p class="mt-4"><a class="btn btn--primary" href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ icon("external-link") }}{{ t("admin.vm.open_console") }}</a></p>
+<dl class="kv mt-4">
+  {%- if !ticket.is_empty() %}<dt>{{ t("admin.vm.ticket") }}</dt><dd><code class="mono">{{ ticket }}</code></dd>{% endif %}
+  {%- if !password.is_empty() %}<dt>{{ t("admin.services.password") }}</dt><dd><code class="mono">{{ password }}</code></dd>{% endif %}
+  {%- if !port.is_empty() %}<dt>{{ t("admin.vm.port") }}</dt><dd class="mono">{{ port }}</dd>{% endif %}
+</dl>
+{% endcall %}
+{% endblock %}

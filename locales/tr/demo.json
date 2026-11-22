@@ -1,0 +1,32 @@
+{
+  "banner": {
+    "badge": "Demo",
+    "mailbox": "Demo posta kutusu",
+    "next": "Sonraki sıfırlamaya yaklaşık {minutes} dakika var.",
+    "soon": "Demo şu anda sıfırlanıyor; birazdan sayfayı yenileyin.",
+    "text": "Bu bir demodur. Buradaki içeriğin bir kısmını diğer ziyaretçiler deneme amacıyla girmiş olabilir; siz de kendi içeriğinizi ekleyebilirsiniz. Girilen her şey en fazla {minutes} dakika saklanır, ardından otomatik olarak silinir. Gerçek kişisel bilgi girmeyin."
+  },
+  "blocked": {
+    "text": "Bu işlem herkese açık demoda kapalıdır."
+  },
+  "login": {
+    "client": "Müşteri",
+    "lead": "Bu bir demodur: tek tıkla giriş yapın ve kendi deneme içeriğinizi ekleyin. Girdiğiniz her şey en fazla {minutes} dakika saklanır, ardından otomatik olarak silinir. Demo parolaları değiştirilemez.",
+    "staff": "Hosting firması yöneticisi",
+    "title": "Demo hesapları",
+    "use": "Giriş yap"
+  },
+  "mailbox": {
+    "back": "Posta kutusuna dön",
+    "date": "Tarih",
+    "empty": "Henüz ileti yok. Bir sipariş verin veya destek talebi açın; e-postalar burada görünür.",
+    "from": "Gönderen",
+    "lead": "Demo gerçek e-posta göndermez. Göndereceği iletiler bir sonraki sıfırlamaya kadar burada görünür; demo hesapları dışındaki adresler maskelenir.",
+    "subject": "Konu",
+    "title": "Demo posta kutusu",
+    "to": "Alıcı"
+  },
+  "reset": {
+    "notice": "Demo az önce sıfırlandı: son {minutes} dakikada girilen her şey silindi ve örnek veriler geri yüklendi. Devam etmek için lütfen yeniden giriş yapın."
+  }
+}

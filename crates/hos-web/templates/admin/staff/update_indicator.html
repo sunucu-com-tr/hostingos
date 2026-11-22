@@ -1,0 +1,4 @@
+{#- Top-bar update indicator (platform operators only); empty otherwise. -#}
+{%- if show %}
+<a class="ax-iconbtn ax-update{% if security %} ax-update--security{% endif %}" href="{{ href }}" aria-label="{{ label }}" data-tip="{{ label }}">{{ icon("download") }}<span class="ax-update__dot" aria-hidden="true"></span></a>
+{%- endif %}

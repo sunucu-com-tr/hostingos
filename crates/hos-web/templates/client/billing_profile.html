@@ -1,0 +1,14 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head"><div><h1>{{ t("client.billing.profile_title") }}</h1><p>{{ t("client.billing.profile_lead") }}</p></div></div>
+<form class="card form-narrow" method="post" action="{{ url("/client/account/billing") }}" novalidate>
+  <div class="card__body stack">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::form_errors(errors) %}{% endcall %}
+    <p class="small muted">{{ tv("client.billing.profile_email", "email", email) }}</p>
+    {% include "client/_details_fields.html" %}
+  </div>
+  <div class="card__foot"><button type="submit" class="btn btn--primary">{{ t("client.common.save") }}</button></div>
+</form>
+{% endblock %}

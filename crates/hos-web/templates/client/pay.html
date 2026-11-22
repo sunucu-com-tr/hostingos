@@ -1,0 +1,36 @@
+{#- Gateway hand-off: auto-submitted form, iframe, embedded gateway HTML or
+    offline (bank transfer) instructions. The response CSP is widened only
+    for the gateway in use. -#}
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head">
+  <div><h1>{{ tv("client.pay.title", "number", number) }}</h1><p>{{ tv("client.pay.amount", "amount", amount) }}</p></div>
+  <div class="btn-row"><a class="btn btn--ghost" href="{{ url("/client/invoices/") }}{{ invoice_id }}">{{ t("client.pay.back") }}</a></div>
+</div>
+{%- if mode == "form" %}
+<section class="card pay-handoff">
+  <div class="card__body stack">
+    <p><span class="spinner" aria-hidden="true"></span> {{ t("client.pay.redirecting") }}</p>
+    <form id="gateway-form" method="{{ method }}" action="{{ action }}">
+      {%- for (k, v) in fields %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+      <button type="submit" class="btn btn--primary">{{ icon("lock") }}{{ t("client.pay.continue") }}</button>
+    </form>
+    <script nonce="{{ nonce }}">document.getElementById("gateway-form").submit();</script>
+  </div>
+</section>
+{%- elif mode == "iframe" %}
+<section class="card"><div class="card__body"><iframe class="pay-frame" src="{{ url }}" title="{{ t("client.pay.frame_title") }}" referrerpolicy="origin"></iframe></div></section>
+{%- elif mode == "embed" %}
+<section class="card"><div class="card__body pay-embed">{{ html|safe }}</div></section>
+{%- else %}
+<section class="card">
+  <header class="card__head"><div><h2>{{ t("client.pay.offline_title") }}</h2><p class="muted small">{{ t("client.pay.offline_lead") }}</p></div></header>
+  <div class="card__body stack">
+    <div class="prose">{{ html|safe }}</div>
+    {% call ui::code("pay-ref", t("client.pay.reference"), reference) %}{% endcall %}
+    <p class="small muted">{{ t("client.pay.offline_note") }}</p>
+  </div>
+</section>
+{%- endif %}
+{% endblock %}

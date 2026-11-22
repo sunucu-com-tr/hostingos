@@ -1,0 +1,100 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_content.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ task_title }}</h1>
+    <p>{{ sbadge(g.status.as_str()) }} · {{ datetime(g.created_at) }}{% if !user.is_empty() %} · {{ user }}{% endif %}{% match g.locale %}{% when Some(l) %} · {{ l.as_str()|upper }}{% when None %}{% endmatch %}
+    {%- if !target_title.is_empty() %} · {{ t("admin_content.ai.target") }}: <a href="{{ url(target_url) }}">{{ target_title }}</a>{% endif %}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/ai/history") }}">{{ icon("clock") }}{{ t("admin_content.ai.history") }}</a>
+    <a class="btn btn--ghost" href="{{ url("/admin/ai") }}">{{ icon("sparkles") }}{{ t("admin_content.ai.title") }}</a></div>
+</div>
+
+{%- if pending %}
+{% call ui::card() %}
+<div class="ai-pending" role="status" aria-live="polite" hx-get="{{ url("/admin/ai/generations/" ~ g.id ~ "/status") }}" hx-trigger="every 2s" hx-swap="outerHTML">
+  <span class="spinner" aria-hidden="true"></span><span>{{ t("admin_content.ai.working") }}</span>
+</div>
+<p class="muted small mt-2">{{ t("admin_content.ai.working_hint") }}</p>
+{% endcall %}
+{%- elif g.status.as_str() == "failed" %}
+<div class="alert alert--error" role="alert">{{ icon("alert-triangle") }}<div><p>{{ t("admin_content.ai.failed") }}</p>{% match g.error %}{% when Some(e) %}<p class="small">{{ e }}</p>{% when None %}{% endmatch %}</div></div>
+{%- else %}
+{%- if g.status.as_str() == "applied" %}{% call ui::alert("success", t("admin_content.ai.already_applied")) %}{% endcall %}{% endif %}
+{%- if g.status.as_str() == "discarded" %}{% call ui::alert("warning", t("admin_content.ai.was_discarded")) %}{% endcall %}{% endif %}
+<div class="diff">
+  <section class="diff__col" aria-labelledby="cur-h">
+    <h4 id="cur-h">{{ t("admin_content.ai.current") }}</h4>
+    {%- if current_title.is_empty() && current_desc.is_empty() && current_html.is_empty() %}
+    <p class="muted small">{{ t("admin_content.ai.current_empty") }}</p>
+    {%- else %}
+    {%- if !current_title.is_empty() %}<p><strong>{{ current_title }}</strong></p>{% endif %}
+    {%- if !current_desc.is_empty() %}<p class="muted">{{ current_desc }}</p>{% endif %}
+    {%- if !current_html.is_empty() %}<div class="prose">{{ current_html|safe }}</div>{% endif %}
+    {%- endif %}
+  </section>
+  <section class="diff__col diff__col--new" aria-labelledby="new-h">
+    <h4 id="new-h">{{ t("admin_content.ai.proposal") }}</h4>
+    {%- if task == "meta" %}
+    <dl class="kv">
+      <dt>{{ t("admin_content.meta.meta_title") }}</dt><dd>{{ p.title }} <span class="counter">{{ p.title.chars().count() }}/60</span></dd>
+      <dt>{{ t("admin_content.meta.meta_description") }}</dt><dd>{{ p.description }} <span class="counter">{{ p.description.chars().count() }}/160</span></dd>
+    </dl>
+    <div class="serp mt-4" aria-label="{{ t("admin_content.meta.serp_label") }}"><p class="serp__title">{{ p.title }}</p><p class="serp__desc">{{ p.description }}</p></div>
+    {%- elif task == "keywords" %}
+    {%- if p.keywords.is_empty() %}<p class="muted">{{ t("admin_content.ai.empty_output") }}</p>{% else %}
+    <table class="table table--dense"><thead><tr><th scope="col">{{ t("admin_content.meta.keywords") }}</th><th scope="col">{{ t("admin_content.ai.intent") }}</th><th scope="col">{{ t("admin_content.ai.rationale") }}</th></tr></thead>
+      <tbody>{% for (k, i, r) in p.keywords %}<tr><td><strong>{{ k }}</strong></td><td>{{ lbl("admin_content.ai.intents", i) }}</td><td class="small">{{ r }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+    {%- elif task == "faq" %}
+    {%- if p.items.is_empty() %}<p class="muted">{{ t("admin_content.ai.empty_output") }}</p>{% else %}
+    <dl class="faq-list">{% for (q, a) in p.items %}<dt>{{ q }}</dt><dd>{{ a }}</dd>{% endfor %}</dl>{% endif %}
+    {%- elif task == "summarize_audit" %}
+    <p>{{ p.description }}</p>
+    <ol class="findings">{% for (pr, ti, de) in p.actions %}<li><span>{{ badge(lbl("admin_content.seo.priority", pr), "info") }}</span><div><strong>{{ ti }}</strong><p class="hint">{{ de }}</p></div></li>{% endfor %}</ol>
+    {%- else %}
+    {%- if !p.title.is_empty() %}<p><strong>{{ p.title }}</strong>{% if !p.slug.is_empty() %} <span class="mono small muted">/{{ p.slug }}</span>{% endif %}</p>{% endif %}
+    {%- if !p.excerpt.is_empty() %}<p class="muted">{{ p.excerpt }}</p>{% endif %}
+    {%- if !p.bullets.is_empty() %}<ul>{% for b in p.bullets %}<li>{{ b }}</li>{% endfor %}</ul>{% endif %}
+    {%- if !p.body_html.is_empty() %}<div class="prose">{{ p.body_html|safe }}</div>{% endif %}
+    {%- if !p.items.is_empty() %}<h5>{{ t("admin_content.ai.steps") }}</h5><ol>{% for (n, tx) in p.items %}<li><strong>{{ n }}</strong> — {{ tx }}</li>{% endfor %}</ol>{% endif %}
+    {%- if !p.description.is_empty() || !p.note.is_empty() %}
+    <dl class="kv mt-4">
+      {%- if !p.note.is_empty() %}<dt>{{ t("admin_content.meta.meta_title") }}</dt><dd>{{ p.note }}</dd>{% endif %}
+      {%- if !p.description.is_empty() %}<dt>{{ t("admin_content.meta.meta_description") }}</dt><dd>{{ p.description }}</dd>{% endif %}
+    </dl>{% endif %}
+    {%- if !p.changes.is_empty() %}
+    <h5 class="mt-4">{{ t("admin_content.ai.changes") }}</h5>
+    <ul class="small">{% for (c, r) in p.changes %}<li><strong>{{ c }}</strong>{% if !r.is_empty() %} — {{ r }}{% endif %}</li>{% endfor %}</ul>
+    {%- endif %}
+    {%- endif %}
+  </section>
+</div>
+
+{%- if g.status.as_str() == "completed" %}
+<section class="card mt-6" aria-labelledby="decide-h">
+  <header class="card__head"><div><h2 id="decide-h">{{ t("admin_content.ai.decide_title") }}</h2>{% if !apply_note.is_empty() %}<p class="muted small">{{ apply_note }}</p>{% endif %}</div></header>
+  <div class="card__body btn-row">
+    {%- if can_apply %}
+    <form method="post" action="{{ url("/admin/ai/generations/" ~ g.id ~ "/apply") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("admin_content.ai.apply") }}</button>
+    </form>
+    {%- else %}
+    <p class="muted small">{{ t("admin_content.ai.no_apply") }}</p>
+    {%- endif %}
+    <form method="post" action="{{ url("/admin/ai/generations/" ~ g.id ~ "/discard") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--ghost" type="submit">{{ icon("x") }}{{ t("admin_content.ai.discard") }}</button>
+    </form>
+  </div>
+</section>
+{%- endif %}
+{%- endif %}
+
+{%- if !inputs.is_empty() %}
+<details class="fieldset mt-6"><summary>{{ t("admin_content.ai.inputs_title") }}</summary>
+  <dl class="kv mt-4">{% for (k, v) in inputs %}<dt>{{ k }}</dt><dd class="small">{{ v }}</dd>{% endfor %}</dl>
+</details>
+{%- endif %}
+<p class="token-usage mt-4">{{ g.model }}{% match g.input_tokens %}{% when Some(n) %} · {{ tv("admin_content.ai.tokens_in", "n", n) }}{% when None %}{% endmatch %}{% match g.output_tokens %}{% when Some(n) %} · {{ tv("admin_content.ai.tokens_out", "n", n) }}{% when None %}{% endmatch %}</p>
+{% endblock %}

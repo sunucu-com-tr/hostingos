@@ -1,0 +1,22 @@
+{#- Public demo (crate::demo): the documented demo logins, with one-click
+    sign-in (data-demo-fill in static/js/app.js). Include with `form_id` and
+    `logins` set. -#}
+{%- if !logins.is_empty() %}
+<section class="demo-logins" aria-labelledby="demo-logins-title">
+  <h2 id="demo-logins-title">{{ t("demo.login.title") }}</h2>
+  {%- if let Some(demo) = demo_banner() %}
+  <p class="small muted">{{ tv("demo.login.lead", "minutes", demo.every) }}</p>
+  {%- endif %}
+  <ul class="demo-logins__list">
+    {%- for l in logins %}
+    <li class="demo-logins__item">
+      <div class="demo-logins__who">
+        <strong>{{ t(l.label) }}</strong>
+        <span class="small"><code>{{ l.email }}</code> · <code>{{ l.password }}</code></span>
+      </div>
+      <button type="button" class="btn btn--soft btn--sm" data-demo-fill="{{ form_id }}" data-email="{{ l.email }}" data-password="{{ l.password }}">{{ icon("log-in") }}{{ t("demo.login.use") }}</button>
+    </li>
+    {%- endfor %}
+  </ul>
+</section>
+{%- endif %}

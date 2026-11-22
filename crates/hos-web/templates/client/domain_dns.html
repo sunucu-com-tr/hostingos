@@ -1,0 +1,53 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head"><div><h1>{{ t("client.domains.dns") }}</h1><p>{{ tv("client.domains.dns_lead", "domain", domain_label(d.name)) }}</p></div></div>
+{%- if !error.is_empty() %}
+<div class="card"><div class="card__body">{% call ui::empty("layers", t("client.domains.dns_unavailable"), error) %}{% endcall %}</div></div>
+{%- else %}
+<div class="dns-layout">
+  <section class="card">
+    {%- if records.is_empty() %}
+    <div class="card__body"><p class="muted">{{ t("client.domains.dns_empty") }}</p></div>
+    {%- else %}
+    <div class="table-wrap">
+      <table class="table table--stack">
+        <thead><tr><th scope="col">{{ t("client.domains.dns_name") }}</th><th scope="col">{{ t("client.domains.dns_type") }}</th><th scope="col">{{ t("client.domains.dns_value") }}</th><th scope="col">TTL</th><th scope="col"><span class="visually-hidden">{{ t("client.common.actions") }}</span></th></tr></thead>
+        <tbody>
+        {%- for r in records %}
+          <tr>
+            <td class="mono" data-label="{{ t("client.domains.dns_name") }}">{{ r.name }}</td>
+            <td data-label="{{ t("client.domains.dns_type") }}">{{ badge(r.record_type.as_str(), "info") }}</td>
+            <td class="mono break" data-label="{{ t("client.domains.dns_value") }}">{% match r.priority %}{% when Some(p) %}{{ p }} {% when None %}{% endmatch %}{{ r.value }}</td>
+            <td data-label="TTL">{% match r.ttl %}{% when Some(tt) %}{{ tt }}{% when None %}—{% endmatch %}</td>
+            <td class="nowrap">{% match r.id %}{% when Some(rid) %}
+              <a class="btn btn--ghost btn--sm" href="{{ url("/client/domains/") }}{{ d.id }}/dns?edit={{ rid|urlencode }}#dns-form">{{ t("client.common.edit") }}</a>
+              <form class="inline" method="post" action="{{ url("/client/domains/") }}{{ d.id }}/dns/delete" data-confirm="{{ t("client.domains.dns_delete_confirm") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="record" value="{{ rid }}"><button type="submit" class="btn btn--ghost btn--sm">{{ t("client.common.delete") }}</button></form>
+            {% when None %}{% endmatch %}</td>
+          </tr>
+        {%- endfor %}
+        </tbody>
+      </table>
+    </div>
+    {%- endif %}
+  </section>
+  <section class="card" id="dns-form">
+    <header class="card__head"><h2>{% if form.id.is_empty() %}{{ t("client.domains.dns_add") }}{% else %}{{ t("client.domains.dns_edit") }}{% endif %}</h2></header>
+    <div class="card__body">
+      <form class="stack" method="post" action="{{ url("/client/domains/") }}{{ d.id }}/dns">
+        {% call ui::csrf() %}{% endcall %}
+        <input type="hidden" name="id" value="{{ form.id }}">
+        {% call ui::field("name", t("client.domains.dns_name"), form.name, hint=t("client.domains.dns_name_hint"), placeholder="@") %}{% endcall %}
+        {% call ui::select("type", t("client.domains.dns_type"), types, form.record_type.as_str()) %}{% endcall %}
+        {% call ui::field("value", t("client.domains.dns_value"), form.value, required=true, hint=t("client.domains.dns_value_hint")) %}{% endcall %}
+        <div class="form-row">
+          {% call ui::field("ttl", "TTL", form.ttl, kind="number", inputmode="numeric") %}{% endcall %}
+          {% call ui::field("priority", t("client.domains.dns_priority"), form.priority, kind="number", inputmode="numeric", hint=t("client.domains.dns_priority_hint")) %}{% endcall %}
+        </div>
+        <div class="btn-row"><button type="submit" class="btn btn--primary">{{ t("client.common.save") }}</button>{% if !form.id.is_empty() %}<a class="btn btn--ghost" href="{{ url("/client/domains/") }}{{ d.id }}/dns">{{ t("client.common.cancel") }}</a>{% endif %}</div>
+      </form>
+    </div>
+  </section>
+</div>
+{%- endif %}
+{% endblock %}

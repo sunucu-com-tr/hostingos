@@ -1,0 +1,9 @@
+{#- Storefront shell: top navigation + rich footer. Pages fill `content`. -#}
+{% extends "layouts/base.html" %}
+{% block body %}
+{% include "components/site_header.html" %}
+<main id="main" class="site-main">
+{% block content %}{% endblock %}
+</main>
+{% include "components/site_footer.html" %}
+{% endblock %}

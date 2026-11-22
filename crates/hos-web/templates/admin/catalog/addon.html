@@ -1,0 +1,40 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ a.name }}</h1><p>{{ lbl("admin.catalog.pay_types", a.pay_type.as_str()) }} · <span class="mono">{{ a.slug }}</span></p></div>
+  <div class="page-head__actions"><form method="post" action="{{ url("/admin/catalog/addons/" ~ a.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--danger btn--sm" type="submit">{{ icon("x") }}{{ t("admin.common.delete") }}</button></form></div></div>
+<div class="stack-lg">
+{% call ui::card(t("admin.catalog.section_details")) %}
+<form class="stack" method="post" action="{{ url("/admin/catalog/addons/" ~ a.id) }}">
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::field("name", t("admin.common.name"), a.name, required=true) %}{% endcall %}
+  {% call ui::textarea("description", t("admin.common.description"), a.description.clone().unwrap_or_default(), rows=3) %}{% endcall %}
+  <div class="field"><label class="field__label" for="a-wel">{{ t("admin.catalog.welcome_email") }}</label>
+    <select class="select" id="a-wel" name="welcome_email_template"><option value="">{{ t("admin.catalog.welcome_default") }}</option>{% for (k, l) in templates %}<option value="{{ k }}"{% if a.welcome_email_template.as_deref() == Some(k.as_str()) %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="checks">
+    {% call ui::checkbox("show_on_order", t("admin.addons.show_on_order"), a.show_on_order) %}{% endcall %}
+    {% call ui::checkbox("auto_activate", t("admin.addons.auto_activate"), a.auto_activate) %}{% endcall %}
+    {% call ui::checkbox("is_hidden", t("admin.catalog.hidden_label"), a.is_hidden) %}{% endcall %}
+  </div>
+  <fieldset class="fieldset"><legend>{{ t("admin.addons.products") }}</legend>
+    <div class="checks checks--grid">{% for (pid, pname) in products %}<label class="check"><input type="checkbox" name="product_ids" value="{{ pid }}"{% if has_product(pid) %} checked{% endif %}> {{ pname }}</label>{% endfor %}</div>
+  </fieldset>
+  <div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button></div>
+</form>
+{% endcall %}
+<section id="pricing">
+{% call ui::card(t("admin.catalog.section_pricing")) %}
+<form method="post" action="{{ url("/admin/catalog/addons/" ~ a.id ~ "/pricing") }}">
+  {% call ui::csrf() %}{% endcall %}
+  <div class="table-wrap"><table class="table table--dense matrix">
+    <thead><tr><th>{{ t("admin.catalog.cycle") }}</th>{% for c in currencies %}<th class="num">{{ c.code }} · {{ t("admin.catalog.price") }}</th><th class="num">{{ c.code }} · {{ t("admin.orders.setup") }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for (cv, cl) in cycles %}<tr><th scope="row">{{ cl }}</th>
+      {%- for c in currencies %}<td class="num"><input class="input input--sm" name="price_{{ c.code }}_{{ cv }}" value="{{ price(c.code, cv) }}" inputmode="decimal" aria-label="{{ cl }} {{ c.code }}"></td><td class="num"><input class="input input--sm" name="setup_{{ c.code }}_{{ cv }}" value="{{ setup(c.code, cv) }}" inputmode="decimal" aria-label="{{ cl }} {{ c.code }} {{ t("admin.orders.setup") }}"></td>{% endfor %}</tr>{% endfor %}</tbody>
+  </table></div>
+  <p class="field__hint">{{ t("admin.catalog.pricing_hint") }}</p>
+  <div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--primary" type="submit">{{ t("admin.catalog.save_prices") }}</button></div>
+</form>
+{% endcall %}
+</section>
+</div>
+{% endblock %}

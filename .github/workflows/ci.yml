@@ -1,0 +1,213 @@
+# CI: formatting, lints, tests against PostgreSQL, dependency audit.
+#
+# Third-party actions are pinned to full commit SHAs (the comment names the
+# release the SHA was resolved from). Update them deliberately, e.g. with
+# Dependabot / Renovate, never to a moving tag.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly: new RustSec advisories against an unchanged lockfile.
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+# Nothing by default; each job asks for what it needs.
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  # rust-toolchain.toml says `stable`; CI pins the exact release (keep in
+  # sync with the Dockerfile's RUST_VERSION).
+  RUSTUP_TOOLCHAIN: "1.100.0"
+
+jobs:
+  lint:
+    name: fmt + clippy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          # Only main writes the cache; pull requests read it.
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: rustfmt
+        run: cargo fmt --all --check
+      - name: clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+  test:
+    name: tests (PostgreSQL 16)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: hostingos
+          POSTGRES_PASSWORD: hostingos-ci
+          POSTGRES_DB: hostingos_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hostingos -d hostingos_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # Throw-away database of this job only.
+      DATABASE_URL: postgres://hostingos:hostingos-ci@localhost:5432/hostingos_test
+      DATABASE_URL_DIRECT: postgres://hostingos:hostingos-ci@localhost:5432/hostingos_test
+      HOS_BASE_URL: http://localhost:8080
+      HOS_BASE_DOMAIN: localhost
+      RUST_LOG: warn
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Test secret key
+        # Random per run; it only encrypts test data in the job's database.
+        run: |
+          key="$(openssl rand -base64 32)"
+          echo "::add-mask::$key"
+          echo "HOS_SECRET_KEY=$key" >> "$GITHUB_ENV"
+      - name: cargo test
+        run: cargo test --workspace --locked
+
+  demo:
+    name: demo image end to end
+    # Builds the image from the Dockerfile and runs docker-compose.demo.yml
+    # (app in demo mode + PostgreSQL) the way a demo server does: start,
+    # wait for the health checks, load the home page, log in with a demo
+    # account, tear down.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    permissions:
+      contents: read
+    env:
+      COMPOSE: docker compose -f docker-compose.demo.yml -f docker-compose.demo.ports.yml --env-file .env.demo
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Demo environment (throw-away secrets)
+        run: |
+          pg="$(openssl rand -hex 32)"; key="$(openssl rand -base64 32)"
+          echo "::add-mask::$pg"; echo "::add-mask::$key"
+          {
+            echo "POSTGRES_PASSWORD=$pg"
+            echo "HOS_SECRET_KEY=$key"
+            echo "HOS_BASE_URL=http://localhost:8080"
+            echo "HOS_TRUST_PROXY=false"
+            echo "HOS_LOG_FORMAT=text"
+            echo "HOS_BUILD_COMMIT=$GITHUB_SHA"
+          } > .env.demo
+      - name: Build and start
+        run: $COMPOSE up -d --build --wait --wait-timeout 900
+      - name: Home page, demo login, admin panel
+        run: |
+          set -euo pipefail
+          base=http://demo.localhost:8080
+          jar="$RUNNER_TEMP/cookies"
+          get() { curl -sS --fail --resolve demo.localhost:8080:127.0.0.1 -b "$jar" -c "$jar" "$@"; }
+
+          curl -sS --fail http://127.0.0.1:8080/readyz
+
+          # Storefront with the demo banner, never indexed.
+          get -L -D "$RUNNER_TEMP/headers" -o "$RUNNER_TEMP/home.html" "$base/"
+          grep -qi '^x-robots-tag: noindex' "$RUNNER_TEMP/headers"
+          grep -q 'class="demo-banner"' "$RUNNER_TEMP/home.html"
+
+          # Login page lists the demo accounts; log in as the demo admin.
+          get -L -o "$RUNNER_TEMP/login.html" "$base/auth/login"
+          grep -q 'admin@demo.test' "$RUNNER_TEMP/login.html"
+          token="$(sed -n 's/.*<meta name="csrf-token" content="\([^"]*\)".*/\1/p' "$RUNNER_TEMP/login.html" | head -n1)"
+          test -n "$token"
+          status="$(curl -sS --resolve demo.localhost:8080:127.0.0.1 -b "$jar" -c "$jar" \
+            -o /dev/null -w '%{http_code}' -H "Origin: $base" \
+            --data-urlencode "csrf_token=$token" \
+            --data-urlencode "email=admin@demo.test" \
+            --data-urlencode "password=demo-admin" \
+            "$base/auth/login")"
+          echo "login: HTTP $status"
+          case "$status" in 302|303) ;; *) exit 1 ;; esac
+
+          # Admin dashboard of the demo company (200, not a redirect back to
+          # the login page), with the banner.
+          status="$(get -o "$RUNNER_TEMP/admin.html" -w '%{http_code}' "$base/admin")"
+          echo "admin: HTTP $status"
+          test "$status" = 200
+          grep -q 'class="demo-banner"' "$RUNNER_TEMP/admin.html"
+          grep -q 'href="/admin/clients' "$RUNNER_TEMP/admin.html"
+
+          # Any host shows the demo (never "site not found").
+          curl -sS --fail http://127.0.0.1:8080/ | grep -q 'class="demo-banner"'
+          echo "demo stack OK"
+      - name: Health check command and manual reset
+        run: |
+          set -euo pipefail
+          $COMPOSE exec -T app /usr/local/bin/hostingos healthcheck
+          $COMPOSE exec -T app /usr/local/bin/hostingos healthcheck --path /readyz
+          if $COMPOSE exec -T app /usr/local/bin/hostingos healthcheck --path /nope; then
+            echo "a 404 must fail the check"; exit 1
+          fi
+          $COMPOSE exec -T app /usr/local/bin/hostingos demo-reset
+          curl -sS --fail http://127.0.0.1:8080/readyz
+      - name: Logs
+        if: always()
+        run: $COMPOSE logs --no-color --tail 300 || true
+      - name: Tear down
+        if: always()
+        run: $COMPOSE down --volumes --remove-orphans || true
+
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
+      - uses: taiki-e/install-action@b80e2bb2635f28eb98b9fce1e2f0887e1535c6b2 # v2.90.0
+        with:
+          tool: cargo-audit@0.22.2
+      - name: cargo audit
+        # Fails on vulnerabilities; reads .cargo/audit.toml (documented
+        # exceptions). Unmaintained / yanked notices are printed as warnings.
+        run: cargo audit
+      - name: Install cargo-deny
+        if: hashFiles('deny.toml') != ''
+        uses: taiki-e/install-action@b80e2bb2635f28eb98b9fce1e2f0887e1535c6b2 # v2.90.0
+        with:
+          tool: cargo-deny@0.20.2
+      - name: cargo deny
+        # Licence allow-list, banned / duplicate crates and allowed sources
+        # (deny.toml). Advisories are covered by `cargo audit` above.
+        if: hashFiles('deny.toml') != ''
+        run: cargo deny --locked check licenses bans sources

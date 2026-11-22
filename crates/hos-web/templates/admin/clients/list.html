@@ -1,0 +1,63 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/_macros.html" as ax %}
+{% block content %}
+{%- let filtered = !q.is_empty() || !status.is_empty() || !group.is_empty() %}
+<div class="page-head">
+  <div><h1>{{ t("admin.clients.title") }}</h1><p>{{ tn("admin.clients.count", pager.total) }}</p></div>
+  <div class="page-head__actions">
+    <a class="btn btn--ghost" href="{{ url("/admin/clients/groups") }}">{{ icon("layers") }}{{ t("admin.clients.groups_title") }}</a>
+    <a class="btn btn--soft" href="{{ export_href }}">{{ icon("download") }}{{ t("admin.common.export_csv") }}</a>
+    {%- if can("clients.manage") %}
+    <a class="btn btn--primary" href="{{ url("/admin/clients/new") }}">{{ icon("plus") }}{{ t("admin.clients.new_title") }}</a>
+    {%- endif %}
+  </div>
+</div>
+<form class="filters" method="get" action="{{ url("/admin/clients") }}" role="search">
+  <div class="field field--grow">{{ icon("search") }}<label class="visually-hidden" for="f-q">{{ t("admin.common.search") }}</label>
+    <input class="input" id="f-q" type="search" name="q" value="{{ q }}" placeholder="{{ t("admin.clients.search_placeholder") }}"></div>
+  <div class="field"><label class="field__label" for="f-status">{{ t("admin.common.status") }}</label>
+    <select class="select" id="f-status" name="status" data-autosubmit>
+      <option value="">{{ t("admin.common.all") }}</option>
+      {%- for (v, l) in statuses %}<option value="{{ v }}"{{ sel(v, status) }}>{{ l }}</option>{% endfor %}
+    </select></div>
+  <div class="field"><label class="field__label" for="f-group">{{ t("admin.clients.group") }}</label>
+    <select class="select" id="f-group" name="group" data-autosubmit>
+      <option value="">{{ t("admin.common.all") }}</option>
+      {%- for g in groups %}<option value="{{ g.id }}"{{ sel(g.id.to_string().as_str(), group) }}>{{ g.name }}</option>{% endfor %}
+    </select></div>
+  <div class="filters__actions"><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("admin.common.filter") }}</button></div>
+</form>
+{%- if filtered %}
+<div class="ax-chips" role="group" aria-label="{{ t("admin.shell.filters") }}">
+  {%- if !q.is_empty() %}<a class="ax-chip" href="{{ url("/admin/clients?status=" ~ (status|urlencode) ~ "&group=" ~ (group|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.common.search") }}:</span><span class="ax-chip__value">{{ q }}</span>{{ icon("x") }}</a>{% endif %}
+  {%- for (v, l) in statuses %}{% if v.as_str() == status.as_str() %}<a class="ax-chip" href="{{ url("/admin/clients?q=" ~ (q|urlencode) ~ "&group=" ~ (group|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.common.status") }}:</span><span class="ax-chip__value">{{ l }}</span>{{ icon("x") }}</a>{% endif %}{% endfor %}
+  {%- for g in groups %}{% if g.id.to_string().as_str() == group.as_str() %}<a class="ax-chip" href="{{ url("/admin/clients?q=" ~ (q|urlencode) ~ "&status=" ~ (status|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.clients.group") }}:</span><span class="ax-chip__value">{{ g.name }}</span>{{ icon("x") }}</a>{% endif %}{% endfor %}
+  <a class="ax-chips__clear" href="{{ url("/admin/clients") }}">{{ t("admin.shell.clear_all") }}</a>
+</div>
+{%- endif %}
+{%- if rows.is_empty() %}
+{% call ui::empty("users", t("admin.clients.empty_title"), t("admin.clients.empty_text")) %}
+{%- if filtered %}<a class="btn btn--soft" href="{{ url("/admin/clients") }}">{{ icon("x") }}{{ t("admin.shell.clear_all") }}</a>
+{%- elif can("clients.manage") %}<a class="btn btn--primary" href="{{ url("/admin/clients/new") }}">{{ icon("plus") }}{{ t("admin.clients.new_title") }}</a>{% endif %}
+{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr>{% include "admin/_sort_head.html" %}<th scope="col">{{ t("admin.common.status") }}</th><th scope="col" class="col-actions"><span class="visually-hidden">{{ t("admin.common.actions") }}</span></th></tr></thead>
+  <tbody>
+  {%- for r in rows %}
+    <tr>
+      <td data-label="{{ t("admin.clients.col_name") }}"><a class="row-link" href="{{ url("/admin/clients/" ~ r.client.id) }}">{{ r.client.first_name }} {{ r.client.last_name }}</a></td>
+      <td data-label="{{ t("admin.clients.col_company") }}">{{ o(r.client.company_name) }}</td>
+      <td data-label="{{ t("admin.clients.col_email") }}" class="muted">{{ r.client.email }}</td>
+      <td data-label="{{ t("admin.clients.col_services") }}" class="num">{{ num(r.active_services) }}</td>
+      <td data-label="{{ t("admin.clients.col_unpaid") }}" class="num">{% if r.unpaid_total.is_zero() %}<span class="muted">—</span>{% else %}{{ m(r.unpaid_total, r.client.currency) }}{% endif %}</td>
+      <td data-label="{{ t("admin.clients.col_created") }}" class="muted nowrap">{{ date(r.client.created_at) }}</td>
+      <td data-label="{{ t("admin.common.status") }}">{{ sbadge(r.client.status.as_str()) }}</td>
+    <td class="col-actions">{% call ax::row_menu(t("admin.common.actions")) %}<a role="menuitem" href="{{ url("/admin/clients/" ~ r.client.id) }}">{{ icon("user") }}<span>{{ t("admin.common.open") }}</span></a><a role="menuitem" href="{{ url("/admin/services?q=" ~ (r.client.email|urlencode)) }}">{{ icon("server") }}<span>{{ t("admin.services.title") }}</span></a><a role="menuitem" href="{{ url("/admin/invoices?q=" ~ (r.client.email|urlencode)) }}">{{ icon("receipt") }}<span>{{ t("admin.invoices.title") }}</span></a><a role="menuitem" href="mailto:{{ r.client.email }}">{{ icon("mail") }}<span>{{ t("admin.common.email") }}</span></a>{%- if can("clients.manage") %}<form method="post" action="{{ url("/admin/clients/" ~ r.client.id ~ "/impersonate") }}">{% call ui::csrf() %}{% endcall %}<button type="submit" role="menuitem">{{ icon("eye") }}<span>{{ t("admin.common.login_as") }}</span></button></form>{% endif %}{% endcall %}</td></tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% call ax::pager(pager) %}{% endcall %}
+{%- endif %}
+{% endblock %}

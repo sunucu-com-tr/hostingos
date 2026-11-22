@@ -1,0 +1,52 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_content.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("admin_content.seo.indexnow.title") }}</h1><p>{{ t("admin_content.seo.indexnow.lead") }}</p></div>
+</div>
+{% include "admin/seo/_tabs.html" %}
+<div class="admin-grid admin-grid--side mt-4">
+  <div class="stack">
+    {% call ui::card(t("admin_content.seo.indexnow.settings")) %}
+    <form class="stack" method="post" action="{{ url("/admin/seo/indexnow") }}">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::checkbox("enabled", t("admin_content.seo.indexnow.enabled"), enabled) %}{% endcall %}
+      {% call ui::checkbox("auto", t("admin_content.seo.indexnow.auto"), auto) %}{% endcall %}
+      <p class="field__hint">{{ t("admin_content.seo.indexnow.auto_hint") }}</p>
+      <div class="form-actions"><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button></div>
+    </form>
+    {% endcall %}
+    {%- if enabled %}
+    {% call ui::card(t("admin_content.seo.indexnow.submit_title"), t("admin_content.seo.indexnow.submit_lead")) %}
+    <form class="stack" method="post" action="{{ url("/admin/seo/indexnow/submit") }}">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::textarea("urls", t("admin_content.seo.indexnow.urls"), urls, error=errors.get("urls"), hint=t("admin_content.seo.indexnow.urls_hint"), rows=5) %}{% endcall %}
+      <div class="form-actions"><button class="btn btn--soft" type="submit">{{ icon("send") }}{{ t("admin_content.seo.indexnow.submit") }}</button></div>
+    </form>
+    {% endcall %}
+    {%- endif %}
+    <section aria-labelledby="recent-h">
+      <h2 id="recent-h" class="h4">{{ t("admin_content.seo.indexnow.recent") }}</h2>
+      {%- if rows.is_empty() %}<p class="muted small">{{ t("admin_content.seo.indexnow.no_recent") }}</p>{% else %}
+      <div class="table-wrap"><table class="table table--dense table--stack">
+        <thead><tr><th scope="col">{{ t("admin.common.date") }}</th><th scope="col">{{ t("admin.common.status") }}</th><th scope="col" class="num">URL</th><th scope="col" class="num">{{ t("admin_content.seo.indexnow.submitted") }}</th><th scope="col">{{ t("admin_content.seo.indexnow.detail") }}</th></tr></thead>
+        <tbody>{% for r in rows %}<tr><td data-label="{{ t("admin.common.date") }}">{{ datetime(r.created_at) }}</td><td data-label="{{ t("admin.common.status") }}">{{ sbadge(r.status.as_str()) }}</td><td data-label="URL" class="num">{{ r.urls }}</td><td data-label="{{ t("admin_content.seo.indexnow.submitted") }}" class="num">{{ r.submitted }}</td><td data-label="{{ t("admin_content.seo.indexnow.detail") }}" class="small muted">{{ r.detail }}</td></tr>{% endfor %}</tbody>
+      </table></div>{% endif %}
+    </section>
+  </div>
+  <aside>
+    {% call ui::card(t("admin_content.seo.indexnow.key")) %}
+    {%- if key.is_empty() %}<p class="muted small">{{ t("admin_content.seo.indexnow.key_disabled") }}</p>{% else %}
+    {% call ui::code("indexnow-key", t("admin_content.seo.indexnow.key"), key) %}{% endcall %}
+    <p class="small mt-2">{{ t("admin_content.seo.indexnow.key_file") }} <a class="mono" href="{{ key_url }}" target="_blank" rel="noopener">{{ key_url }}</a></p>
+    <p class="field__hint">{% if custom_key %}{{ t("admin_content.seo.indexnow.key_custom") }}{% else %}{{ t("admin_content.seo.indexnow.key_derived") }}{% endif %}</p>
+    <form method="post" action="{{ url("/admin/seo/indexnow/key") }}" data-confirm="{{ t("admin_content.seo.indexnow.renew_confirm") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--ghost btn--sm" type="submit">{{ icon("refresh") }}{{ t("admin_content.seo.indexnow.renew") }}</button>
+    </form>
+    {%- endif %}
+    {% endcall %}
+  </aside>
+</div>
+{% endblock %}

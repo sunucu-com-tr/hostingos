@@ -1,0 +1,54 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ group.name }}</h1><p>{{ tv("admin.options.used_by", "count", group.product_count) }} · {{ tv("admin.options.prices_in", "currency", currency) }}</p></div>
+  <div class="page-head__actions"><form method="post" action="{{ url("/admin/catalog/options/" ~ group.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--danger btn--sm" type="submit">{{ icon("x") }}{{ t("admin.options.delete_group") }}</button></form></div>
+</div>
+<div class="stack-lg">
+{%- for o in options %}
+{% call ui::card(o.name.clone(), lbl("admin.options.types", o.option_type.as_str())) %}
+  {%- if !o.module_key.is_empty() %}<p class="small muted">{{ t("admin.options.module_key") }}: <span class="mono">{{ o.module_key }}</span></p>{% endif %}
+  <div class="table-wrap"><table class="table table--dense matrix">
+    <thead><tr><th>{{ t("admin.options.value_label") }}</th>{% for (cv, cl) in cycles %}<th class="num">{{ cl }}</th>{% endfor %}<th class="actions"></th></tr></thead>
+    <tbody>
+    {%- for v in o.values %}
+    <tr>
+      <td><strong>{{ v.label }}</strong><span class="sub mono">{{ v.value }}</span></td>
+      {%- for (cycle, price, setup) in v.prices %}<td class="num"><input form="vp-{{ v.id }}" class="input input--sm" name="price_{{ cycle }}" value="{{ price }}" inputmode="decimal" aria-label="{{ v.label }} {{ cycle }}"><input form="vp-{{ v.id }}" type="hidden" name="setup_{{ cycle }}" value="{{ setup }}"></td>{% endfor %}
+      <td class="actions">
+        <form id="vp-{{ v.id }}" method="post" action="{{ url("/admin/catalog/options/" ~ group.id ~ "/values/" ~ v.id ~ "/prices") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--soft btn--sm" type="submit">{{ t("common.actions.save") }}</button></form>
+        <form method="post" action="{{ url("/admin/catalog/options/" ~ group.id ~ "/values/" ~ v.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm btn--icon" type="submit" aria-label="{{ t("admin.common.delete") }}">{{ icon("x") }}</button></form>
+      </td>
+    </tr>
+    {%- endfor %}
+    {%- if o.values.is_empty() %}<tr><td colspan="8" class="muted">{{ t("admin.options.no_values") }}</td></tr>{% endif %}
+    </tbody>
+  </table></div>
+  <details class="mt-4"><summary>{{ t("admin.options.add_value") }}</summary>
+  <form class="stack mt-2" method="post" action="{{ url("/admin/catalog/options/" ~ group.id ~ "/options/" ~ o.id ~ "/values") }}">
+    {% call ui::csrf() %}{% endcall %}
+    <div class="form-grid">
+      <div class="field"><label class="field__label" for="vl-{{ o.id }}">{{ t("admin.options.value_label") }}</label><input class="input" id="vl-{{ o.id }}" name="label" required placeholder="4 GB"></div>
+      <div class="field"><label class="field__label" for="vv-{{ o.id }}">{{ t("admin.options.value_value") }}</label><input class="input" id="vv-{{ o.id }}" name="value" placeholder="4096"></div>
+    </div>
+    <div class="form-grid">{% for (cv, cl) in cycles %}<div class="field"><label class="field__label" for="vpn-{{ o.id }}-{{ cv }}">{{ cl }}</label><input class="input" id="vpn-{{ o.id }}-{{ cv }}" name="price_{{ cv }}" inputmode="decimal"></div>{% endfor %}</div>
+    <p class="field__hint">{{ t("admin.options.price_hint") }}</p>
+    <div class="btn-row"><button class="btn btn--primary btn--sm" type="submit">{{ icon("plus") }}{{ t("admin.common.add") }}</button></div>
+  </form>
+  </details>
+  <form class="mt-4" method="post" action="{{ url("/admin/catalog/options/" ~ group.id ~ "/options/" ~ o.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ icon("x") }}{{ t("admin.options.delete_option") }}</button></form>
+{% endcall %}
+{%- endfor %}
+{%- if options.is_empty() %}{% call ui::empty("layers", t("admin.options.no_options"), "") %}{% endcall %}{% endif %}
+{% call ui::card(t("admin.options.new_option")) %}
+<form class="form-grid" method="post" action="{{ url("/admin/catalog/options/" ~ group.id ~ "/options") }}">
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::field("name", t("admin.common.name"), "", required=true, placeholder="RAM") %}{% endcall %}
+  <div class="field"><label class="field__label" for="o-type">{{ t("admin.options.type") }}</label><select class="select" id="o-type" name="option_type">{% for (v, l) in types %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+  {% call ui::field("module_key", t("admin.options.module_key"), "", placeholder="memory_mb", hint=t("admin.options.module_key_hint")) %}{% endcall %}
+  <div class="field"><span class="field__label">&nbsp;</span><button class="btn btn--primary" type="submit">{{ icon("plus") }}{{ t("admin.common.create") }}</button></div>
+</form>
+{% endcall %}
+</div>
+{% endblock %}

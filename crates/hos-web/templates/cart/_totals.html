@@ -1,0 +1,15 @@
+{#- Totals list; expects `tt: &TotalsView`. -#}
+<dl class="totals">
+  <div><dt>{{ t("cart.summary.subtotal") }}</dt><dd>{{ tt.subtotal }}</dd></div>
+  {%- if !tt.setup.is_empty() %}<div class="muted small"><dt>{{ t("cart.summary.setup_included") }}</dt><dd>{{ tt.setup }}</dd></div>{% endif %}
+  {%- if !tt.discount.is_empty() %}<div class="text-success"><dt>{{ t("cart.summary.discount") }}</dt><dd>−{{ tt.discount }}</dd></div>{% endif %}
+  {%- for (name, amount) in tt.taxes %}<div><dt>{{ name }}</dt><dd>{{ amount }}</dd></div>{% endfor %}
+  <div class="totals__grand"><dt>{{ t("cart.summary.total") }}</dt><dd>{{ tt.total }}</dd></div>
+</dl>
+{%- if tt.prices_include_tax %}<p class="small muted">{{ t("cart.summary.tax_included") }}</p>{% endif %}
+{%- if !tt.recurring.is_empty() %}
+<div class="small">
+  <p class="muted">{{ t("cart.summary.then") }}</p>
+  <ul class="plain">{% for r in tt.recurring %}<li>{{ r }}</li>{% endfor %}</ul>
+</div>
+{%- endif %}

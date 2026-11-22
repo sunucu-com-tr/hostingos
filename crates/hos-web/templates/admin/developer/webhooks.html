@@ -1,0 +1,35 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+{% include "admin/developer/_head.html" %}
+<div class="between mb-4">
+  <p class="muted">{{ t("admin_settings.developer.webhooks_lead") }}</p>
+  <a class="btn btn--primary" href="{{ url("/admin/developer/webhooks/new") }}">{{ icon("plus") }}{{ t("admin_settings.developer.new_webhook") }}</a>
+</div>
+{%- if rows.is_empty() %}
+{% call ui::empty("zap", t("admin_settings.developer.webhooks_empty")) %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr>
+    <th scope="col">{{ t("admin_settings.developer.url") }}</th>
+    <th scope="col">{{ t("admin_settings.developer.events") }}</th>
+    <th scope="col">{{ t("admin_settings.developer.last_delivery") }}</th>
+    <th scope="col">{{ t("admin.common.status") }}</th>
+  </tr></thead>
+  <tbody>
+  {%- for h in rows %}
+  <tr>
+    <td data-label="{{ t("admin_settings.developer.url") }}"><a class="row-link mono" href="{{ url("/admin/developer/webhooks/" ~ h.row.id) }}">{{ h.row.url }}</a>
+      {%- match h.row.description %}{% when Some(d) %}<span class="sub small">{{ d }}</span>{% when None %}{% endmatch %}</td>
+    <td data-label="{{ t("admin_settings.developer.events") }}" class="small">{{ h.events }}</td>
+    <td data-label="{{ t("admin_settings.developer.last_delivery") }}" class="nowrap">{{ dtopt(h.row.last_delivery_at) }}
+      {%- match h.row.last_status_code %}{% when Some(c) %}<span class="sub mono small">HTTP {{ c }}</span>{% when None %}{% endmatch %}
+      {%- if h.row.failure_count > 0 %}<span class="sub small text-danger">{{ tn("admin_settings.developer.failures", h.row.failure_count) }}</span>{% endif %}</td>
+    <td data-label="{{ t("admin.common.status") }}">{% if h.row.is_active %}{{ badge(t("admin.common.active"), "success") }}{% else %}{{ badge(t("admin.common.inactive"), "") }}{% endif %}</td>
+  </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{%- endif %}
+{% endblock %}

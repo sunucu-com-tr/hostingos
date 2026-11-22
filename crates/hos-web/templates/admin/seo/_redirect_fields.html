@@ -1,0 +1,11 @@
+{#- Redirect form fields (`form`, `errors`). -#}
+{% call ui::field("from_path", t("admin_content.seo.redirects.from"), form.from_path, error=errors.get("from_path"), hint=t("admin_content.seo.redirects.from_hint"), placeholder="/eski-sayfa", required=true) %}{% endcall %}
+{% call ui::field("to_url", t("admin_content.seo.redirects.to"), form.to_url, error=errors.get("to_url"), hint=t("admin_content.seo.redirects.to_hint"), placeholder="/yeni-sayfa", required=true) %}{% endcall %}
+<div class="form-grid">
+  <div class="field{% if errors.has("status_code") %} field--error{% endif %}"><label class="field__label" for="f-status_code">{{ t("admin_content.seo.redirects.type") }}</label>
+    <select class="select" id="f-status_code" name="status_code">
+      <option value="301"{{ sel("301", form.status_code) }}>301 · {{ t("admin_content.seo.redirects.permanent") }}</option>
+      <option value="302"{{ sel("302", form.status_code) }}>302 · {{ t("admin_content.seo.redirects.temporary") }}</option>
+    </select></div>
+  {% call ui::field("note", t("admin.common.notes"), form.note) %}{% endcall %}
+</div>

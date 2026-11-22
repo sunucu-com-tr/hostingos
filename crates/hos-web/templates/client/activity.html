@@ -1,0 +1,20 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+{% include "client/_account_head.html" %}
+<section class="card">
+  <header class="card__head"><div><h2>{{ t("client.activity.title") }}</h2><p class="muted small">{{ t("client.activity.lead") }}</p></div></header>
+  {%- if rows.is_empty() %}<div class="card__body"><p class="muted">{{ t("client.activity.empty") }}</p></div>{% else %}
+  <div class="table-wrap">
+    <table class="table table--stack">
+      <thead><tr><th scope="col">{{ t("client.billing.date") }}</th><th scope="col">{{ t("client.activity.action") }}</th><th scope="col">IP</th></tr></thead>
+      <tbody>
+      {%- for r in rows %}
+        <tr><td data-label="{{ t("client.billing.date") }}">{{ datetime(r.created_at) }}</td><td data-label="{{ t("client.activity.action") }}">{{ label(r.action) }}{% if r.impersonator_id.is_some() %} {{ badge(t("client.security.staff_session"), "warning") }}{% endif %}</td><td class="mono" data-label="IP">{% match r.ip %}{% when Some(ip) %}{{ ip }}{% when None %}—{% endmatch %}</td></tr>
+      {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+  {%- endif %}
+</section>
+{% endblock %}

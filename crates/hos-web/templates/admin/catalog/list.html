@@ -1,0 +1,57 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/_macros.html" as ax %}
+{% block content %}
+{%- let filtered = !q.is_empty() || !group.is_empty() || !kind.is_empty() || retired %}
+{%- let mut rv = "" %}{% if retired %}{% mut rv = "1" %}{% endif %}
+<div class="page-head">
+  <div><h1>{{ t("admin.catalog.title") }}</h1><p>{{ tn("admin.catalog.count", pager.total) }}</p></div>
+  <div class="page-head__actions">
+    <a class="btn btn--ghost" href="{{ url("/admin/catalog/groups") }}">{{ icon("layers") }}{{ t("admin.catalog.groups_title") }}</a>
+    <a class="btn btn--primary" href="{{ url("/admin/catalog/products/new") }}">{{ icon("plus") }}{{ t("admin.catalog.new_title") }}</a>
+  </div>
+</div>
+<form class="filters" method="get" action="{{ url("/admin/catalog") }}" role="search">
+  <div class="field field--grow">{{ icon("search") }}<label class="visually-hidden" for="f-q">{{ t("admin.common.search") }}</label><input class="input" id="f-q" type="search" name="q" value="{{ q }}" placeholder="{{ t("admin.common.search") }}…"></div>
+  <div class="field"><label class="field__label" for="f-g">{{ t("admin.catalog.group") }}</label>
+    <select class="select" id="f-g" name="group" data-autosubmit><option value="">{{ t("admin.common.all") }}</option>{% for g in groups %}<option value="{{ g.id }}"{{ sel(g.id.to_string().as_str(), group) }}>{{ g.name }}</option>{% endfor %}</select></div>
+  <div class="field"><label class="field__label" for="f-t">{{ t("admin.catalog.type") }}</label>
+    <select class="select" id="f-t" name="type" data-autosubmit><option value="">{{ t("admin.common.all") }}</option>{% for (v, l) in types %}<option value="{{ v }}"{{ sel(v, kind) }}>{{ l }}</option>{% endfor %}</select></div>
+  <label class="check"><input type="checkbox" name="retired" value="1" data-autosubmit{{ chk(retired) }}> {{ t("admin.catalog.show_retired") }}</label>
+  <div class="filters__actions"><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("admin.common.filter") }}</button></div>
+</form>
+{%- if filtered %}
+<div class="ax-chips" role="group" aria-label="{{ t("admin.shell.filters") }}">
+  {%- if !q.is_empty() %}<a class="ax-chip" href="{{ url("/admin/catalog?group=" ~ (group|urlencode) ~ "&type=" ~ (kind|urlencode) ~ "&retired=" ~ rv) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.common.search") }}:</span><span class="ax-chip__value">{{ q }}</span>{{ icon("x") }}</a>{% endif %}
+  {%- for g in groups %}{% if g.id.to_string().as_str() == group.as_str() %}<a class="ax-chip" href="{{ url("/admin/catalog?q=" ~ (q|urlencode) ~ "&type=" ~ (kind|urlencode) ~ "&retired=" ~ rv) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.catalog.group") }}:</span><span class="ax-chip__value">{{ g.name }}</span>{{ icon("x") }}</a>{% endif %}{% endfor %}
+  {%- for (v, l) in types %}{% if v.as_str() == kind.as_str() %}<a class="ax-chip" href="{{ url("/admin/catalog?q=" ~ (q|urlencode) ~ "&group=" ~ (group|urlencode) ~ "&retired=" ~ rv) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__key">{{ t("admin.catalog.type") }}:</span><span class="ax-chip__value">{{ l }}</span>{{ icon("x") }}</a>{% endif %}{% endfor %}
+  {%- if retired %}<a class="ax-chip" href="{{ url("/admin/catalog?q=" ~ (q|urlencode) ~ "&group=" ~ (group|urlencode) ~ "&type=" ~ (kind|urlencode)) }}" title="{{ t("admin.shell.remove_filter") }}"><span class="ax-chip__value">{{ t("admin.catalog.show_retired") }}</span>{{ icon("x") }}</a>{% endif %}
+  <a class="ax-chips__clear" href="{{ url("/admin/catalog") }}">{{ t("admin.shell.clear_all") }}</a>
+</div>
+{%- endif %}
+{%- if rows.is_empty() %}
+{% call ui::empty("box", t("admin.catalog.empty_title"), t("admin.catalog.empty_text")) %}
+{%- if filtered %}<a class="btn btn--soft" href="{{ url("/admin/catalog") }}">{{ icon("x") }}{{ t("admin.shell.clear_all") }}</a>
+{%- else %}<a class="btn btn--primary" href="{{ url("/admin/catalog/products/new") }}">{{ icon("plus") }}{{ t("admin.catalog.new_title") }}</a>{% endif %}
+{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th scope="col">{{ t("admin.common.name") }}</th><th scope="col">{{ t("admin.catalog.group") }}</th><th scope="col">{{ t("admin.catalog.type") }}</th><th scope="col">{{ t("admin.catalog.module_label") }}</th><th scope="col" class="num">{{ t("admin.catalog.stock") }}</th><th scope="col">{{ t("admin.common.status") }}</th><th scope="col" class="col-actions"><span class="visually-hidden">{{ t("admin.common.actions") }}</span></th></tr></thead>
+  <tbody>
+  {%- for p in rows %}
+  <tr>
+    <td data-label="{{ t("admin.common.name") }}"><a class="row-link" href="{{ url("/admin/catalog/products/" ~ p.id) }}">{{ p.name }}</a><span class="sub mono">{{ p.slug }}</span></td>
+    <td data-label="{{ t("admin.catalog.group") }}">{{ group_name(p.group_id) }}</td>
+    <td data-label="{{ t("admin.catalog.type") }}">{{ lbl("admin.catalog.types", p.product_type.as_str()) }}</td>
+    <td data-label="{{ t("admin.catalog.module_label") }}">{% if p.integration_id.is_some() %}{{ badge(t("admin.catalog.automatic"), "info") }}{% else %}{{ badge(t("admin.catalog.manual"), "") }}{% endif %}</td>
+    <td data-label="{{ t("admin.catalog.stock") }}" class="num">{% if p.stock_control %}{{ p.stock_quantity }}{% else %}<span class="muted">∞</span>{% endif %}</td>
+    <td data-label="{{ t("admin.common.status") }}">
+      {%- if p.is_retired %}{{ badge(t("admin.catalog.retired"), "") }}{% elif p.is_hidden %}{{ badge(t("admin.catalog.hidden"), "warning") }}{% else %}{{ badge(t("admin.catalog.visible"), "success") }}{% endif %}
+      {%- if p.is_featured %} {{ badge(t("admin.catalog.featured"), "info") }}{% endif %}</td>
+  <td class="col-actions">{% call ax::row_menu(t("admin.common.actions")) %}<a role="menuitem" href="{{ url("/admin/catalog/products/" ~ p.id) }}">{{ icon("pencil") }}<span>{{ t("admin.common.edit") }}</span></a><a role="menuitem" href="{{ url("/admin/services?product=" ~ p.id) }}">{{ icon("server") }}<span>{{ t("admin.services.title") }}</span></a><a role="menuitem" href="{{ url("/admin/catalog/products/" ~ p.id) }}" target="_blank" rel="noopener">{{ icon("external-link") }}<span>{{ t("admin.common.new_tab") }}</span></a>{% endcall %}</td></tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% call ax::pager(pager) %}{% endcall %}
+{%- endif %}
+{% endblock %}

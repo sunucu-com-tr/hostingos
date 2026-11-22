@@ -1,0 +1,4 @@
+Geist and Geist Mono (variable, wght axis), files Geist-Variable.woff2 and GeistMono-Variable.woff2 in this directory
+Licence: SIL Open Font License 1.1 (OFL.txt in this directory)
+Upstream: https://github.com/vercel/geist-font
+Copied from the npm package geist@1.9.2 (dist/fonts/geist-sans/Geist-Variable.woff2, dist/fonts/geist-mono/GeistMono-Variable.woff2, LICENSE.txt as OFL.txt), unmodified.

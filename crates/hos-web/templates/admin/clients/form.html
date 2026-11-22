@@ -1,0 +1,83 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow"><a href="{{ url("/admin/clients") }}">{{ t("admin.clients.title") }}</a></p>
+    <h1>{{ title }}</h1>
+  </div>
+</div>
+<form method="post" action="{% match editing %}{% when Some(id) %}{{ url("/admin/clients/" ~ id ~ "/edit") }}{% when None %}{{ url("/admin/clients") }}{% endmatch %}" class="ax-form" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {%- if errors.any() %}<div class="mb-4">{% call ui::form_errors(errors) %}{% endcall %}</div>{% endif %}
+  <section class="form-section form-section--first">
+    <div class="form-section__intro"><h2>{{ t("admin.clients.section_identity") }}</h2><p>{{ t("admin.clients.section_identity_lead") }}</p></div>
+    <div class="form-section__body">
+      <div class="form-grid">
+        <div class="field"><label class="field__label" for="f-kind">{{ t("admin.clients.kind") }}</label>
+          <select class="select" id="f-kind" name="kind">
+            <option value="individual"{{ sel(form.kind, "individual") }}>{{ t("admin.clients.kind_individual") }}</option>
+            <option value="corporate"{{ sel(form.kind, "corporate") }}>{{ t("admin.clients.kind_corporate") }}</option>
+          </select></div>
+        {% call ui::field("company_name", t("admin.clients.col_company"), form.company_name, error=errors.get("company_name")) %}{% endcall %}
+        {% call ui::field("first_name", t("admin.clients.first_name"), form.first_name, error=errors.get("first_name"), required=true, autocomplete="off") %}{% endcall %}
+        {% call ui::field("last_name", t("admin.clients.last_name"), form.last_name, error=errors.get("last_name"), required=true, autocomplete="off") %}{% endcall %}
+        {% call ui::field("email", t("admin.clients.col_email"), form.email, kind="email", error=errors.get("email"), required=true, autocomplete="off") %}{% endcall %}
+        {% call ui::field("phone", t("admin.clients.phone"), form.phone, kind="tel") %}{% endcall %}
+      </div>
+    </div>
+  </section>
+  <section class="form-section">
+    <div class="form-section__intro"><h2>{{ t("admin.clients.section_address") }}</h2><p>{{ t("admin.clients.section_address_lead") }}</p></div>
+    <div class="form-section__body">
+      <div class="form-grid">
+        {% call ui::field("address_line1", t("admin.clients.address_line1"), form.address_line1) %}{% endcall %}
+        {% call ui::field("address_line2", t("admin.clients.address_line2"), form.address_line2) %}{% endcall %}
+        {% call ui::field("city", t("admin.clients.city"), form.city) %}{% endcall %}
+        {% call ui::field("state", t("admin.clients.state"), form.state) %}{% endcall %}
+        {% call ui::field("postal_code", t("admin.clients.postal_code"), form.postal_code) %}{% endcall %}
+        {% call ui::field("country_code", t("admin.clients.country"), form.country_code, error=errors.get("country_code"), required=true, placeholder="TR") %}{% endcall %}
+        {% call ui::field("tax_office", t("admin.clients.tax_office"), form.tax_office, error=errors.get("tax_office")) %}{% endcall %}
+        {% call ui::field("tax_number", t("admin.clients.tax_number"), form.tax_number, error=errors.get("tax_number")) %}{% endcall %}
+        {% call ui::field("national_id", t("admin.clients.national_id"), form.national_id, error=errors.get("national_id")) %}{% endcall %}
+      </div>
+    </div>
+  </section>
+  <section class="form-section">
+    <div class="form-section__intro"><h2>{{ t("admin.clients.section_account") }}</h2><p>{{ t("admin.clients.section_account_lead") }}</p></div>
+    <div class="form-section__body">
+      <div class="form-grid">
+        <div class="field{% if errors.has("currency") %} field--error{% endif %}"><label class="field__label" for="f-currency">{{ t("admin.common.currency") }}</label>
+          <select class="select" id="f-currency" name="currency">{% for c in currencies %}<option value="{{ c }}"{{ sel(c, form.currency) }}>{{ c }}</option>{% endfor %}</select></div>
+        <div class="field"><label class="field__label" for="f-locale">{{ t("admin.common.language") }}</label>
+          <select class="select" id="f-locale" name="locale"><option value="tr"{{ sel(form.locale, "tr") }}>Türkçe</option><option value="en"{{ sel(form.locale, "en") }}>English</option></select></div>
+        <div class="field"><label class="field__label" for="f-group">{{ t("admin.clients.group") }}</label>
+          <select class="select" id="f-group" name="group_id"><option value="">—</option>{% for g in groups %}<option value="{{ g.id }}"{{ sel(g.id.to_string().as_str(), form.group_id) }}>{{ g.name }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="checks checks--grid">
+        {% call ui::checkbox("tax_exempt", t("admin.clients.tax_exempt"), form.tax_exempt) %}{% endcall %}
+        {% call ui::checkbox("late_fee_exempt", t("admin.clients.late_fee_exempt"), form.late_fee_exempt) %}{% endcall %}
+        {% call ui::checkbox("overdue_notices", t("admin.clients.overdue_notices"), form.overdue_notices) %}{% endcall %}
+        {% call ui::checkbox("separate_invoices", t("admin.clients.separate_invoices"), form.separate_invoices) %}{% endcall %}
+        {% call ui::checkbox("marketing_opt_in", t("admin.clients.marketing_opt_in"), form.marketing_opt_in) %}{% endcall %}
+      </div>
+    </div>
+  </section>
+  {%- if editing.is_none() %}
+  <section class="form-section">
+    <div class="form-section__intro"><h2>{{ t("admin.clients.section_login") }}</h2><p>{{ t("admin.clients.section_login_lead") }}</p></div>
+    <div class="form-section__body">
+      {% call ui::checkbox("create_login", t("admin.clients.create_login"), form.create_login) %}{% endcall %}
+      <div class="form-grid">
+        {% call ui::field("password", t("admin.clients.password"), "", kind="password", error=errors.get("password"), hint=t("admin.clients.password_hint"), autocomplete="new-password") %}{% endcall %}
+      </div>
+    </div>
+  </section>
+  {%- endif %}
+  <div class="form-actions form-actions--sticky">
+    <span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span>
+    <a class="btn btn--ghost" href="{% match editing %}{% when Some(id) %}{{ url("/admin/clients/" ~ id) }}{% when None %}{{ url("/admin/clients") }}{% endmatch %}">{{ t("common.actions.cancel") }}</a>
+    <button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button>
+  </div>
+</form>
+{% endblock %}

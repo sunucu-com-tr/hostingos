@@ -1,0 +1,45 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/reports/_macros.html" as rp %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+{% include "admin/reports/_head.html" %}
+{% call rp::filters(s, false) %}
+  <div class="field"><label class="field__label" for="f-basis">{{ t("admin_settings.reports.basis") }}</label>
+    <select class="select" id="f-basis" name="basis">
+      <option value="cash"{% if !accrual %} selected{% endif %}>{{ t("admin_settings.reports.basis_cash") }}</option>
+      <option value="accrual"{% if accrual %} selected{% endif %}>{{ t("admin_settings.reports.basis_accrual") }}</option>
+    </select></div>
+{% endcall %}
+
+<section class="card report-card">
+  {% call rp::head(t("admin_settings.reports.tax_title"), tv("admin_settings.reports.by_period_lead", "currency", s.filters.currency.as_str()), url(s.export("tax"))) %}{% endcall %}
+  <div class="card__body">
+    <p class="muted small">{% if accrual %}{{ t("admin_settings.reports.basis_accrual_hint") }}{% else %}{{ t("admin_settings.reports.basis_cash_hint") }}{% endif %}</p>
+    {%- if rows.is_empty() %}
+    <p class="muted">{{ t("admin_settings.reports.empty") }}</p>
+    {%- else %}
+    <div class="table-wrap mt-2"><table class="table table--dense table--stack">
+      <thead><tr>
+        <th scope="col">{{ t("admin_settings.reports.tax_name") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.rate") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.invoice_count") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.taxable") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.tax_amount") }}</th>
+      </tr></thead>
+      <tbody>
+      {%- for r in rows %}
+      <tr>
+        <th scope="row" data-label="{{ t("admin_settings.reports.tax_name") }}">{{ r.name }}</th>
+        <td class="num" data-label="{{ t("admin_settings.reports.rate") }}">{{ tv("admin_settings.reports.percent", "value", r.rate.normalize()) }}</td>
+        <td class="num" data-label="{{ t("admin_settings.reports.invoice_count") }}">{{ num(r.invoice_count) }}</td>
+        <td class="num" data-label="{{ t("admin_settings.reports.taxable") }}">{{ money_in(r.taxable_amount, r.currency) }}</td>
+        <td class="num" data-label="{{ t("admin_settings.reports.tax_amount") }}"><strong>{{ money_in(r.tax_amount, r.currency) }}</strong></td>
+      </tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
+    {%- endif %}
+  </div>
+</section>
+{% endblock %}

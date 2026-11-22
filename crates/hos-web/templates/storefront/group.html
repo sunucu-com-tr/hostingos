@@ -1,0 +1,97 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% import "components/catalog.html" as cat %}
+{% import "components/blocks.html" as blk %}
+{% block content %}
+<section class="page-hero page-hero--landing">
+  <div class="container page-hero__inner">
+    {% call ui::breadcrumbs(crumbs) %}{% endcall %}
+    <div class="page-hero__title">
+      <span class="icon-tile icon-tile--lg" aria-hidden="true">{{ icon(icon) }}</span>
+      <h1>{{ name }}</h1>
+    </div>
+    {%- if !lead.is_empty() %}<p class="lead">{{ lead }}</p>
+    {%- elif !tagline.is_empty() %}<p class="lead">{{ tagline }}</p>{% endif %}
+    <ul class="page-hero__facts" aria-label="{{ t("storefront.catalog.facts_label") }}">
+      {%- if !cards.is_empty() %}<li>{{ icon("layers") }}{{ tn("storefront.catalog.plans", cards.len()) }}</li>{% endif %}
+      {%- match from %}{% when Some(f) %}<li>{{ icon("tag") }}{{ t("storefront.catalog.from_label") }} <strong class="mono">{{ money(f) }}</strong>{{ t("common.per.monthly") }}</li>{% when None %}{% endmatch %}
+      <li>{{ icon("clock") }}{{ t("storefront.content.updated") }} <time datetime="{{ iso(updated_at) }}">{{ date(updated_at) }}</time></li>
+      <li><a href="{{ md_href }}" rel="alternate" type="text/markdown">{{ icon("file-text") }}{{ t("storefront.content.markdown") }}</a></li>
+    </ul>
+  </div>
+</section>
+
+<section class="section section--tight" aria-labelledby="plans-title">
+  <div class="container js-cycle-scope">
+    <div class="toolbar">
+      <h2 id="plans-title">{{ tv("storefront.catalog.plans_title", "group", name) }}</h2>
+      {%- if !cards.is_empty() %}{% call cat::cycle_switch(saving, "plans") %}{% endcall %}{% endif %}
+    </div>
+    {%- if cards.is_empty() %}
+    {% call ui::empty("box", t("storefront.catalog.empty_title"), t("storefront.catalog.empty_text")) %}
+    <a class="btn btn--soft" href="{{ url("/contact") }}">{{ t("storefront.nav.contact") }}{{ icon("arrow-right") }}</a>
+    {% endcall %}
+    {%- else %}
+    <div class="price-grid">
+      {%- for card in cards %}{% call cat::price_card(card) %}{% endcall %}{% endfor %}
+    </div>
+    <p class="small muted price-grid__note">{% if store().prices_include_tax %}{{ t("storefront.product.tax_note_included") }}{% else %}{{ t("storefront.product.tax_note") }}{% endif %}</p>
+    {%- endif %}
+  </div>
+</section>
+
+{%- if cards.len() > 1 %}
+<section class="section section--alt" aria-labelledby="compare-title">
+  <div class="container compare">
+    <header class="section__head">
+      <h2 id="compare-title">{{ t("storefront.catalog.compare_title") }}</h2>
+      <p>{{ t("storefront.catalog.compare_lead") }}</p>
+    </header>
+    <div class="table-wrap">
+      <table class="table table--compare">
+        <caption class="visually-hidden">{{ tv("storefront.catalog.compare_caption", "group", name) }}</caption>
+        <thead>
+          <tr><th scope="col"><span class="visually-hidden">{{ t("storefront.catalog.feature") }}</span></th>
+          {%- for card in cards %}<th scope="col"{% if card.featured %} class="is-featured"{% endif %}><a href="{{ card.href }}">{{ card.name }}</a></th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {%- for row in compare %}
+          <tr><th scope="row">{% if row.label_hidden %}<span class="visually-hidden">{{ row.label }}</span>{% else %}{{ row.label }}{% endif %}</th>{% for cell in row.cells %}<td>{{ cell }}</td>{% endfor %}</tr>
+          {%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{%- endif %}
+
+{% call blk::render(blocks) %}{% endcall %}
+
+{%- if !description_html.is_empty() %}
+<section class="section">
+  <div class="container">
+    <div class="container--narrow prose">{{ description_html|safe }}</div>
+  </div>
+</section>
+{%- endif %}
+
+{%- if !other_groups.is_empty() %}
+<section class="section section--alt" aria-labelledby="more-title">
+  <div class="container">
+    <header class="section__head">
+      <h2 id="more-title">{{ t("storefront.catalog.other_groups") }}</h2>
+    </header>
+    <div class="cell-grid cell-grid--3 cell-grid--rows-3">
+      {%- for g in other_groups %}
+      <a class="group-card" href="{{ g.href }}">
+        <span class="icon-tile">{{ icon(g.icon) }}</span>
+        <span class="group-card__arrow">{{ icon("arrow-up-right") }}</span>
+        <h3>{{ g.label }}</h3>
+        <p>{{ g.description }}</p>
+      </a>
+      {%- endfor %}
+    </div>
+  </div>
+</section>
+{%- endif %}
+{% endblock %}

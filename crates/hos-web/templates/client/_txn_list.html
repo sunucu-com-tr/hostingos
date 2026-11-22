@@ -1,0 +1,10 @@
+{#- Transactions list (`txns`). -#}
+{%- if txns.is_empty() %}
+<p class="muted">{{ t("client.billing.no_transactions") }}</p>
+{%- else %}
+<ul class="row-list">
+{%- for tx in txns %}
+  <li><span><strong>{{ tx.gateway }}</strong><span class="muted small">{{ datetime(tx.occurred_at) }}{% match tx.gateway_txn_id %}{% when Some(r) %} · <span class="mono">{{ r }}</span>{% when None %}{% endmatch %}</span></span><span class="cluster nowrap">{{ money_in(tx.amount, tx.currency) }} {{ st(tx.status.as_str()) }}</span></li>
+{%- endfor %}
+</ul>
+{%- endif %}

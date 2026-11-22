@@ -1,0 +1,48 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ t("platform.tenants.title") }}</h1>
+    <p>{{ tn("platform.tenants.count", total) }}</p>
+  </div>
+  <div class="btn-row"><a class="btn btn--primary" href="/platform/tenants/new">{{ icon("plus") }}{{ t("platform.tenants.new") }}</a></div>
+</div>
+{% call ui::card() %}
+<form class="form-row" method="get" action="/platform/tenants" role="search">
+  {% call ui::field("q", t("platform.tenants.search"), q, kind="search", placeholder=t("platform.tenants.search_hint")) %}{% endcall %}
+  {% call ui::select("status", t("platform.tenants.col_status"), statuses, status.as_str()) %}{% endcall %}
+  <div class="field"><span class="field__label">&nbsp;</span><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("platform.common.filter") }}</button></div>
+</form>
+{%- if rows.is_empty() %}
+{% call ui::empty("building", t("platform.tenants.empty")) %}{% endcall %}
+{%- else %}
+<div class="table-wrap mt-4"><table class="table table--stack">
+  <thead><tr>
+    <th scope="col">{{ t("platform.tenants.col_tenant") }}</th>
+    <th scope="col">{{ t("platform.tenants.col_host") }}</th>
+    <th scope="col">{{ t("platform.tenants.col_status") }}</th>
+    <th scope="col">{{ t("platform.tenants.col_plan") }}</th>
+    <th scope="col" class="num">{{ t("platform.tenants.col_clients") }}</th>
+    <th scope="col" class="num">{{ t("platform.tenants.col_services") }}</th>
+    <th scope="col">{{ t("platform.tenants.col_created") }}</th>
+  </tr></thead>
+  <tbody>
+  {%- for r in rows %}
+    <tr>
+      <td data-label="{{ t("platform.tenants.col_tenant") }}"><a href="/platform/tenants/{{ r.tenant.id }}"><strong>{{ r.tenant.name }}</strong></a><br><code class="muted small">{{ r.tenant.slug }}</code></td>
+      <td data-label="{{ t("platform.tenants.col_host") }}">{% match r.primary_host %}{% when Some(h) %}<code class="small">{{ h }}</code>{% when None %}—{% endmatch %}</td>
+      <td data-label="{{ t("platform.tenants.col_status") }}">{{ status_badge(r.tenant.status.as_str()) }}</td>
+      <td data-label="{{ t("platform.tenants.col_plan") }}">{% match r.plan_name %}{% when Some(p) %}{{ p }}{% when None %}<span class="muted">—</span>{% endmatch %}{% match r.subscription_status %}{% when Some(s) %} <span class="muted small">({{ sub_status(s) }})</span>{% when None %}{% endmatch %}</td>
+      <td data-label="{{ t("platform.tenants.col_clients") }}" class="num tabular">{{ num(r.clients) }}</td>
+      <td data-label="{{ t("platform.tenants.col_services") }}" class="num tabular">{{ num(r.active_services) }}</td>
+      <td data-label="{{ t("platform.tenants.col_created") }}"><time datetime="{{ iso(r.tenant.created_at) }}">{{ date(r.tenant.created_at) }}</time></td>
+    </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% call ui::pagination(pager) %}{% endcall %}
+{%- endif %}
+{% endcall %}
+{% endblock %}

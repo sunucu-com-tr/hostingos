@@ -1,0 +1,31 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.orders.queue_title") }}</h1><p>{{ t("admin.orders.queue_lead") }}</p></div></div>
+{%- if rows.is_empty() %}
+{% call ui::empty("check-circle", t("admin.orders.queue_empty"), t("admin.orders.queue_empty_text")) %}{% endcall %}
+{%- else %}
+<div class="stack-lg">
+{%- for r in rows %}
+{% call ui::card(r.product_name, r.client_name) %}
+<p class="small muted">{{ o(r.service.domain) }} · {{ sbadge(r.service.status.as_str()) }} · <a href="{{ url("/admin/services/" ~ r.service.id) }}">{{ t("admin.common.details") }}</a>
+{%- match r.service.module_data.get("manual_reason") %}{% when Some(why) %} · {{ why.as_str().unwrap_or_default() }}{% when None %}{% endmatch %}</p>
+{%- if can("services.manage") %}
+<form method="post" action="{{ url("/admin/orders/provisioning/" ~ r.service.id) }}" class="mt-4">
+  {% call ui::csrf() %}{% endcall %}
+  <div class="form-grid">
+    <div class="field"><label class="field__label" for="u-{{ r.service.id }}">{{ t("admin.services.username") }}</label><input class="input" id="u-{{ r.service.id }}" name="username" value="{{ r.service.username.as_deref().unwrap_or_default() }}" autocomplete="off"></div>
+    <div class="field"><label class="field__label" for="p-{{ r.service.id }}">{{ t("admin.services.password") }}</label><input class="input" id="p-{{ r.service.id }}" name="password" type="password" autocomplete="new-password"></div>
+    <div class="field"><label class="field__label" for="e-{{ r.service.id }}">{{ t("admin.services.external_id") }}</label><input class="input" id="e-{{ r.service.id }}" name="external_id"></div>
+    <div class="field"><label class="field__label" for="i-{{ r.service.id }}">{{ t("admin.services.dedicated_ip") }}</label><input class="input" id="i-{{ r.service.id }}" name="dedicated_ip" inputmode="decimal"></div>
+    <div class="field"><label class="field__label" for="h-{{ r.service.id }}">{{ t("admin.services.server_hostname") }}</label><input class="input" id="h-{{ r.service.id }}" name="server_hostname"></div>
+    <div class="field"><label class="field__label" for="n-{{ r.service.id }}">{{ t("admin.common.notes") }}</label><input class="input" id="n-{{ r.service.id }}" name="note"></div>
+  </div>
+  <div class="form-actions"><button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("admin.orders.complete") }}</button></div>
+</form>
+{%- endif %}
+{% endcall %}
+{%- endfor %}
+</div>
+{%- endif %}
+{% endblock %}

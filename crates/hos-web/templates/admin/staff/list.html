@@ -1,0 +1,83 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+{% include "admin/staff/_head.html" %}
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    <div class="table-wrap"><table class="table table--dense table--stack">
+      <thead><tr>
+        <th scope="col">{{ t("admin_settings.staff.member") }}</th>
+        <th scope="col">{{ t("admin_settings.staff.roles") }}</th>
+        <th scope="col">{{ t("admin.common.status") }}</th>
+        <th scope="col">{{ t("admin_settings.staff.twofa") }}</th>
+        <th scope="col">{{ t("admin_settings.staff.last_login") }}</th>
+      </tr></thead>
+      <tbody>
+      {%- for r in rows %}
+      <tr>
+        <td data-label="{{ t("admin_settings.staff.member") }}"><a class="row-link" href="{{ url("/admin/staff/" ~ r.user.id) }}">{{ r.user.display_name() }}</a>
+          {%- if r.is_me %} {{ badge(t("admin_settings.staff.you"), "") }}{% endif %}
+          <span class="sub">{{ r.user.email }}</span></td>
+        <td data-label="{{ t("admin_settings.staff.roles") }}">
+          {%- for role in r.roles %}{{ badge(role, "brand") }} {% endfor %}
+          {%- if r.roles.is_empty() %}<span class="muted">—</span>{% endif %}</td>
+        <td data-label="{{ t("admin.common.status") }}">{{ sbadge(r.user.status.as_str()) }}</td>
+        <td data-label="{{ t("admin_settings.staff.twofa") }}">{% if r.user.totp_enabled %}{{ badge(t("admin_settings.staff.twofa_on"), "success") }}{% else %}{{ badge(t("admin_settings.staff.twofa_off"), "") }}{% endif %}</td>
+        <td data-label="{{ t("admin_settings.staff.last_login") }}" class="nowrap">{{ dtopt(r.user.last_login_at) }}</td>
+      </tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
+
+    {% call ui::card(t("admin_settings.staff.invites"), t("admin_settings.staff.invites_lead")) %}
+    {%- if invites.is_empty() %}
+    <p class="muted small">{{ t("admin_settings.staff.invites_empty") }}</p>
+    {%- else %}
+    <div class="table-wrap"><table class="table table--dense table--stack">
+      <thead><tr><th>{{ t("admin_settings.staff.email") }}</th><th>{{ t("admin_settings.staff.role") }}</th><th>{{ t("admin_settings.staff.expires") }}</th><th class="actions"></th></tr></thead>
+      <tbody>
+      {%- for i in invites %}
+      <tr>
+        <td data-label="{{ t("admin_settings.staff.email") }}">{{ i.invite.email }}{% if !i.invite.first_name.is_empty() %}<span class="sub">{{ i.invite.first_name }} {{ i.invite.last_name }}</span>{% endif %}</td>
+        <td data-label="{{ t("admin_settings.staff.role") }}">{{ i.role }}</td>
+        <td data-label="{{ t("admin_settings.staff.expires") }}" class="nowrap">{{ datetime(i.invite.expires_at) }}</td>
+        <td class="actions"><div class="btn-row">
+          <form method="post" action="{{ url("/admin/staff/invites/" ~ i.invite.id ~ "/resend") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ icon("send") }}{{ t("admin_settings.staff.resend") }}</button></form>
+          <form method="post" action="{{ url("/admin/staff/invites/" ~ i.invite.id ~ "/revoke") }}" data-confirm="{{ t("admin_settings.staff.revoke_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ icon("x") }}{{ t("admin_settings.staff.revoke") }}</button></form>
+        </div></td>
+      </tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
+    {%- endif %}
+    {% endcall %}
+  </div>
+  <aside class="stack-lg">
+    {% call ui::card(t("admin_settings.staff.invite"), limit_text) %}
+    {%- if !can_invite %}
+    {% call ui::alert("warning", t("admin_settings.limits.staff")) %}{% endcall %}
+    {%- else if roles.is_empty() %}
+    <p class="muted small">{{ t("admin_settings.staff.no_assignable_roles") }}</p>
+    {%- else %}
+    <form method="post" action="{{ url("/admin/staff/invite") }}" class="stack">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::field("email", t("admin_settings.staff.email"), "", kind="email", required=true, autocomplete="off") %}{% endcall %}
+      <div class="settings-grid">
+        {% call ui::field("first_name", t("admin_settings.staff.first_name"), "") %}{% endcall %}
+        {% call ui::field("last_name", t("admin_settings.staff.last_name"), "") %}{% endcall %}
+      </div>
+      {% call ui::select("role_id", t("admin_settings.staff.role"), roles, "") %}{% endcall %}
+      <div class="field"><label class="field__label" for="f-locale">{{ t("admin_settings.staff.locale") }}</label>
+        <select class="select" id="f-locale" name="locale">
+          <option value="tr"{{ sel("tr", lang) }}>{{ t("admin.common.lang_tr") }}</option>
+          <option value="en"{{ sel("en", lang) }}>{{ t("admin.common.lang_en") }}</option>
+        </select></div>
+      <p class="field__hint">{{ t("admin_settings.staff.invite_hint") }}</p>
+      <button class="btn btn--primary" type="submit">{{ icon("send") }}{{ t("admin_settings.staff.send_invite") }}</button>
+    </form>
+    {%- endif %}
+    {% endcall %}
+  </aside>
+</div>
+{% endblock %}

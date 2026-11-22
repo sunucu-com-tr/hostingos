@@ -1,0 +1,7 @@
+{%- if !error.is_empty() %}<p class="field__error" role="alert">{{ error }}</p>{% endif %}
+{%- for (f, choices) in fields %}
+<div class="field"><label class="field__label" for="mr-{{ f.key }}">{{ f.label }}</label>
+  <select class="select" id="mr-{{ f.key }}" name="{{ f.key }}"><option value="">—</option>
+  {%- for c in choices %}<option value="{{ c.value }}"{{ sel(c.value, f.value) }}>{{ c.label }}</option>{% endfor %}
+  </select>{% if choices.is_empty() %}<p class="field__hint">{{ t("admin.catalog.remote_empty") }}</p>{% endif %}</div>
+{%- endfor %}

@@ -1,0 +1,172 @@
+/* Admin support / content / SEO / AI studio screens — loaded by those
+   templates through `{% block admin_head %}`. Design tokens from tokens.css;
+   everything in the `pages` layer like admin.css. */
+@layer pages {
+  /* ------------------------------------------------------------ language columns */
+  .lang-cols {
+    display: grid;
+    gap: var(--space-6);
+    grid-template-columns: minmax(0, 1fr);
+  }
+  @media (min-width: 75rem) {
+    .lang-cols {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+  }
+  .lang-col {
+    min-width: 0;
+  }
+  .lang-col__head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  /* In side-by-side columns the editor stacks its textarea over the preview. */
+  .md-editor.md-editor--stacked {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .md-editor--stacked .textarea,
+  .md-editor--stacked .md-preview {
+    min-height: 14rem;
+  }
+  .input-group__addon.mono {
+    font-size: 0.78rem;
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ------------------------------------------------------------ tickets */
+  .ticket-thread {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .attachments {
+    list-style: none;
+    margin: 0;
+    padding: var(--space-2) var(--space-4) var(--space-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    border-top: 1px solid var(--line);
+    font-size: var(--step--1);
+  }
+  .attachments a {
+    display: inline-flex;
+    gap: 0.3rem;
+    align-items: center;
+  }
+  .side-list {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-2) 0 0;
+    display: grid;
+    gap: var(--space-2);
+    font-size: var(--step--1);
+    overflow-wrap: anywhere;
+  }
+  tr.is-current td {
+    background: var(--brand-softer);
+  }
+
+  /* ------------------------------------------------------------ AI studio */
+  .ai-task {
+    text-decoration: none;
+    color: inherit;
+  }
+  .ai-task h3 {
+    margin: var(--space-3) 0 var(--space-1);
+  }
+  .faq-list dt {
+    font-weight: 650;
+    margin-top: var(--space-3);
+  }
+  .faq-list dd {
+    margin: var(--space-1) 0 0;
+    color: var(--ink-2);
+  }
+
+  /* ------------------------------------------------------------ SEO */
+  .seo-score {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+  }
+  .trend {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.3rem;
+    height: 3.5rem;
+    margin-top: var(--space-3);
+  }
+  .trend__bar {
+    flex: 1 1 0;
+    min-width: 0.5rem;
+    max-width: 1.6rem;
+    border-radius: 0.2rem 0.2rem 0 0;
+    background: var(--brand-line);
+  }
+  .trend__bar[data-tone="good"] {
+    background: var(--success);
+  }
+  .trend__bar[data-tone="mid"] {
+    background: var(--warning);
+  }
+  .trend__bar[data-tone="bad"] {
+    background: var(--danger);
+  }
+  .progress-bar {
+    height: 0.6rem;
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .progress-bar > span {
+    display: block;
+    height: 100%;
+    background: var(--brand);
+    transition: width 0.4s ease;
+  }
+  .sev {
+    display: inline-block;
+    min-width: 4.8rem;
+  }
+  .page-findings {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+  }
+  .page-findings + .page-findings {
+    margin-top: var(--space-3);
+  }
+  .page-findings > summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-4);
+    cursor: pointer;
+    overflow-wrap: anywhere;
+  }
+  .page-findings > .findings,
+  .page-findings__empty,
+  .page-findings__more {
+    padding: 0 var(--space-4) var(--space-3);
+    margin: 0;
+  }
+  .robots-preview,
+  .file-preview {
+    max-height: 28rem;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .bot-table td:first-child {
+    white-space: nowrap;
+  }
+}

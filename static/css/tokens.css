@@ -1,0 +1,309 @@
+/* HostingOS design tokens — "infrastructure grade, technical-editorial".
+ *
+ * Layer order is declared once here; every other stylesheet puts its rules
+ * into one of these layers, so specificity never depends on file order.
+ *
+ * Colour model: a warm-neutral ink/paper scale carries the UI (primary
+ * actions are ink, not brand). The tenant colour (`--brand`, set by
+ * /brand.css) is an accent only: links, selected states, focus rings,
+ * featured badges, charts. Every brand-derived colour is computed here, and
+ * text-on-paper variants are clamped in OKLCH lightness so any tenant colour
+ * (red, green, yellow, purple …) keeps AA contrast in both themes.
+ *
+ * `template` is the last layer: the active customer-side design template
+ * (static/css/themes/<key>.css, loaded only while selected) puts its
+ * component variants there and its token overrides into `tokens`. The
+ * tenant theme stylesheet (/brand.css, crate::theme) is unlayered and wins.
+ *
+ * Fonts: Geist + Geist Mono (OFL, self-hosted in static/fonts, v1.9.2 from
+ * the `geist` npm package) are the defaults; /brand.css swaps `--font-sans`
+ * / `--font-heading` for the tenant's choice and declares only those faces.
+ * The "… Fallback" faces are metric-matched local fonts (size-adjust +
+ * ascent/descent overrides measured against Geist), so swapping in the web
+ * font does not reflow text.
+ */
+@layer reset, tokens, base, layout, components, utilities, pages, template;
+
+/* ---- web fonts (outside layers: @font-face is not cascaded) ----------- */
+@font-face {
+  font-family: "Geist";
+  src: url("/static/fonts/Geist-Variable.woff2?v=1.9.2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/static/fonts/GeistMono-Variable.woff2?v=1.9.2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+/* Arial measured against Geist (canvas, TR + EN running text):
+   400 → 1.0243, 500 → 1.0499, 600 (Arial Bold) → 0.9999.
+   Geist: ascent 1.005, descent 0.295, line gap 0 (per em). */
+@font-face {
+  font-family: "Geist Fallback";
+  src: local("Arial"), local("ArialMT"), local("Liberation Sans");
+  font-weight: 100 449;
+  size-adjust: 101.3%;
+  ascent-override: 99.21%;
+  descent-override: 29.12%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Geist Fallback";
+  src: local("Arial"), local("ArialMT"), local("Liberation Sans");
+  font-weight: 450 549;
+  size-adjust: 103.6%;
+  ascent-override: 97.01%;
+  descent-override: 28.47%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Geist Fallback";
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold");
+  font-weight: 550 900;
+  size-adjust: 99.7%;
+  ascent-override: 100.8%;
+  descent-override: 29.59%;
+  line-gap-override: 0%;
+}
+/* Geist Mono advance = 0.600 em; Menlo 0.602, Courier New 0.600. */
+@font-face {
+  font-family: "Geist Mono Fallback";
+  src: local("Menlo"), local("Menlo-Regular"), local("Courier New"), local("CourierNewPSMT");
+  size-adjust: 99.7%;
+  ascent-override: 100.8%;
+  descent-override: 29.59%;
+  line-gap-override: 0%;
+}
+
+@layer tokens {
+  :root {
+    color-scheme: light;
+
+    /* ---- brand (overridden by /brand.css) ---------------------------- */
+    --brand: #2563eb;
+    --accent: #f59e0b;
+    /* Text on a brand fill: black or white, whichever the brand allows. */
+    --brand-ink: #ffffff;
+    /* Brand as text / icon colour on paper (links, selected labels). */
+    --brand-strong: color-mix(in oklab, var(--brand) 68%, var(--ink));
+    --brand-soft: color-mix(in oklab, var(--brand) 10%, var(--surface));
+    --brand-softer: color-mix(in oklab, var(--brand) 5%, var(--surface));
+    --brand-line: color-mix(in oklab, var(--brand) 42%, var(--line));
+    --accent-soft: color-mix(in oklab, var(--accent) 14%, var(--surface));
+    --focus: var(--brand-strong);
+
+    /* ---- ink / paper -------------------------------------------------- */
+    --bg: #f7f6f2;
+    --bg-elev: #f0eee8;
+    --surface: #fdfcfa;
+    --surface-2: #f8f7f3;
+    --surface-sunken: #eeece6;
+    --ink: #171613;
+    --ink-2: #3a3833;
+    --muted: #67635b;
+    --faint: #8b877d;
+    --line: #e2dfd7;
+    --line-strong: #cdc9bf;
+    --overlay: rgb(23 22 19 / 0.42);
+
+    /* ---- feedback (AA on --surface and on their -soft fill) ----------- */
+    --success: #17704a;
+    --success-soft: #e6f2eb;
+    --warning: #875400;
+    --warning-soft: #faefd8;
+    --danger: #b0241a;
+    --danger-soft: #fae8e5;
+    --info: #24559f;
+    --info-soft: #e7edf7;
+
+    /* ---- code blocks (dark in both themes) ---------------------------- */
+    --code-bg: #1a1916;
+    --code-ink: #e9e7e1;
+    --code-muted: #9a978f;
+    --code-line: #2e2d29;
+
+    /* ---- panel sidebar (follows the theme) ---------------------------- */
+    --side-bg: #f1efea;
+    --side-bg-2: #e8e5de;
+    --side-ink: #2b2925;
+    --side-muted: #6c685f;
+    --side-line: var(--line);
+
+    /* ---- typography --------------------------------------------------- */
+    --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+      Roboto, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, "SF Mono", Menlo, Consolas,
+      "Liberation Mono", monospace;
+    /* h1–h3 and display text; /brand.css sets it when it differs. */
+    --font-heading: var(--font-sans);
+    /* fluid scale: 360px → 1440px viewport */
+    --step--2: 0.6875rem;
+    --step--1: 0.8125rem;
+    --step-0: 1rem;
+    --step-1: clamp(1.0625rem, 1.02rem + 0.19vw, 1.1875rem);
+    --step-2: clamp(1.25rem, 1.17rem + 0.37vw, 1.5rem);
+    --step-3: clamp(1.5rem, 1.33rem + 0.74vw, 2rem);
+    --step-4: clamp(1.875rem, 1.58rem + 1.3vw, 2.75rem);
+    --step-5: clamp(2.25rem, 1.65rem + 2.67vw, 4rem);
+    --leading: 1.6;
+    --leading-snug: 1.35;
+    --leading-tight: 1.12;
+    --tracking-tight: -0.02em;
+    --tracking-display: -0.035em;
+    --tracking-label: 0.07em;
+    --weight-regular: 400;
+    --weight-medium: 520;
+    --weight-semibold: 600;
+
+    /* ---- space (4px base) -------------------------------------------- */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-7: 1.75rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    --space-14: 3.5rem;
+    --space-16: 4rem;
+    --space-20: 5rem;
+    --space-24: 6rem;
+    --section: clamp(3.5rem, 2.4rem + 4.4vw, 6.5rem);
+    --gutter: clamp(1rem, 0.55rem + 2vw, 2.5rem);
+    --container: 1240px;
+    --container-narrow: 760px;
+    /* em, not ch: ch follows the "0" glyph, which differs between Geist
+       and its fallback and would re-wrap text on font swap. */
+    --measure: 45em;
+
+    /* ---- shape -------------------------------------------------------- */
+    --radius-sm: 4px;
+    --radius: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 8px;
+    --radius-pill: 999px;
+    --hairline: 1px solid var(--line);
+
+    /* ---- elevation: lines, not shadows. Only floating layers (menus,
+       dialogs, toasts) get one tight, functional shadow. ---------------- */
+    --shadow-xs: none;
+    --shadow-sm: none;
+    --shadow: none;
+    --shadow-lg: 0 16px 40px -20px rgb(23 22 19 / 0.28), 0 2px 6px -2px rgb(23 22 19 / 0.08);
+    --ring: 0 0 0 3px color-mix(in oklab, var(--brand) 24%, transparent);
+    --inset-hi: none;
+
+    /* ---- motion ------------------------------------------------------- */
+    --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --fast: 120ms;
+    --normal: 180ms;
+
+    /* ---- chrome ------------------------------------------------------- */
+    --header-h: 64px;
+    --topbar-h: 56px;
+    --sidebar-w: 248px;
+    --control-h: 2.5rem;
+    --control-h-sm: 2rem;
+    --control-h-lg: 3rem;
+    --control-font: 0.9375rem;
+    --input-font: 1rem;
+    --row-h: 2.75rem;
+    --card-pad: var(--space-5);
+    --sticky-top: var(--header-h);
+  }
+
+  /* Dark theme: a true neutral dark (not navy). Explicit choice, or the
+     system preference when no choice was made — same values twice. */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0f0f0f;
+    --bg-elev: #141414;
+    --surface: #161616;
+    --surface-2: #1a1a1a;
+    --surface-sunken: #0b0b0b;
+    --ink: #edece8;
+    --ink-2: #c9c7c1;
+    --muted: #9d9b95;
+    --faint: #75736e;
+    --line: #272727;
+    --line-strong: #3a3a3a;
+    --overlay: rgb(0 0 0 / 0.62);
+    --brand-soft: color-mix(in oklab, var(--brand) 16%, var(--surface));
+    --brand-softer: color-mix(in oklab, var(--brand) 8%, var(--surface));
+    --brand-line: color-mix(in oklab, var(--brand) 48%, var(--line));
+    --success: #4cc38e;
+    --success-soft: #10241a;
+    --warning: #e2ad3e;
+    --warning-soft: #272010;
+    --danger: #f3786e;
+    --danger-soft: #2b1513;
+    --info: #7cabf3;
+    --info-soft: #131f33;
+    --side-bg: #121212;
+    --side-bg-2: #1e1e1e;
+    --side-ink: #d9d8d3;
+    --side-muted: #8f8d88;
+    --code-bg: #0a0a0a;
+    --code-line: #242424;
+    --shadow-lg: 0 18px 44px -18px rgb(0 0 0 / 0.75), 0 0 0 1px rgb(255 255 255 / 0.02);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0f0f0f;
+      --bg-elev: #141414;
+      --surface: #161616;
+      --surface-2: #1a1a1a;
+      --surface-sunken: #0b0b0b;
+      --ink: #edece8;
+      --ink-2: #c9c7c1;
+      --muted: #9d9b95;
+      --faint: #75736e;
+      --line: #272727;
+      --line-strong: #3a3a3a;
+      --overlay: rgb(0 0 0 / 0.62);
+      --brand-soft: color-mix(in oklab, var(--brand) 16%, var(--surface));
+      --brand-softer: color-mix(in oklab, var(--brand) 8%, var(--surface));
+      --brand-line: color-mix(in oklab, var(--brand) 48%, var(--line));
+      --success: #4cc38e;
+      --success-soft: #10241a;
+      --warning: #e2ad3e;
+      --warning-soft: #272010;
+      --danger: #f3786e;
+      --danger-soft: #2b1513;
+      --info: #7cabf3;
+      --info-soft: #131f33;
+      --side-bg: #121212;
+      --side-bg-2: #1e1e1e;
+      --side-ink: #d9d8d3;
+      --side-muted: #8f8d88;
+    --code-bg: #0a0a0a;
+    --code-line: #242424;
+      --shadow-lg: 0 18px 44px -18px rgb(0 0 0 / 0.75), 0 0 0 1px rgb(255 255 255 / 0.02);
+    }
+  }
+
+  /* Brand contrast guard (relative colour syntax): link/label colour is the
+     brand hue with lightness capped (light) or floored (dark); the ink on a
+     brand fill flips between black and white at OKLCH L = 0.66. */
+  @supports (color: oklch(from red l c h)) {
+    :root {
+      --brand-strong: oklch(from var(--brand) min(l, 0.5) c h);
+      --brand-ink: oklch(from var(--brand) clamp(0, (0.66 - l) * 1000, 1) 0 0);
+    }
+    :root[data-theme="dark"] {
+      --brand-strong: oklch(from var(--brand) max(l, 0.76) min(c, 0.17) h);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --brand-strong: oklch(from var(--brand) max(l, 0.76) min(c, 0.17) h);
+      }
+    }
+  }
+}

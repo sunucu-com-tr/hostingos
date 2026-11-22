@@ -1,0 +1,39 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/reports/_macros.html" as rp %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+{% include "admin/reports/_head.html" %}
+{% call rp::filters(s, false) %}{% endcall %}
+
+<section class="card report-card">
+  {% call rp::head(t("admin_settings.reports.top_title"), tv("admin_settings.reports.by_period_lead", "currency", s.filters.currency.as_str()), url(s.export("products"))) %}{% endcall %}
+  <div class="card__body">
+    {%- if rows.is_empty() %}
+    <p class="muted">{{ t("admin_settings.reports.empty") }}</p>
+    {%- else %}
+    {{ chart_svg|safe }}
+    <div class="table-wrap mt-2"><table class="table table--dense table--stack">
+      <thead><tr>
+        <th scope="col">#</th>
+        <th scope="col">{{ t("admin_settings.reports.product") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.orders") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.quantity") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.revenue") }}</th>
+      </tr></thead>
+      <tbody>
+      {%- for r in rows %}
+      <tr>
+        <td class="muted">{{ loop.index }}</td>
+        <th scope="row" data-label="{{ t("admin_settings.reports.product") }}"><a href="{{ url("/admin/catalog/products/" ~ r.product_id) }}">{{ r.product_name }}</a></th>
+        <td class="num" data-label="{{ t("admin_settings.reports.orders") }}">{{ num(r.order_count) }}</td>
+        <td class="num" data-label="{{ t("admin_settings.reports.quantity") }}">{{ num(r.quantity) }}</td>
+        <td class="num" data-label="{{ t("admin_settings.reports.revenue") }}"><strong>{{ money_in(r.revenue, r.currency) }}</strong></td>
+      </tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
+    {%- endif %}
+  </div>
+</section>
+{% endblock %}

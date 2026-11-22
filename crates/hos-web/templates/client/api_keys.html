@@ -1,0 +1,41 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+{% include "client/_account_head.html" %}
+{%- if !secret.is_empty() %}
+<section class="card mb-8">
+  <div class="card__body stack">
+    {% call ui::alert("success", t("client.api.created")) %}{% endcall %}
+    {% call ui::code("api-secret", t("client.api.secret"), secret) %}{% endcall %}
+    <p class="small muted">{{ t("client.api.secret_once") }}</p>
+  </div>
+</section>
+{%- endif %}
+<div class="grid grid--2">
+  <section class="card">
+    <header class="card__head"><div><h2>{{ t("client.api.title") }}</h2><p class="muted small">{{ t("client.api.lead") }}</p></div></header>
+    <div class="card__body">
+    {%- if keys.is_empty() %}<p class="muted">{{ t("client.api.empty") }}</p>{% else %}
+      <ul class="row-list">
+      {%- for k in keys %}
+        <li><span><strong>{{ k.name }}</strong><span class="muted small mono">{{ k.prefix }}</span><span class="muted small">{{ tv("client.api.created_at", "date", date(k.created_at)) }} · {{ tv("client.api.last_used", "date", date_opt(k.last_used_at)) }}</span></span>
+          <form method="post" action="{{ url("/client/account/api-keys/") }}{{ k.id }}/revoke" data-confirm="{{ t("client.api.revoke_confirm") }}">{% call ui::csrf() %}{% endcall %}<button type="submit" class="btn btn--ghost btn--sm">{{ t("client.api.revoke") }}</button></form></li>
+      {%- endfor %}
+      </ul>
+    {%- endif %}
+    </div>
+  </section>
+  <section class="card">
+    <header class="card__head"><h2>{{ t("client.api.create") }}</h2></header>
+    <div class="card__body">
+    {%- if locked %}<p class="muted">{{ t("client.common.impersonation_locked") }}</p>{% else %}
+      <form class="stack" method="post" action="{{ url("/client/account/api-keys") }}">
+        {% call ui::csrf() %}{% endcall %}
+        {% call ui::field("name", t("client.api.name"), "", required=true, placeholder=t("client.api.name_placeholder"), error=error) %}{% endcall %}
+        <button type="submit" class="btn btn--primary">{{ icon("key") }}{{ t("client.api.create") }}</button>
+      </form>
+    {%- endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

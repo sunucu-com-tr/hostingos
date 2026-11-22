@@ -1,0 +1,99 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}"><link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% block page %}
+<div class="page-head"><div><h1>{{ ctx.title }}</h1><p>{{ t("affiliates.client.lead") }}</p></div></div>
+{%- match stats %}
+{%- when None %}
+{%- if settings.enabled && settings.self_signup %}
+{% call ui::card(t("affiliates.client.join_title")) %}
+<p>{{ t("affiliates.client.join_text") }}</p>
+<p class="biz-muted">{{ rate_label }} · {{ tv("affiliates.client.clearance", "days", settings.clearance_days) }}</p>
+<form method="post" action="{{ url("/client/affiliate/activate") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--primary" type="submit">{{ icon("user-plus") }}{{ t("affiliates.client.activate") }}</button></form>
+{% endcall %}
+{%- else %}
+{% call ui::empty("users", t("affiliates.client.closed_title"), t("affiliates.client.closed")) %}{% endcall %}
+{%- endif %}
+{%- when Some(s) %}
+{%- if s.affiliate.status.as_str() != "active" %}{% call ui::alert("warning", t("affiliates.client.suspended")) %}{% endcall %}{% endif %}
+<div class="biz-stats">
+  <div class="biz-stat"><p class="biz-stat__label">{{ t("affiliates.fields.clicks") }}</p><p class="biz-stat__value">{{ num(s.clicks) }}</p></div>
+  <div class="biz-stat"><p class="biz-stat__label">{{ t("affiliates.fields.referrals") }}</p><p class="biz-stat__value">{{ num(s.referrals) }}</p></div>
+  <div class="biz-stat"><p class="biz-stat__label">{{ t("affiliates.fields.pending") }}</p><p class="biz-stat__value">{{ m(s.pending, s.affiliate.currency) }}</p></div>
+  <div class="biz-stat"><p class="biz-stat__label">{{ t("affiliates.fields.balance") }}</p><p class="biz-stat__value">{{ m(s.balance, s.affiliate.currency) }}</p></div>
+</div>
+{% call ui::card(t("affiliates.client.link_title"), t("affiliates.client.link_hint")) %}
+<div class="biz-copy">
+  <label class="visually-hidden" for="ref-link">{{ t("affiliates.client.link_title") }}</label>
+  <input class="input" id="ref-link" type="text" value="{{ link }}" readonly>
+  <button type="button" class="btn btn--soft" data-copy="#ref-link" data-copied="{{ t("common.actions.copied") }}">{{ icon("copy") }}{{ t("common.actions.copy") }}</button>
+</div>
+<p class="biz-muted mt-2">{{ t("affiliates.fields.code") }}: <span class="mono">{{ s.affiliate.code }}</span> · {{ rate_label }} · {{ tv("affiliates.client.clearance", "days", settings.clearance_days) }}</p>
+{% endcall %}
+<div class="mt-4">
+{% call ui::card(t("affiliates.client.payout_title")) %}
+<p>{{ tv("affiliates.client.payout_rule", "min", m(settings.min_payout, s.affiliate.currency)) }}</p>
+{%- if open_payout %}
+{% call ui::alert("info", t("affiliates.client.payout_open")) %}{% endcall %}
+{%- elif can_request %}
+<form method="post" action="{{ url("/client/affiliate/payout") }}" class="stack">
+  {% call ui::csrf() %}{% endcall %}
+  <div class="field"><label class="field__label" for="po-method">{{ t("affiliates.fields.method") }}</label>
+    <select class="select" id="po-method" name="method">
+      {%- if settings.payout_credit %}<option value="credit">{{ t("affiliates.method.credit") }}</option>{% endif %}
+      {%- if settings.payout_manual %}<option value="manual">{{ t("affiliates.method.manual") }}</option>{% endif %}
+    </select></div>
+  {% call ui::textarea("details", t("affiliates.fields.details"), "", hint=t("affiliates.client.details_hint"), rows=3) %}{% endcall %}
+  <button class="btn btn--primary" type="submit">{{ icon("wallet") }}{{ tv("affiliates.client.request", "amount", m(s.balance, s.affiliate.currency)) }}</button>
+</form>
+{%- else %}
+<p class="biz-muted">{{ t("affiliates.client.payout_not_yet") }}</p>
+{%- endif %}
+{% endcall %}
+</div>
+<div class="mt-4">
+{% call ui::card(t("affiliates.client.commissions_title")) %}
+{%- if commissions.is_empty() %}<p class="biz-muted">{{ t("affiliates.client.no_commissions") }}</p>{% else %}
+<div class="table-wrap"><table class="table table--stack">
+  <thead><tr><th scope="col">{{ t("affiliates.fields.date") }}</th><th scope="col">{{ t("affiliates.fields.kind") }}</th><th scope="col" class="num">{{ t("affiliates.fields.amount") }}</th><th scope="col">{{ t("affiliates.fields.status") }}</th></tr></thead>
+  <tbody>{% for c in commissions %}<tr>
+    <td data-label="{{ t("affiliates.fields.date") }}" class="nowrap">{{ date(c.created_at) }}</td>
+    <td data-label="{{ t("affiliates.fields.kind") }}">{{ lbl("affiliates.kind", c.kind.as_str()) }}</td>
+    <td data-label="{{ t("affiliates.fields.amount") }}" class="num mono">{{ m(c.amount, c.currency) }}</td>
+    <td data-label="{{ t("affiliates.fields.status") }}">{{ sbadge2("affiliates.status", c.status.as_str()) }}{% if c.status.as_str() == "pending" %}<span class="biz-sub">{{ tv("affiliates.client.clears_on", "date", date(c.clears_at)) }}</span>{% endif %}</td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{%- endif %}
+{% endcall %}
+</div>
+<div class="mt-4">
+{% call ui::card(t("affiliates.client.referrals_title"), t("affiliates.client.referrals_hint")) %}
+{%- if referrals.is_empty() %}<p class="biz-muted">{{ t("affiliates.client.no_referrals") }}</p>{% else %}
+<div class="table-wrap"><table class="table table--stack">
+  <thead><tr><th scope="col">{{ t("affiliates.fields.referral") }}</th><th scope="col">{{ t("affiliates.fields.date") }}</th><th scope="col" class="num">{{ t("affiliates.fields.earned") }}</th></tr></thead>
+  <tbody>{% for r in referrals %}<tr>
+    <td data-label="{{ t("affiliates.fields.referral") }}">{{ r.first_name }} {{ r.last_initial }}.</td>
+    <td data-label="{{ t("affiliates.fields.date") }}" class="nowrap">{{ date(r.created_at) }}</td>
+    <td data-label="{{ t("affiliates.fields.earned") }}" class="num mono">{{ m(r.earned, s.affiliate.currency) }}</td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{%- endif %}
+{% endcall %}
+</div>
+{%- if !payouts.is_empty() %}
+<div class="mt-4">
+{% call ui::card(t("affiliates.client.payouts_title")) %}
+<div class="table-wrap"><table class="table table--stack">
+  <thead><tr><th scope="col">{{ t("affiliates.fields.date") }}</th><th scope="col">{{ t("affiliates.fields.method") }}</th><th scope="col" class="num">{{ t("affiliates.fields.amount") }}</th><th scope="col">{{ t("affiliates.fields.status") }}</th></tr></thead>
+  <tbody>{% for p in payouts %}<tr>
+    <td data-label="{{ t("affiliates.fields.date") }}" class="nowrap">{{ date(p.created_at) }}</td>
+    <td data-label="{{ t("affiliates.fields.method") }}">{{ lbl("affiliates.method", p.method.as_str()) }}</td>
+    <td data-label="{{ t("affiliates.fields.amount") }}" class="num mono">{{ m(p.amount, p.currency) }}</td>
+    <td data-label="{{ t("affiliates.fields.status") }}">{{ sbadge2("affiliates.payout_status", p.status.as_str()) }}</td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{% endcall %}
+</div>
+{%- endif %}
+{%- endmatch %}
+{% endblock %}

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="{{ lang }}"{% if customer_surface() %} data-template="{{ tpl() }}"{% if !color_mode().is_empty() %} data-theme="{{ color_mode() }}"{% endif %}{% if !mode_toggle() %} data-mode-locked{% endif %}{% if theme_preview() %} data-theme-preview{% endif %}{% endif %} data-error-text="{{ t("common.errors.request_failed") }}" data-offline-text="{{ t("common.errors.offline") }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{#- Theme before first paint (blocking, tiny, external: CSP has no 'unsafe-inline'). -#}
+<script src="{{ asset("js/theme.js") }}"></script>
+{%- if seo_head.is_empty() %}
+<title>{{ full_title() }}</title>
+<meta name="robots" content="noindex, nofollow">
+{%- else %}
+{{ seo_head|safe }}
+{%- endif %}
+<meta name="csrf-token" content="{{ csrf }}">
+<meta name="hos-icons" content="{{ icons_url() }}">
+<meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"selfRequestsOnly":true}'>
+<meta name="color-scheme" content="light dark">
+{#- The selected fonts only (crate::theme: same URLs as their @font-face rules
+    in tokens.css / the theme stylesheet). -#}
+{%- for href in font_preloads() %}
+<link rel="preload" href="{{ href }}" as="font" type="font/woff2" crossorigin>
+{%- endfor %}
+{%- if let Some(fav) = favicon_url() %}
+<link rel="icon" href="{{ fav }}">
+{%- else %}
+<link rel="icon" href="{{ asset("img/favicon.svg") }}" type="image/svg+xml">
+{%- endif %}
+<link rel="stylesheet" href="{{ state.assets.css_url() }}">
+{%- if let Some(tpl_css) = template_css_url() %}
+<link rel="stylesheet" href="{{ tpl_css }}">
+{%- endif %}
+{%- if tenant.is_some() %}
+{#- Tenant theme (render-blocking, cached per hash; crate::theme). -#}
+<link rel="stylesheet" href="{{ theme_css_url() }}">
+{%- endif %}
+<script src="{{ asset("vendor/htmx.min.js") }}" defer></script>
+<script src="{{ asset("js/app.js") }}" defer></script>
+{%- block head %}{% endblock %}
+</head>
+<body class="{{ body_class }}">
+<a class="skip-link" href="#main">{{ t("common.a11y.skip") }}</a>
+{%- if let Some(demo) = demo_banner() %}
+{#- Public demo (crate::demo): on every page, in the visitor's language. -#}
+<div class="demo-banner" role="note">
+  <span class="demo-banner__badge">{{ t("demo.banner.badge") }}</span>
+  <span class="demo-banner__text">{{ tv("demo.banner.text", "minutes", demo.every) }}{% if let Some(left) = demo.left %} <span class="demo-banner__next" data-demo-reset-at="{{ demo.at }}" data-template="{{ t("demo.banner.next") }}" data-soon="{{ t("demo.banner.soon") }}">{{ tv("demo.banner.next", "minutes", left) }}</span>{% endif %}</span>
+  {%- if demo.mailbox %}
+  <a class="demo-banner__link" href="{{ url("/demo/mailbox") }}">{{ icon("mail") }}{{ t("demo.banner.mailbox") }}</a>
+  {%- endif %}
+</div>
+{%- endif %}
+{% block body %}{% endblock %}
+<div class="toasts" aria-live="polite">
+{%- for f in flashes %}
+  <div class="toast toast--{{ f.kind.as_str() }}" role="{% if f.kind.as_str() == "error" %}alert{% else %}status{% endif %}">
+    {%- if f.kind.as_str() == "success" %}{{ icon("check-circle") }}{% elif f.kind.as_str() == "info" %}{{ icon("info") }}{% else %}{{ icon("alert-triangle") }}{% endif %}
+    <p class="toast__text">{{ f.text }}</p>
+    <button type="button" class="btn btn--ghost btn--sm btn--icon" data-toast-close aria-label="{{ t("common.actions.close") }}">{{ icon("x") }}</button>
+  </div>
+{%- endfor %}
+</div>
+{{ jsonld|safe }}
+</body>
+</html>

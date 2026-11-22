@@ -1,0 +1,123 @@
+{
+  "menu": "Network status",
+  "admin": {
+    "title": "Network status",
+    "lead": "Components, incidents and planned maintenance, published on the public status page.",
+    "public_link": "Open the public page",
+    "incident_new": "Report an incident",
+    "maintenance_new": "Schedule maintenance",
+    "open_title": "Open incidents and maintenance",
+    "open_empty": "No open incidents or maintenance.",
+    "components_title": "Components",
+    "components_hint": "Bind a component to a server integration so the owners of services on that server are found as affected clients.",
+    "components_empty": "No components yet.",
+    "component_new": "Add component",
+    "component_edit": "Component: {name}",
+    "component_saved": "Component saved.",
+    "component_deleted": "Component deleted.",
+    "component_delete_confirm": "Delete the component? It is also removed from past incidents.",
+    "history_title": "Recently closed",
+    "private": "Admin area only",
+    "bound": "Bound to a server",
+    "name_hint": "For example “Web hosting – Frankfurt”.",
+    "group_hint": "Components of the same group are shown together.",
+    "no_integration": "Not bound",
+    "integration_hint": "Used to find affected services.",
+    "is_public": "Show on the status page",
+    "is_public_incident": "Publish on the status page",
+    "name_required": "A component name is required.",
+    "title_required": "A title is required.",
+    "message_required": "Write a description.",
+    "start_required": "Planned maintenance needs a start time.",
+    "invalid": "Invalid value.",
+    "invalid_date": "Invalid dates: the end must be after the start.",
+    "details": "Details",
+    "affected": "Affected components",
+    "affected_hint": "Client notices go to services on the servers bound to these components.",
+    "add_update": "Add an update",
+    "post_update": "Publish update",
+    "message_hint": "Markdown is supported. Visible to customers.",
+    "timeline": "Timeline",
+    "tz_hint": "In your company time zone.",
+    "incident_saved": "Saved.",
+    "incident_deleted": "Deleted.",
+    "incident_delete_confirm": "Delete this entry and all its updates?",
+    "update_added": "Update published.",
+    "notify": "E-mail affected clients",
+    "notify_confirm": "Owners of affected services receive one e-mail and notification. Continue?",
+    "notified": {
+      "one": "{count} client notified.",
+      "other": "{count} clients notified."
+    },
+    "notified_at": "Clients notified:",
+    "help_title": "How it works",
+    "help_text": "Move an incident forward with updates; “Resolved” or “Completed” closes it. Public entries appear on the status page, in the Atom feed and in the client area of affected clients."
+  },
+  "client": {
+    "title": "Service notices",
+    "affects": "Your affected services",
+    "details": "Details"
+  },
+  "component": {
+    "operational": "Operational",
+    "maintenance": "Under maintenance",
+    "degraded": "Degraded performance",
+    "partial_outage": "Partial outage",
+    "major_outage": "Major outage"
+  },
+  "fields": {
+    "actions": "Actions",
+    "affected": "Affected",
+    "component": "Component",
+    "description": "Description",
+    "group": "Group",
+    "impact": "Impact",
+    "integration": "Bound server",
+    "kind": "Type",
+    "message": "Description",
+    "scheduled_end": "Scheduled end",
+    "scheduled_start": "Scheduled start",
+    "sort_order": "Order",
+    "starts": "Start",
+    "status": "Status",
+    "title": "Title"
+  },
+  "impact": {
+    "none": "None",
+    "minor": "Minor",
+    "major": "Major",
+    "critical": "Critical"
+  },
+  "incident": {
+    "investigating": "Investigating",
+    "identified": "Identified",
+    "monitoring": "Monitoring",
+    "resolved": "Resolved",
+    "scheduled": "Scheduled",
+    "in_progress": "In progress",
+    "completed": "Completed"
+  },
+  "kind": {
+    "incident": "Incident",
+    "maintenance": "Planned maintenance"
+  },
+  "public": {
+    "title": "Service status",
+    "lead": "Live state of our infrastructure, ongoing incidents and planned maintenance.",
+    "description": "Live service status, incidents and planned maintenance.",
+    "level": {
+      "ok": "All systems operational",
+      "maintenance": "Planned maintenance in progress",
+      "minor": "Some services are affected",
+      "major": "Major outage"
+    },
+    "open_title": "Ongoing incidents",
+    "maintenance_title": "Planned maintenance",
+    "components_title": "Components",
+    "no_components": "No monitored components yet.",
+    "history_title": "Last 14 days",
+    "no_history": "Nothing in the last 14 days.",
+    "feed": "Follow via Atom feed",
+    "back": "Back to service status"
+  }
+}

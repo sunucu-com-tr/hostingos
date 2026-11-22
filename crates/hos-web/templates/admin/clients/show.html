@@ -1,0 +1,255 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ c.display_name() }} {{ sbadge(c.status.as_str()) }}</h1>
+    <p>{{ c.email }}{% if !group_name.is_empty() %} · {{ group_name }}{% endif %} · {{ t("admin.clients.since") }} {{ date(c.created_at) }}</p>
+  </div>
+  <div class="page-head__actions">
+    {%- if can("clients.manage") %}
+    <a class="btn btn--soft" href="{{ url(base ~ "/edit") }}">{{ icon("settings") }}{{ t("admin.common.edit") }}</a>
+    <button type="button" class="btn btn--soft" data-dialog-open="dlg-email">{{ icon("mail") }}{{ t("admin.clients.send_email") }}</button>
+    {%- if !logins.is_empty() %}
+    <form method="post" action="{{ url(base ~ "/impersonate") }}" class="inline-form" data-confirm="{{ t("admin.impersonate.confirm") }}">
+      {% call ui::csrf() %}{% endcall %}
+      {%- if logins.len() > 1 %}
+      <label class="visually-hidden" for="imp-user">{{ t("admin.impersonate.login") }}</label>
+      <select class="select" id="imp-user" name="user_id">{% for l in logins %}<option value="{{ l.user.id }}">{{ l.user.email }}</option>{% endfor %}</select>
+      {%- else %}
+      <input type="hidden" name="user_id" value="{{ logins[0].user.id }}">
+      {%- endif %}
+      <button class="btn btn--primary" type="submit">{{ icon("log-in") }}{{ t("admin.impersonate.button") }}</button>
+    </form>
+    {%- endif %}
+    {%- endif %}
+    {%- if can("tasks.manage") %}
+    <a class="btn btn--soft" href="{{ url("/admin/tasks?client=" ~ c.id) }}">{{ icon("check-circle") }}{{ t("tasks.menu") }}</a>
+    {%- endif %}
+    {%- if can("affiliates.manage") %}
+    <form method="post" action="{{ url("/admin/affiliates/activate") }}" class="inline-form">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="client_id" value="{{ c.id }}"><button class="btn btn--soft" type="submit">{{ icon("percent") }}{{ t("affiliates.admin.activate") }}</button></form>
+    {%- endif %}
+  </div>
+</div>
+
+<section class="stats" aria-label="{{ t("admin.clients.tab_summary") }}">
+  {% call ui::stat(t("admin.clients.stat_services"), num(summary.active_services), tn("admin.clients.attention", summary.attention_services), "", "server") %}{% endcall %}
+  {% call ui::stat(t("admin.clients.stat_unpaid"), m(summary.unpaid_total, summary.currency), tn("admin.dashboard.unpaid_count", summary.unpaid_invoices), "", "receipt") %}{% endcall %}
+  {% call ui::stat(t("admin.clients.stat_credit"), m(credit, c.currency), "", "", "credit-card") %}{% endcall %}
+  {% call ui::stat(t("admin.clients.stat_domains"), num(summary.active_domains), tn("admin.clients.expiring", summary.domains_expiring_30d), "", "globe") %}{% endcall %}
+  {% call ui::stat(t("admin.clients.stat_tickets"), num(summary.open_tickets), "", "", "life-buoy") %}{% endcall %}
+</section>
+
+<div class="mt-6">{% call ui::tabs(tabs.as_slice(), url(path)) %}{% endcall %}</div>
+
+<div class="mt-6">
+{%- if tab == "summary" %}
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    {%- for n in notes %}
+    {% call ui::alert("warning", n.note.body) %}{% endcall %}
+    {%- endfor %}
+    {% call ui::card(t("admin.clients.recent_services")) %}
+    {%- if services.is_empty() %}<p class="muted">{{ t("admin.clients.no_services") }}</p>{% else %}
+    <div class="table-wrap"><table class="table table--dense">
+      <thead><tr><th>{{ t("admin.services.col_product") }}</th><th>{{ t("admin.services.col_domain") }}</th><th class="num">{{ t("admin.services.col_amount") }}</th><th>{{ t("admin.common.status") }}</th></tr></thead>
+      <tbody>{% for s in services %}<tr><td><a class="row-link" href="{{ url("/admin/services/" ~ s.service.id) }}">{{ s.product_name }}</a></td><td>{{ o(s.service.domain) }}</td><td class="num">{{ m(s.service.recurring_amount, s.service.currency) }} <span class="sub">{{ cycle(s.service.billing_cycle) }}</span></td><td>{{ sbadge(s.service.status.as_str()) }}</td></tr>{% endfor %}</tbody>
+    </table></div>{% endif %}
+    {% endcall %}
+    {%- if can("billing.view") %}
+    {% call ui::card(t("admin.clients.recent_invoices")) %}
+    {%- if invoices.is_empty() %}<p class="muted">{{ t("admin.clients.no_invoices") }}</p>{% else %}
+    {% include "admin/clients/_invoices.html" %}{% endif %}
+    {% endcall %}
+    {%- endif %}
+  </div>
+  <aside class="stack-lg">
+    {% call ui::card(t("admin.clients.profile")) %}
+    <dl class="kv">
+      <dt>{{ t("admin.clients.kind") }}</dt><dd>{{ lbl("admin.clients.kinds", c.kind.as_str()) }}</dd>
+      <dt>{{ t("admin.clients.phone") }}</dt><dd>{{ o(c.phone) }}</dd>
+      <dt>{{ t("admin.clients.address") }}</dt><dd>{{ o(c.address_line1) }}{% match c.city %}{% when Some(city) %}, {{ city }}{% when None %}{% endmatch %} {{ c.country_code }}</dd>
+      <dt>{{ t("admin.clients.tax_number") }}</dt><dd>{{ o(c.tax_number) }}{% match c.tax_office %}{% when Some(o) %} · {{ o }}{% when None %}{% endmatch %}</dd>
+      <dt>{{ t("admin.common.currency") }}</dt><dd>{{ c.currency }}</dd>
+      <dt>{{ t("admin.common.language") }}</dt><dd>{{ c.locale.as_str()|upper }}</dd>
+      <dt>{{ t("admin.clients.tax_exempt") }}</dt><dd>{{ yesno(c.tax_exempt) }}</dd>
+    </dl>
+    {% endcall %}
+    {%- if can("clients.manage") %}
+    {% call ui::card(t("admin.clients.status_group")) %}
+    <form class="stack" method="post" action="{{ url(base ~ "/status") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <div class="field"><label class="field__label" for="st">{{ t("admin.common.status") }}</label>
+        <select class="select" id="st" name="status">{% for (v, l) in statuses %}<option value="{{ v }}"{{ sel(v, c.status.as_str()) }}>{{ l }}</option>{% endfor %}</select></div>
+      <div class="field"><label class="field__label" for="gr">{{ t("admin.clients.group") }}</label>
+        <select class="select" id="gr" name="group_id"><option value="">—</option>{% for g in groups %}<option value="{{ g.id }}"{{ group_sel(g.id) }}>{{ g.name }}</option>{% endfor %}</select></div>
+      <button class="btn btn--soft" type="submit">{{ t("common.actions.save") }}</button>
+    </form>
+    {% endcall %}
+    {%- endif %}
+    {% call ui::card(t("admin.clients.logins")) %}
+    {%- if logins.is_empty() %}<p class="muted">{{ t("admin.clients.no_logins") }}</p>{% else %}
+    <ul class="health">{% for l in logins %}<li><span>{{ l.user.email }}{% if l.is_owner %} <span class="sub">{{ t("admin.clients.owner") }}</span>{% endif %}</span>{{ sbadge(l.user.status.as_str()) }}</li>{% endfor %}</ul>
+    {%- endif %}
+    {%- if can("clients.manage") %}
+    <form class="inline-form mt-4" method="post" action="{{ url(base ~ "/logins") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <label class="visually-hidden" for="nl">{{ t("admin.clients.col_email") }}</label>
+      <input class="input" id="nl" type="email" name="email" placeholder="{{ t("admin.clients.col_email") }}" required>
+      <button class="btn btn--soft btn--sm" type="submit">{{ icon("plus") }}{{ t("admin.clients.add_login") }}</button>
+    </form>
+    {%- endif %}
+    {% endcall %}
+  </aside>
+</div>
+
+{%- elif tab == "services" %}
+{%- if services.is_empty() %}{% call ui::empty("server", t("admin.clients.no_services"), "") %}{% endcall %}{% else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th>{{ t("admin.services.col_product") }}</th><th>{{ t("admin.services.col_domain") }}</th><th>{{ t("admin.services.col_cycle") }}</th><th class="num">{{ t("admin.services.col_amount") }}</th><th>{{ t("admin.services.col_due") }}</th><th>{{ t("admin.common.status") }}</th></tr></thead>
+  <tbody>{% for s in services %}<tr>
+    <td data-label="{{ t("admin.services.col_product") }}"><a class="row-link" href="{{ url("/admin/services/" ~ s.service.id) }}">{{ s.product_name }}</a></td>
+    <td data-label="{{ t("admin.services.col_domain") }}">{{ o(s.service.domain) }}</td>
+    <td data-label="{{ t("admin.services.col_cycle") }}">{{ cycle(s.service.billing_cycle) }}</td>
+    <td data-label="{{ t("admin.services.col_amount") }}" class="num">{{ m(s.service.recurring_amount, s.service.currency) }}</td>
+    <td data-label="{{ t("admin.services.col_due") }}">{{ dopt(s.service.next_due_date) }}</td>
+    <td data-label="{{ t("admin.common.status") }}">{{ sbadge(s.service.status.as_str()) }}</td></tr>{% endfor %}</tbody>
+</table></div>{% endif %}
+
+{%- elif tab == "domains" %}
+{%- if domains.is_empty() %}{% call ui::empty("globe", t("admin.clients.no_domains"), "") %}{% endcall %}{% else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th>{{ t("admin.domains.col_name") }}</th><th>{{ t("admin.domains.col_expires") }}</th><th>{{ t("admin.domains.col_auto_renew") }}</th><th>{{ t("admin.common.status") }}</th></tr></thead>
+  <tbody>{% for d in domains %}<tr>
+    <td data-label="{{ t("admin.domains.col_name") }}"><a class="row-link" href="{{ url("/admin/domains/" ~ d.id) }}">{{ d.name }}</a></td>
+    <td data-label="{{ t("admin.domains.col_expires") }}">{{ dtopt(d.expires_at) }}</td>
+    <td data-label="{{ t("admin.domains.col_auto_renew") }}">{{ yesno(d.auto_renew) }}</td>
+    <td data-label="{{ t("admin.common.status") }}">{{ sbadge(d.status.as_str()) }}</td></tr>{% endfor %}</tbody>
+</table></div>{% endif %}
+
+{%- elif tab == "invoices" %}
+{%- if !can("billing.view") %}{% call ui::alert("info", t("admin.common.no_permission")) %}{% endcall %}
+{%- elif invoices.is_empty() %}{% call ui::empty("receipt", t("admin.clients.no_invoices"), "") %}{% endcall %}{% else %}
+{% include "admin/clients/_invoices.html" %}{% endif %}
+{%- if can("billing.manage") %}<p class="mt-4"><a class="btn btn--soft" href="{{ url("/admin/invoices/new?client=" ~ c.id) }}">{{ icon("plus") }}{{ t("admin.invoices.new_title") }}</a></p>{% endif %}
+
+{%- elif tab == "transactions" %}
+{%- if !can("billing.view") %}{% call ui::alert("info", t("admin.common.no_permission")) %}{% endcall %}{% else %}
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+  {%- if transactions.is_empty() %}{% call ui::empty("credit-card", t("admin.clients.no_transactions"), "") %}{% endcall %}{% else %}
+  <div class="table-wrap"><table class="table table--dense">
+    <thead><tr><th>{{ t("admin.common.date") }}</th><th>{{ t("admin.transactions.col_gateway") }}</th><th>{{ t("admin.transactions.col_kind") }}</th><th class="num">{{ t("admin.common.amount") }}</th><th>{{ t("admin.common.status") }}</th></tr></thead>
+    <tbody>{% for tx in transactions %}<tr><td>{{ datetime(tx.occurred_at) }}</td><td>{{ tx.gateway }}{% match tx.gateway_txn_id %}{% when Some(r) %}<span class="sub mono">{{ r }}</span>{% when None %}{% endmatch %}</td><td>{{ lbl("admin.transactions.kinds", tx.kind.as_str()) }}</td><td class="num">{{ m(tx.amount, tx.currency) }}</td><td>{{ sbadge(tx.status.as_str()) }}</td></tr>{% endfor %}</tbody>
+  </table></div>{% endif %}
+  {% call ui::card(t("admin.clients.credit_history")) %}
+  {%- if credits.is_empty() %}<p class="muted">{{ t("admin.clients.no_credits") }}</p>{% else %}
+  <div class="table-wrap"><table class="table table--dense">
+    <thead><tr><th>{{ t("admin.common.date") }}</th><th>{{ t("admin.common.description") }}</th><th class="num">{{ t("admin.common.amount") }}</th></tr></thead>
+    <tbody>{% for cr in credits %}<tr><td>{{ datetime(cr.created_at) }}</td><td>{{ cr.description }}</td><td class="num">{{ m(cr.amount, cr.currency) }}</td></tr>{% endfor %}</tbody>
+  </table></div>{% endif %}
+  {% endcall %}
+  </div>
+  <aside>
+  {%- if can("billing.manage") %}
+  {% call ui::card(t("admin.clients.credit_title"), tv("admin.clients.credit_balance", "amount", m(credit, c.currency))) %}
+  <form class="stack" method="post" action="{{ url(base ~ "/credit") }}">
+    {% call ui::csrf() %}{% endcall %}
+    <div class="field"><label class="field__label" for="cd">{{ t("admin.clients.credit_direction") }}</label>
+      <select class="select" id="cd" name="direction"><option value="add">{{ t("admin.clients.credit_add") }}</option><option value="remove">{{ t("admin.clients.credit_remove") }}</option></select></div>
+    {% call ui::field("amount", t("admin.common.amount"), "", required=true, inputmode="decimal") %}{% endcall %}
+    {% call ui::field("description", t("admin.common.description"), "") %}{% endcall %}
+    <button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button>
+  </form>
+  {% endcall %}
+  {%- endif %}
+  </aside>
+</div>
+{%- endif %}
+
+{%- elif tab == "tickets" %}
+{%- if !can("support.view") %}{% call ui::alert("info", t("admin.common.no_permission")) %}{% endcall %}
+{%- elif tickets.is_empty() %}{% call ui::empty("life-buoy", t("admin.clients.no_tickets"), "") %}{% endcall %}{% else %}
+<div class="table-wrap"><table class="table table--dense">
+  <thead><tr><th>#</th><th>{{ t("admin.tickets.col_subject") }}</th><th>{{ t("admin.tickets.col_department") }}</th><th>{{ t("admin.tickets.col_last_reply") }}</th><th>{{ t("admin.common.status") }}</th></tr></thead>
+  <tbody>{% for tk in tickets %}<tr><td class="mono">{{ tk.ticket.number }}</td><td><a class="row-link" href="{{ url("/admin/support/tickets/" ~ tk.ticket.id) }}">{{ tk.ticket.subject }}</a></td><td>{{ tk.department_name }}</td><td>{{ datetime(tk.ticket.last_reply_at) }}</td><td>{{ sbadge(tk.ticket.status.as_str()) }}</td></tr>{% endfor %}</tbody>
+</table></div>{% endif %}
+
+{%- elif tab == "notes" %}
+<div class="admin-grid admin-grid--side">
+  <div>
+  {%- if notes.is_empty() %}{% call ui::empty("file-text", t("admin.clients.no_notes"), "") %}{% endcall %}{% else %}
+  <ul class="timeline">
+  {%- for n in notes %}
+    <li><span class="timeline__dot{% if n.note.is_sticky %} timeline__dot--warning{% endif %}" aria-hidden="true"></span><div>
+      <div>{{ nl2br(n.note.body) }}</div>
+      <div class="timeline__meta">{{ n.author }} · {{ datetime(n.note.created_at) }}{% if n.note.is_sticky %} · {{ t("admin.clients.sticky") }}{% endif %}</div>
+      {%- if can("clients.manage") %}
+      <form method="post" action="{{ url(base ~ "/notes/" ~ n.note.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--link btn--sm" type="submit">{{ t("admin.common.delete") }}</button></form>
+      {%- endif %}
+    </div></li>
+  {%- endfor %}
+  </ul>{% endif %}
+  </div>
+  {%- if can("clients.manage") %}
+  <aside>{% call ui::card(t("admin.clients.note_new")) %}
+  <form class="stack" method="post" action="{{ url(base ~ "/notes") }}">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::textarea("body", t("admin.clients.note"), "", rows=5, required=true) %}{% endcall %}
+    {% call ui::checkbox("is_sticky", t("admin.clients.sticky_hint")) %}{% endcall %}
+    <button class="btn btn--primary" type="submit">{{ t("admin.common.add") }}</button>
+  </form>{% endcall %}</aside>
+  {%- endif %}
+</div>
+
+{%- elif tab == "contacts" %}
+<div class="admin-grid admin-grid--side">
+  <div>
+  {%- if contacts.is_empty() %}{% call ui::empty("users", t("admin.clients.no_contacts"), "") %}{% endcall %}{% else %}
+  <div class="table-wrap"><table class="table table--dense">
+    <thead><tr><th>{{ t("admin.common.name") }}</th><th>{{ t("admin.clients.col_email") }}</th><th>{{ t("admin.clients.phone") }}</th><th>{{ t("admin.clients.contact_roles") }}</th><th class="actions"></th></tr></thead>
+    <tbody>{% for ct in contacts %}<tr><td>{{ ct.first_name }} {{ ct.last_name }}</td><td>{{ ct.email }}</td><td>{{ o(ct.phone) }}</td><td>{% if ct.is_billing %}{{ badge(t("admin.clients.contact_billing"), "info") }}{% endif %} {% if ct.is_domain_contact %}{{ badge(t("admin.clients.contact_domain"), "") }}{% endif %}</td>
+      <td class="actions">{% if can("clients.manage") %}<form method="post" action="{{ url(base ~ "/contacts/" ~ ct.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ t("admin.common.delete") }}</button></form>{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>{% endif %}
+  </div>
+  {%- if can("clients.manage") %}
+  <aside>{% call ui::card(t("admin.clients.contact_new")) %}
+  <form class="stack" method="post" action="{{ url(base ~ "/contacts") }}">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::field("first_name", t("admin.clients.first_name"), "", required=true) %}{% endcall %}
+    {% call ui::field("last_name", t("admin.clients.last_name"), "", required=true) %}{% endcall %}
+    {% call ui::field("email", t("admin.clients.col_email"), "", kind="email", required=true) %}{% endcall %}
+    {% call ui::field("phone", t("admin.clients.phone"), "", kind="tel") %}{% endcall %}
+    {% call ui::checkbox("is_billing", t("admin.clients.contact_billing")) %}{% endcall %}
+    {% call ui::checkbox("is_domain_contact", t("admin.clients.contact_domain")) %}{% endcall %}
+    <button class="btn btn--primary" type="submit">{{ t("admin.common.add") }}</button>
+  </form>{% endcall %}</aside>
+  {%- endif %}
+</div>
+
+{%- elif tab == "emails" %}
+{%- if emails.is_empty() %}{% call ui::empty("mail", t("admin.clients.no_emails"), "") %}{% endcall %}{% else %}
+<div class="table-wrap"><table class="table table--dense">
+  <thead><tr><th>{{ t("admin.common.date") }}</th><th>{{ t("admin.emails.col_subject") }}</th><th>{{ t("admin.emails.col_to") }}</th><th>{{ t("admin.common.status") }}</th></tr></thead>
+  <tbody>{% for e in emails %}<tr><td>{{ datetime(e.created_at) }}</td><td>{{ e.subject }}{% match e.template_key %}{% when Some(k) %}<span class="sub mono">{{ k }}</span>{% when None %}{% endmatch %}</td><td>{{ e.to_address }}</td><td>{{ sbadge(e.status.as_str()) }}</td></tr>{% endfor %}</tbody>
+</table></div>{% endif %}
+
+{%- elif tab == "activity" %}
+{%- if activity.is_empty() %}{% call ui::empty("activity", t("admin.dashboard.activity_empty"), "") %}{% endcall %}{% else %}
+<ul class="timeline">{% for a in activity %}<li><span class="timeline__dot" aria-hidden="true"></span><div><div>{{ a.action }}</div><div class="timeline__meta">{{ a.actor }} · {{ datetime(a.at) }}</div></div></li>{% endfor %}</ul>
+{%- endif %}
+{%- endif %}
+</div>
+
+{%- if can("clients.manage") %}
+{% call ui::modal("dlg-email", t("admin.clients.send_email")) %}
+<form class="stack" method="post" action="{{ url(base ~ "/email") }}">
+  {% call ui::csrf() %}{% endcall %}
+  <p class="muted small">{{ tv("admin.clients.email_to", "email", c.email) }}</p>
+  {% call ui::field("subject", t("admin.emails.col_subject"), "", required=true) %}{% endcall %}
+  {% call ui::textarea("body", t("admin.clients.email_body"), "", rows=8, required=true, hint=t("admin.common.markdown_hint")) %}{% endcall %}
+  <div class="btn-row"><button class="btn btn--primary" type="submit">{{ icon("send") }}{{ t("admin.clients.send") }}</button><button class="btn btn--ghost" type="button" data-dialog-close>{{ t("common.actions.cancel") }}</button></div>
+</form>
+{% endcall %}
+{%- endif %}
+{% endblock %}

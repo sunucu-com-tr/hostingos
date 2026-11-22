@@ -1,0 +1,26 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1 class="mono">{{ r.from_path }}</h1><p>{{ tn("admin_content.seo.redirects.hits_count", r.hits) }}{% match r.last_hit_at %}{% when Some(h) %} · {{ t("admin_content.seo.redirects.last_hit") }} {{ datetime(h) }}{% when None %}{% endmatch %}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/seo/redirects") }}">{{ icon("chevron-left") }}{{ t("admin_content.seo.redirects.title") }}</a></div>
+</div>
+{% include "admin/seo/_tabs.html" %}
+{% call ui::card() %}
+<form class="stack" method="post" action="{{ url("/admin/seo/redirects/" ~ r.id) }}">
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::form_errors(errors) %}{% endcall %}
+  <input type="hidden" name="active_field" value="1">
+  {% include "admin/seo/_redirect_fields.html" %}
+  <div class="checks">{% call ui::checkbox("is_active", t("admin.common.active"), form.is_active) %}{% endcall %}</div>
+  <div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button></div>
+</form>
+{% endcall %}
+<section class="card mt-6"><div class="card__body between">
+  <p class="muted small">{{ t("admin_content.seo.redirects.delete_hint") }}</p>
+  <form method="post" action="{{ url("/admin/seo/redirects/" ~ r.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">
+    {% call ui::csrf() %}{% endcall %}
+    <button class="btn btn--danger btn--sm" type="submit">{{ t("admin.common.delete") }}</button>
+  </form>
+</div></section>
+{% endblock %}

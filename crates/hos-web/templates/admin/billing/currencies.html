@@ -1,0 +1,52 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.currencies.title") }}</h1><p>{{ t("admin.currencies.lead") }}</p></div></div>
+<div class="admin-grid admin-grid--side">
+  <div class="table-wrap"><table class="table table--dense table--stack">
+    <thead><tr><th>{{ t("admin.currencies.code") }}</th><th>{{ t("admin.common.name") }}</th><th>{{ t("admin.currencies.format") }}</th><th class="num">{{ t("admin.currencies.rate") }}</th><th>{{ t("admin.common.status") }}</th><th class="actions"></th></tr></thead>
+    <tbody>
+    {%- for c in rows %}
+    <tr>
+      <td data-label="{{ t("admin.currencies.code") }}"><strong class="mono">{{ c.code }}</strong>{% if c.is_default %} {{ badge(t("admin.currencies.default"), "info") }}{% endif %}</td>
+      <td data-label="{{ t("admin.common.name") }}">{{ c.name }}</td>
+      <td data-label="{{ t("admin.currencies.format") }}" class="mono">{{ c.prefix }}1.234,56{{ c.suffix }}</td>
+      <td data-label="{{ t("admin.currencies.rate") }}" class="num">
+        {%- if can("billing.manage") && !c.is_default %}
+        <form class="inline-form" method="post" action="{{ url("/admin/billing/currencies") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="code" value="{{ c.code }}"><input class="input input--sm" name="exchange_rate" value="{{ dec(c.exchange_rate) }}" inputmode="decimal" aria-label="{{ t("admin.currencies.rate") }} {{ c.code }}"><button class="btn btn--soft btn--sm" type="submit">{{ t("common.actions.save") }}</button></form>
+        {%- else %}{{ dec(c.exchange_rate) }}{% endif %}</td>
+      <td data-label="{{ t("admin.common.status") }}">{% if c.is_active %}{{ badge(t("admin.common.active"), "success") }}{% else %}{{ badge(t("admin.common.inactive"), "") }}{% endif %}</td>
+      <td class="actions">{% if can("billing.manage") %}
+        {%- if !c.is_default %}
+        <form method="post" action="{{ url("/admin/billing/currencies/" ~ c.code ~ "/active") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="active" value="{% if c.is_active %}0{% else %}1{% endif %}"><button class="btn btn--ghost btn--sm" type="submit">{% if c.is_active %}{{ t("admin.common.deactivate") }}{% else %}{{ t("admin.common.activate") }}{% endif %}</button></form>
+        {%- if c.is_active %}<form method="post" action="{{ url("/admin/billing/currencies/" ~ c.code ~ "/default") }}" data-confirm="{{ t("admin.currencies.default_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ t("admin.currencies.make_default") }}</button></form>{% endif %}
+        {%- endif %}
+      {%- endif %}</td>
+    </tr>
+    {%- endfor %}
+    </tbody>
+  </table></div>
+  {%- if can("billing.manage") %}
+  <aside>
+  {% call ui::card(t("admin.currencies.add")) %}
+  <form class="stack" method="post" action="{{ url("/admin/billing/currencies") }}">
+    {% call ui::csrf() %}{% endcall %}
+    <div class="form-grid">
+      {% call ui::field("code", t("admin.currencies.code"), "", required=true, placeholder="EUR") %}{% endcall %}
+      {% call ui::field("exchange_rate", t("admin.currencies.rate"), "", required=true, inputmode="decimal", placeholder="0,028") %}{% endcall %}
+    </div>
+    {% call ui::field("name", t("admin.common.name"), "", placeholder="Euro") %}{% endcall %}
+    <div class="form-grid">
+      {% call ui::field("prefix", t("admin.currencies.prefix"), "", placeholder="€") %}{% endcall %}
+      {% call ui::field("suffix", t("admin.currencies.suffix"), "") %}{% endcall %}
+      {% call ui::field("symbol", t("admin.currencies.symbol"), "", placeholder="€") %}{% endcall %}
+      {% call ui::field("decimals", t("admin.currencies.decimals"), "2", inputmode="numeric") %}{% endcall %}
+    </div>
+    <p class="field__hint">{{ t("admin.currencies.rate_hint") }}</p>
+    <button class="btn btn--primary" type="submit">{{ icon("plus") }}{{ t("admin.common.add") }}</button>
+  </form>
+  {% endcall %}
+  </aside>
+  {%- endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{#- Corporate template: thin navy utility bar above the sticky header
+    (desktop only; the same contacts are in the footer). -#}
+{%- let uc = store().company.clone() %}
+<div class="utility-bar">
+  <div class="container utility-bar__inner">
+    <p class="utility-bar__contact">
+      {%- if !uc.phone.is_empty() %}<a href="{{ tel_href(uc.phone) }}">{{ icon("phone") }}<span>{{ uc.phone }}</span></a>{% endif %}
+      {%- if !uc.support_email.is_empty() %}<a href="mailto:{{ uc.support_email }}">{{ icon("mail") }}<span>{{ uc.support_email }}</span></a>{% elif !uc.email.is_empty() %}<a href="mailto:{{ uc.email }}">{{ icon("mail") }}<span>{{ uc.email }}</span></a>{% endif %}
+    </p>
+    <nav class="utility-bar__links" aria-label="{{ t("storefront.footer.resources") }}">
+      <a href="{{ url("/kb") }}">{{ t("storefront.nav.kb") }}</a>
+      <a href="{{ url("/announcements") }}">{{ t("storefront.nav.announcements") }}</a>
+      <a href="{{ url("/whois") }}">{{ t("storefront.nav.whois") }}</a>
+      <a href="{{ url("/auth/login") }}">{{ t("storefront.footer.client_area") }}</a>
+    </nav>
+  </div>
+</div>

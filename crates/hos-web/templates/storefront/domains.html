@@ -1,0 +1,49 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% import "components/catalog.html" as cat %}
+{% import "components/blocks.html" as blk %}
+{% block content %}
+<section class="hero hero--compact">
+  <div class="container hero__inner">
+    <div class="hero__main">
+      <h1>{{ t("storefront.domains.title") }}</h1>
+      <p class="hero__lead">{{ lead }}</p>
+      <div class="hero__search">{% call cat::domain_search(q, true) %}{% endcall %}</div>
+    </div>
+  </div>
+</section>
+
+{%- if !q.is_empty() %}
+<section class="section section--tight" aria-labelledby="results-title">
+  <div class="container">
+    <div class="container--narrow stack">
+      <h2 id="results-title" class="label">{{ tv("storefront.domains.results_for", "q", q) }}</h2>
+      {%- if invalid %}
+      {% call ui::alert("warning", t("storefront.domains.invalid")) %}{% endcall %}
+      {%- else %}
+      <div class="domain-results">
+        {%- for row in rows %}{% include "storefront/_domain_row.html" %}{% endfor %}
+      </div>
+      {%- if !sync %}
+      <noscript><p><a class="btn btn--soft" href="{{ url("/domains") }}?q={{ q|urlencode }}&amp;check=1">{{ t("storefront.domains.check_all") }}</a></p></noscript>
+      {%- endif %}
+      {%- endif %}
+    </div>
+  </div>
+</section>
+{%- endif %}
+
+{%- if !prices.is_empty() %}
+<section class="section section--alt" aria-labelledby="prices-title">
+  <div class="container">
+    <header class="section__head">
+      <h2 id="prices-title">{{ t("storefront.domains.prices_title") }}</h2>
+      <p>{{ t("storefront.domains.prices_lead") }}</p>
+    </header>
+    {% call cat::tld_table(prices) %}{% endcall %}
+  </div>
+</section>
+{%- endif %}
+
+{% call blk::render(blocks) %}{% endcall %}
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.tlds.title") }}</h1><p>{{ t("admin.tlds.lead") }}</p></div>
+  <div class="page-head__actions"><form method="post" action="{{ url("/admin/catalog/tlds/sync") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--soft" type="submit">{{ icon("refresh") }}{{ t("admin.tlds.sync") }}</button></form></div></div>
+<div class="admin-grid admin-grid--side">
+  <div class="stack">
+    <form class="filters" method="get" action="{{ url("/admin/catalog/tlds") }}">
+      <div class="field"><label class="field__label" for="t-cur">{{ t("admin.common.currency") }}</label><select class="select" id="t-cur" name="currency" data-autosubmit>{% for c in currencies %}<option value="{{ c.code }}"{{ sel(c.code.as_str(), currency.as_str()) }}>{{ c.code }}</option>{% endfor %}</select></div>
+    </form>
+    {%- if rows.is_empty() %}
+    {% call ui::empty("globe", t("admin.tlds.empty_title"), t("admin.tlds.empty_text")) %}{% endcall %}
+    {%- else %}
+    <form id="tld-prices" method="post" action="{{ url("/admin/catalog/tlds/prices") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="currency" value="{{ currency }}"></form>
+    <form id="tld-bulk" method="post" action="{{ url("/admin/catalog/tlds/bulk") }}">{% call ui::csrf() %}{% endcall %}</form>
+    <div class="table-wrap"><table class="table table--dense matrix">
+      <thead><tr><th class="check"><input type="checkbox" data-check-all="ids" aria-label="{{ t("admin.common.select_all") }}"></th><th>{{ t("admin.tlds.tld") }}</th><th>{{ t("admin.tlds.registrar") }}</th><th class="num">{{ t("admin.tlds.register") }}</th><th class="num">{{ t("admin.tlds.transfer") }}</th><th class="num">{{ t("admin.tlds.renew") }}</th><th>{{ t("admin.common.status") }}</th></tr></thead>
+      <tbody>
+      {%- for r in rows %}
+      <tr>
+        <td class="check"><input type="checkbox" name="ids" value="{{ r.tld.id }}" form="tld-bulk" aria-label="{{ r.tld.tld }}"></td>
+        <th scope="row" class="mono">{{ r.tld.tld }}{% if r.tld.requires_epp %}<span class="sub">EPP</span>{% endif %}</th>
+        <td>{% if r.registrar.is_empty() %}<span class="muted">{{ t("admin.tlds.default_registrar") }}</span>{% else %}{{ r.registrar }}{% endif %}</td>
+        <td class="num"><input form="tld-prices" class="input input--sm" name="register_{{ r.tld.id }}" value="{{ r.register }}" inputmode="decimal" aria-label="{{ r.tld.tld }} {{ t("admin.tlds.register") }}"></td>
+        <td class="num"><input form="tld-prices" class="input input--sm" name="transfer_{{ r.tld.id }}" value="{{ r.transfer }}" inputmode="decimal" aria-label="{{ r.tld.tld }} {{ t("admin.tlds.transfer") }}"></td>
+        <td class="num"><input form="tld-prices" class="input input--sm" name="renew_{{ r.tld.id }}" value="{{ r.renew }}" inputmode="decimal" aria-label="{{ r.tld.tld }} {{ t("admin.tlds.renew") }}"></td>
+        <td>{% if r.tld.is_active %}{{ badge(t("admin.common.active"), "success") }}{% else %}{{ badge(t("admin.common.inactive"), "") }}{% endif %}</td>
+      </tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
+    <div class="table-foot">
+      <div class="btn-row">
+        <select class="select select--sm" name="action" form="tld-bulk" aria-label="{{ t("admin.common.bulk_action") }}"><option value="activate">{{ t("admin.common.activate") }}</option><option value="deactivate">{{ t("admin.common.deactivate") }}</option></select>
+        <button class="btn btn--ghost btn--sm" type="submit" form="tld-bulk">{{ t("admin.common.apply_selected") }}</button>
+      </div>
+      <button class="btn btn--primary" type="submit" form="tld-prices">{{ tv("admin.tlds.save_prices", "currency", currency) }}</button>
+    </div>
+    <p class="field__hint">{{ t("admin.tlds.prices_hint") }}</p>
+    {%- endif %}
+  </div>
+  <aside class="stack-lg">
+    {% call ui::card(t("admin.tlds.add")) %}
+    <form class="stack" method="post" action="{{ url("/admin/catalog/tlds") }}">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::field("tld", t("admin.tlds.tld"), "", required=true, placeholder=".com.tr") %}{% endcall %}
+      <div class="field"><label class="field__label" for="t-reg">{{ t("admin.tlds.registrar") }}</label><select class="select" id="t-reg" name="registrar_integration_id"><option value="">{{ t("admin.tlds.default_registrar") }}</option>{% for i in registrars %}<option value="{{ i.id }}">{{ i.name }}</option>{% endfor %}</select></div>
+      {% call ui::field("max_years", t("admin.tlds.max_years"), "10", inputmode="numeric") %}{% endcall %}
+      {% call ui::checkbox("requires_epp", t("admin.tlds.requires_epp"), true) %}{% endcall %}
+      {% call ui::checkbox("supports_privacy", t("admin.tlds.supports_privacy"), true) %}{% endcall %}
+      <button class="btn btn--primary" type="submit">{{ icon("plus") }}{{ t("admin.common.add") }}</button>
+    </form>
+    {% endcall %}
+    {% call ui::card(t("admin.tlds.margin"), t("admin.tlds.margin_lead")) %}
+    <form class="stack" method="post" action="{{ url("/admin/catalog/tlds/margin") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <div class="form-grid">
+        {% call ui::field("percent", t("admin.tlds.margin_percent"), margin_percent, inputmode="decimal") %}{% endcall %}
+        {% call ui::field("fixed", t("admin.tlds.margin_fixed"), margin_fixed, inputmode="decimal") %}{% endcall %}
+      </div>
+      <button class="btn btn--soft" type="submit">{{ t("common.actions.save") }}</button>
+    </form>
+    {% endcall %}
+  </aside>
+</div>
+{% endblock %}

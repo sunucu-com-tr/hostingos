@@ -1,0 +1,31 @@
+{% extends "layouts/auth.html" %}
+{% import "components/ui.html" as ui %}
+{% block card %}
+<header class="auth-card__head">
+  <h1>{{ t("auth.login.title") }}</h1>
+  <p>{{ tv("auth.login.lead", "site", site_name) }}</p>
+</header>
+{% include "auth/_oauth.html" %}
+{% call ui::form_errors(errors) %}{% endcall %}
+{%- let logins = demo_logins(false) %}
+<form class="form" id="login-form" method="post" action="{{ url("/auth/login") }}" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {%- if !next.is_empty() %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  {% call ui::field("email", t("auth.fields.email"), email, kind="email", required=true, autocomplete="username", autofocus=true) %}{% endcall %}
+  {% call ui::field("password", t("auth.fields.password"), "", kind="password", required=true, autocomplete="current-password") %}{% endcall %}
+  <div class="between">
+    {% call ui::checkbox("remember", t("auth.login.remember"), remember) %}{% endcall %}
+    {#- Password reset is off in the public demo (crate::demo). #}
+    {%- if logins.is_empty() %}
+    <a class="small" href="{{ url("/auth/forgot") }}">{{ t("auth.login.forgot") }}</a>
+    {%- endif %}
+  </div>
+  <button type="submit" class="btn btn--primary btn--block btn--lg">{{ icon("log-in") }}{{ t("auth.login.submit") }}</button>
+</form>
+{%- if logins.is_empty() %}
+<p class="muted small">{{ t("auth.login.no_account") }} <a href="{{ url("/auth/register") }}{% if !next.is_empty() %}?next={{ next|urlencode }}{% endif %}">{{ t("auth.login.register") }}</a></p>
+{%- else %}
+{%- let form_id = "login-form" %}
+{% include "components/demo_logins.html" %}
+{%- endif %}
+{% endblock %}

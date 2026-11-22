@@ -1,0 +1,64 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% import "components/blocks.html" as blk %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}"><link rel="alternate" type="application/atom+xml" title="{{ title }}" href="{{ url("/status/feed.xml") }}">{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="container page-hero__inner">
+    <h1>{{ title }}</h1>
+    <p class="lead">{{ t("netstatus.public.lead") }}</p>
+  </div>
+</section>
+<section class="section section--tight">
+  <div class="container biz-narrow">
+    <div class="status-banner" data-level="{{ level }}" role="status">
+      <span class="status-dot" data-status="{% if level == "ok" %}operational{% elif level == "maintenance" %}maintenance{% elif level == "minor" %}degraded{% else %}major_outage{% endif %}" aria-hidden="true"></span>
+      <h2>{{ level_label() }}</h2>
+    </div>
+
+    {%- if !open.is_empty() %}
+    <h2 class="status-heading">{{ t("netstatus.public.open_title") }}</h2>
+    <ol class="incident-list">
+    {%- for v in open %}{% include "storefront/_status_incident.html" %}{% endfor %}
+    </ol>
+    {%- endif %}
+
+    {%- if !maintenance.is_empty() %}
+    <h2 class="status-heading">{{ t("netstatus.public.maintenance_title") }}</h2>
+    <ol class="incident-list">
+    {%- for v in maintenance %}{% include "storefront/_status_incident.html" %}{% endfor %}
+    </ol>
+    {%- endif %}
+
+    <h2 class="status-heading">{{ t("netstatus.public.components_title") }}</h2>
+    {%- if groups.is_empty() %}
+    <p class="biz-muted">{{ t("netstatus.public.no_components") }}</p>
+    {%- else %}
+    <div class="status-groups">
+    {%- for g in groups %}
+      <section class="status-group"{% if !g.name.is_empty() %} aria-label="{{ g.name }}"{% endif %}>
+        {%- if !g.name.is_empty() %}<h3>{{ g.name }}</h3>{% endif %}
+        <ul>
+        {%- for c in g.components %}
+          <li class="status-row"><span class="status-row__name">{{ c.name }}{% match c.description %}{% when Some(dsc) %}<span class="biz-sub">{{ dsc }}</span>{% when None %}{% endmatch %}</span>
+            <span class="status-row__state"><span class="status-dot" data-status="{{ c.status.as_str() }}" aria-hidden="true"></span>{{ cstate(c.status) }}</span></li>
+        {%- endfor %}
+        </ul>
+      </section>
+    {%- endfor %}
+    </div>
+    {%- endif %}
+
+    <h2 class="status-heading">{{ t("netstatus.public.history_title") }}</h2>
+    {%- if history.is_empty() %}
+    <p class="biz-muted">{{ t("netstatus.public.no_history") }}</p>
+    {%- else %}
+    <ol class="incident-list">
+    {%- for v in history %}{% include "storefront/_status_incident.html" %}{% endfor %}
+    </ol>
+    {%- endif %}
+    <p class="status-heading"><a class="status-feed" href="{{ url("/status/feed.xml") }}">{{ icon("rss") }}{{ t("netstatus.public.feed") }}</a></p>
+  </div>
+</section>
+{% call blk::render(blocks) %}{% endcall %}
+{% endblock %}

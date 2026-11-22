@@ -1,0 +1,61 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ title }}</h1><p>{{ t("quotes.admin.form_lead") }}</p></div></div>
+{%- if !error.is_empty() %}{% call ui::alert("danger", error) %}{% endcall %}{% endif %}
+<form class="stack-lg" method="post" action="{% match id %}{% when Some(i) %}{{ url("/admin/quotes/" ~ i) }}{% when None %}{{ url("/admin/quotes") }}{% endmatch %}">
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::card(t("quotes.admin.section_recipient"), t("quotes.admin.recipient_hint")) %}
+  <div class="form-grid">
+    {% call ui::field("client_email", t("quotes.fields.client_email"), form.client_email, kind="email", hint=t("quotes.admin.client_email_hint"), autocomplete="off") %}{% endcall %}
+  </div>
+  <fieldset class="fieldset mt-4"><legend>{{ t("quotes.admin.prospect") }}</legend>
+  <div class="form-grid">
+    {% call ui::field("prospect_name", t("quotes.fields.prospect_name"), form.prospect_name, autocomplete="off") %}{% endcall %}
+    {% call ui::field("prospect_email", t("quotes.fields.prospect_email"), form.prospect_email, kind="email", autocomplete="off") %}{% endcall %}
+    {% call ui::field("prospect_company", t("quotes.fields.prospect_company"), form.prospect_company, autocomplete="off") %}{% endcall %}
+  </div>
+  </fieldset>
+  {% endcall %}
+  {% call ui::card(t("quotes.admin.section_details")) %}
+  <div class="form-grid">
+    {% call ui::field("subject", t("quotes.fields.subject"), form.subject, required=true) %}{% endcall %}
+    <div class="field"><label class="field__label" for="q-cur">{{ t("admin.common.currency") }}</label>
+      <select class="select" id="q-cur" name="currency">{% for c in currencies %}<option value="{{ c }}"{{ sel(c, form.currency) }}>{{ c }}</option>{% endfor %}</select></div>
+    {% call ui::field("valid_until", t("quotes.fields.valid_until"), form.valid_until, kind="date", required=true) %}{% endcall %}
+  </div>
+  {% endcall %}
+  {% call ui::card(t("quotes.admin.section_lines"), t("quotes.admin.lines_hint")) %}
+  <div class="table-wrap"><table class="table table--dense quote-lines">
+    <thead><tr><th scope="col">{{ t("quotes.fields.product") }}</th><th scope="col">{{ t("quotes.fields.description") }}</th><th scope="col" class="num">{{ t("quotes.fields.quantity") }}</th><th scope="col" class="num">{{ t("quotes.fields.unit_price") }}</th><th scope="col" class="num">{{ t("quotes.fields.discount") }}</th><th scope="col">{{ t("quotes.fields.taxable") }}</th></tr></thead>
+    <tbody>
+    {%- for l in form.lines %}
+    {%- let n = loop.index %}
+    <tr>
+      <td data-label="{{ t("quotes.fields.product") }}">
+        <label class="visually-hidden" for="lp-{{ n }}">{{ t("quotes.fields.product") }} {{ n }}</label>
+        <select class="select select--sm" id="lp-{{ n }}" name="line_product"><option value="">{{ t("quotes.admin.free_line") }}</option>{% for (pid, pname) in products %}<option value="{{ pid }}"{{ sel(pid, l.product) }}>{{ pname }}</option>{% endfor %}</select>
+        <label class="visually-hidden" for="lc-{{ n }}">{{ t("quotes.fields.cycle") }} {{ n }}</label>
+        <select class="select select--sm mt-2" id="lc-{{ n }}" name="line_cycle"><option value="">{{ t("quotes.fields.cycle") }}</option>{% for (cv, cl) in cycles %}<option value="{{ cv }}"{{ sel(cv, l.cycle) }}>{{ cl }}</option>{% endfor %}</select>
+      </td>
+      <td data-label="{{ t("quotes.fields.description") }}"><label class="visually-hidden" for="ld-{{ n }}">{{ t("quotes.fields.description") }} {{ n }}</label><input class="input" id="ld-{{ n }}" name="line_description" value="{{ l.description }}" maxlength="500"></td>
+      <td data-label="{{ t("quotes.fields.quantity") }}" class="num"><label class="visually-hidden" for="lq-{{ n }}">{{ t("quotes.fields.quantity") }} {{ n }}</label><input class="input input--num" id="lq-{{ n }}" name="line_quantity" value="{{ l.quantity }}" inputmode="decimal" size="5"></td>
+      <td data-label="{{ t("quotes.fields.unit_price") }}" class="num"><label class="visually-hidden" for="lu-{{ n }}">{{ t("quotes.fields.unit_price") }} {{ n }}</label><input class="input input--num" id="lu-{{ n }}" name="line_price" value="{{ l.price }}" inputmode="decimal" size="9"></td>
+      <td data-label="{{ t("quotes.fields.discount") }}" class="num"><label class="visually-hidden" for="lx-{{ n }}">{{ t("quotes.fields.discount") }} {{ n }}</label><input class="input input--num" id="lx-{{ n }}" name="line_discount" value="{{ l.discount }}" inputmode="decimal" size="4" placeholder="0"></td>
+      <td data-label="{{ t("quotes.fields.taxable") }}"><label class="visually-hidden" for="lt-{{ n }}">{{ t("quotes.fields.taxable") }} {{ n }}</label><select class="select select--sm" id="lt-{{ n }}" name="line_taxable"><option value="1"{% if l.taxable %} selected{% endif %}>{{ t("common.yes") }}</option><option value="0"{% if !l.taxable %} selected{% endif %}>{{ t("common.no") }}</option></select></td>
+    </tr>
+    {%- endfor %}
+    </tbody>
+  </table></div>
+  <p class="field__hint mt-2">{{ t("quotes.admin.more_rows_hint") }}</p>
+  {% endcall %}
+  {% call ui::card(t("quotes.admin.section_notes")) %}
+  <div class="form-grid form-grid--2">
+    {% call ui::textarea("notes", t("quotes.fields.notes"), form.notes, hint=t("quotes.admin.notes_hint"), rows=5) %}{% endcall %}
+    {% call ui::textarea("admin_notes", t("quotes.fields.admin_notes"), form.admin_notes, hint=t("quotes.admin.admin_notes_hint"), rows=5) %}{% endcall %}
+  </div>
+  {% endcall %}
+  <div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button><a class="btn btn--ghost" href="{% match id %}{% when Some(i) %}{{ url("/admin/quotes/" ~ i) }}{% when None %}{{ url("/admin/quotes") }}{% endmatch %}">{{ t("common.actions.cancel") }}</a></div>
+</form>
+{% endblock %}

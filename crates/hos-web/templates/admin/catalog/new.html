@@ -1,0 +1,20 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.catalog.new_title") }}</h1><p>{{ t("admin.catalog.new_lead") }}</p></div></div>
+{%- if !error.is_empty() %}{% call ui::alert("danger", error) %}{% endcall %}{% endif %}
+{% call ui::card() %}
+<form class="stack" method="post" action="{{ url("/admin/catalog/products") }}">
+  {% call ui::csrf() %}{% endcall %}
+  <div class="form-grid">
+    {% call ui::field("name", t("admin.common.name"), name_value, required=true, autofocus=true) %}{% endcall %}
+    {% call ui::field("slug", t("admin.catalog.slug"), slug, hint=t("admin.catalog.slug_hint")) %}{% endcall %}
+    <div class="field"><label class="field__label" for="n-type">{{ t("admin.catalog.type") }}</label>
+      <select class="select" id="n-type" name="product_type">{% for (v, l) in types %}<option value="{{ v }}"{{ sel(v, kind) }}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="field"><label class="field__label" for="n-group">{{ t("admin.catalog.group") }}</label>
+      <select class="select" id="n-group" name="group_id"><option value="">—</option>{% for g in groups %}<option value="{{ g.id }}"{{ sel(g.id.to_string().as_str(), group) }}>{{ g.name }}</option>{% endfor %}</select></div>
+  </div>
+  <div class="btn-row"><button class="btn btn--primary" type="submit">{{ t("admin.catalog.create_continue") }}</button></div>
+</form>
+{% endcall %}
+{% endblock %}

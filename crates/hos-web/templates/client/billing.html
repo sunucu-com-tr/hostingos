@@ -1,0 +1,80 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}"><link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div><h1>{{ t("client.billing.title") }}</h1><p>{{ t("client.billing.lead") }}</p></div>
+  <div class="btn-row"><a class="btn btn--soft" href="{{ url("/client/account/billing") }}">{{ icon("building") }}{{ t("client.billing.profile_title") }}</a></div>
+</div>
+<div class="grid grid--2">
+  <section class="card">
+    <header class="card__head"><h2>{{ t("client.billing.credit") }}</h2></header>
+    <div class="card__body stack">
+      <p class="stat__value">{{ balance }}</p>
+      <p class="muted small">{{ t("client.billing.credit_lead") }}</p>
+      {%- if can_top_up %}
+      <form class="input-group" method="post" action="{{ url("/client/billing/funds") }}">
+        {% call ui::csrf() %}{% endcall %}
+        <label class="visually-hidden" for="f-amount">{{ t("client.billing.amount") }}</label>
+        <input class="input" id="f-amount" name="amount" type="text" inputmode="decimal" required placeholder="500" maxlength="12">
+        <span class="input-group__addon">{{ currency }}</span>
+        <button type="submit" class="btn btn--primary">{{ t("client.billing.top_up") }}</button>
+      </form>
+      <p class="small muted">{{ funds_hint }}</p>
+      {%- else %}
+      <p class="small muted">{{ t("client.billing.top_up_unavailable") }}</p>
+      {%- endif %}
+    </div>
+  </section>
+  <section class="card">
+    <header class="card__head"><div><h2>{{ t("client.billing.methods") }}</h2><p class="muted small">{{ t("client.billing.methods_lead") }}</p></div></header>
+    <div class="card__body">
+    {%- if methods.is_empty() %}
+      <p class="muted">{{ t("client.billing.no_methods") }}</p>
+    {%- else %}
+      <ul class="row-list">
+      {%- for m in methods %}
+        <li><span><strong>{{ m.label }}</strong><span class="muted small">{{ m.gateway }} · {{ tv("client.billing.last_used", "date", m.last_used) }}</span></span>
+          <span class="cluster">{% if m.failed %}{{ badge(t("client.billing.method_failed"), "danger") }}{% endif %}{% if m.is_default %}{{ badge(t("client.billing.default"), "brand") }}{% endif %}
+          <form method="post" action="{{ url("/client/billing/methods/") }}{{ m.id }}/delete" data-confirm="{{ t("client.billing.method_delete_confirm") }}">{% call ui::csrf() %}{% endcall %}<button type="submit" class="btn btn--ghost btn--sm">{{ t("client.common.delete") }}</button></form></span></li>
+      {%- endfor %}
+      </ul>
+    {%- endif %}
+    {%- if !setup_gateways.is_empty() %}
+      <form class="card-setup mt-4" method="post" action="{{ url("/client/billing/methods/add") }}">
+        {% call ui::csrf() %}{% endcall %}
+        {%- if setup_gateways.len() == 1 %}
+        <input type="hidden" name="gateway" value="{{ setup_gateways[0].0 }}">
+        {%- else %}
+        <div class="field"><label class="small" for="setup-gateway">{{ t("client.billing.card_gateway") }}</label>
+          <select class="select" id="setup-gateway" name="gateway">{% for (id, name) in setup_gateways %}<option value="{{ id }}">{{ name }}</option>{% endfor %}</select></div>
+        {%- endif %}
+        <button type="submit" class="btn btn--soft">{{ icon("plus") }}{{ t("client.billing.card_add") }}</button>
+      </form>
+      <p class="small muted">{{ t("client.billing.card_add_note") }}</p>
+    {%- endif %}
+    </div>
+  </section>
+</div>
+<section class="card mt-8">
+  <header class="card__head between"><h2>{{ t("client.billing.ledger") }}</h2></header>
+  {%- if credits.is_empty() %}
+  <div class="card__body"><p class="muted">{{ t("client.billing.no_ledger") }}</p></div>
+  {%- else %}
+  <div class="table-wrap">
+    <table class="table table--stack">
+      <thead><tr><th scope="col">{{ t("client.billing.date") }}</th><th scope="col">{{ t("client.billing.description") }}</th><th scope="col" class="num">{{ t("client.billing.amount") }}</th></tr></thead>
+      <tbody>
+      {%- for c in credits %}
+        <tr><td data-label="{{ t("client.billing.date") }}">{{ datetime(c.created_at) }}</td><td data-label="{{ t("client.billing.description") }}">{{ c.description }}</td><td class="num{% if c.amount.is_sign_negative() %} text-danger{% else %} text-success{% endif %}" data-label="{{ t("client.billing.amount") }}">{{ money_in(c.amount, c.currency) }}</td></tr>
+      {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+  {%- endif %}
+</section>
+<section class="card mt-8">
+  <header class="card__head between"><h2>{{ t("client.billing.recent_transactions") }}</h2><a class="small" href="{{ url("/client/billing/transactions") }}">{{ t("client.dashboard.see_all") }}</a></header>
+  <div class="card__body">{% include "client/_txn_list.html" %}</div>
+</section>
+{% endblock %}

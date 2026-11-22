@@ -1,0 +1,58 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{% if role.is_some() %}{{ role_name }}{% else %}{{ t("admin_settings.roles.new") }}{% endif %}</h1>
+    <p>{% if readonly %}{{ t("admin_settings.roles.readonly_lead") }}{% else %}{{ t("admin_settings.roles.form_lead") }}{% endif %}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/staff/roles") }}">{{ icon("chevron-left") }}{{ t("admin.common.back") }}</a></div>
+</div>
+<form method="post" action="{{ url(action_url()) }}" class="stack-lg" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::form_errors(errors) %}{% endcall %}
+  {%- if !readonly %}
+  <section class="card"><div class="card__body settings-grid">
+    {% call ui::field("name", t("admin_settings.roles.name"), role_name, error=errors.get("name"), required=true) %}{% endcall %}
+    {% call ui::field("description", t("admin.common.description"), description) %}{% endcall %}
+  </div></section>
+  {%- endif %}
+  <section class="card">
+    <header class="card__head"><div><h2>{{ t("admin_settings.roles.matrix") }}</h2><p class="muted small">{{ t("admin_settings.roles.matrix_lead") }}</p></div></header>
+    <div class="card__body">
+      {%- if !extra_grants.is_empty() %}
+      <p class="small">{{ t("admin_settings.roles.wildcards") }} {% for g in extra_grants %}<code>{{ g }}</code> {% endfor %}</p>
+      {%- endif %}
+      <div class="table-wrap"><table class="table table--dense matrix">
+        <thead><tr><th scope="col">{{ t("admin_settings.roles.area") }}</th>{% for a in actions %}<th scope="col" class="matrix__cell">{{ a }}</th>{% endfor %}</tr></thead>
+        <tbody>
+        {%- for row in matrix %}
+        <tr>
+          <th scope="row">{{ row.label }}</th>
+          {%- for cell in row.cells %}
+          <td class="matrix__cell">
+            {%- match cell %}
+            {%- when Some(c) %}
+            <label class="matrix__check"><input type="checkbox" name="perm" value="{{ c.value }}"{% if c.checked %} checked{% endif %}{% if readonly || c.locked %} disabled{% endif %} aria-label="{{ row.label }} · {{ c.value }}"></label>
+            {%- when None %}<span class="muted" aria-hidden="true">·</span>
+            {%- endmatch %}
+          </td>
+          {%- endfor %}
+        </tr>
+        {%- endfor %}
+        </tbody>
+      </table></div>
+      <p class="field__hint">{{ t("admin_settings.roles.matrix_hint") }}</p>
+    </div>
+  </section>
+  {%- if !readonly %}
+  <div class="btn-row"><button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button></div>
+  {%- endif %}
+</form>
+{%- match role %}{% when Some(r) %}{% if !r.is_system %}
+<section class="card mt-4"><div class="card__body between">
+  <p class="muted small">{{ tn("admin_settings.roles.member_count", members) }}</p>
+  <form method="post" action="{{ url("/admin/staff/roles/" ~ r.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}
+    <button class="btn btn--ghost btn--sm" type="submit"{% if members > 0 %} disabled title="{{ t("admin_settings.roles.errors.in_use") }}"{% endif %}>{{ icon("x") }}{{ t("admin.common.delete") }}</button></form>
+</div></section>
+{% endif %}{% when None %}{% endmatch %}
+{% endblock %}

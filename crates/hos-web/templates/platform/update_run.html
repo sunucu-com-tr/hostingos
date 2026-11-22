@@ -1,0 +1,15 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ tv2("updates.run.title", "from", run.from_version, "to", run.to_version) }}</h1>
+    <p>{{ kind_label(run.kind) }} · <time datetime="{{ iso(run.created_at) }}">{{ datetime(run.created_at) }}</time>{% if !run.requested_by.is_empty() %} · {{ run.requested_by }}{% endif %}</p>
+  </div>
+  <div class="btn-row">
+    <a class="btn btn--ghost" href="/platform/updates">{{ icon("arrow-left") }}{{ t("updates.run.back") }}</a>
+  </div>
+</div>
+{% include "platform/_update_run_status.html" %}
+{% endblock %}

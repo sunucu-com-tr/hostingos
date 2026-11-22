@@ -1,0 +1,123 @@
+{
+  "menu": "Ağ durumu",
+  "admin": {
+    "title": "Ağ durumu",
+    "lead": "Bileşenler, kesintiler ve planlı bakımlar; herkese açık durum sayfasında yayımlanır.",
+    "public_link": "Herkese açık sayfayı aç",
+    "incident_new": "Kesinti bildir",
+    "maintenance_new": "Bakım planla",
+    "open_title": "Açık kesinti ve bakımlar",
+    "open_empty": "Açık kesinti veya bakım yok.",
+    "components_title": "Bileşenler",
+    "components_hint": "Bir bileşeni sunucu entegrasyonuna bağlarsanız o sunucudaki hizmetlerin sahipleri etkilenen müşteri olarak bulunur.",
+    "components_empty": "Henüz bileşen yok.",
+    "component_new": "Bileşen ekle",
+    "component_edit": "Bileşen: {name}",
+    "component_saved": "Bileşen kaydedildi.",
+    "component_deleted": "Bileşen silindi.",
+    "component_delete_confirm": "Bileşen silinsin mi? Geçmiş kesintilerden de kaldırılır.",
+    "history_title": "Son kapanan kayıtlar",
+    "private": "Yalnızca yönetim panelinde",
+    "bound": "Sunucuya bağlı",
+    "name_hint": "Örneğin “Web hosting – İstanbul”.",
+    "group_hint": "Aynı gruptaki bileşenler birlikte gösterilir.",
+    "no_integration": "Bağlı değil",
+    "integration_hint": "Etkilenen hizmetleri bulmak için kullanılır.",
+    "is_public": "Durum sayfasında göster",
+    "is_public_incident": "Durum sayfasında yayımla",
+    "name_required": "Bileşen adı gerekli.",
+    "title_required": "Başlık gerekli.",
+    "message_required": "Bir açıklama yazın.",
+    "start_required": "Planlı bakım için başlangıç zamanı gerekli.",
+    "invalid": "Geçersiz değer.",
+    "invalid_date": "Tarihler geçersiz: bitiş başlangıçtan sonra olmalı.",
+    "details": "Ayrıntılar",
+    "affected": "Etkilenen bileşenler",
+    "affected_hint": "Müşteri bildirimleri bu bileşenlere bağlı sunuculardaki hizmetlere gider.",
+    "add_update": "Güncelleme ekle",
+    "post_update": "Güncellemeyi yayımla",
+    "message_hint": "Markdown kullanabilirsiniz. Müşterilere görünür.",
+    "timeline": "Zaman çizelgesi",
+    "tz_hint": "Firmanızın saat diliminde.",
+    "incident_saved": "Kayıt kaydedildi.",
+    "incident_deleted": "Kayıt silindi.",
+    "incident_delete_confirm": "Bu kayıt ve tüm güncellemeleri silinsin mi?",
+    "update_added": "Güncelleme yayımlandı.",
+    "notify": "Etkilenen müşterilere e-posta gönder",
+    "notify_confirm": "Etkilenen hizmetlerin sahiplerine bir kez e-posta ve bildirim gönderilecek. Devam edilsin mi?",
+    "notified": {
+      "one": "{count} müşteriye bildirim gönderildi.",
+      "other": "{count} müşteriye bildirim gönderildi."
+    },
+    "notified_at": "Bildirim gönderildi:",
+    "help_title": "Nasıl çalışır?",
+    "help_text": "Kesinti durumunu güncellemelerle ilerletin; “Çözüldü” veya “Tamamlandı” kaydı kapatır. Herkese açık kayıtlar durum sayfasında, Atom akışında ve etkilenen müşterilerin panelinde görünür."
+  },
+  "client": {
+    "title": "Hizmet bildirimleri",
+    "affects": "Etkilenen hizmetleriniz",
+    "details": "Ayrıntılar"
+  },
+  "component": {
+    "operational": "Çalışıyor",
+    "maintenance": "Bakımda",
+    "degraded": "Yavaşlama",
+    "partial_outage": "Kısmi kesinti",
+    "major_outage": "Büyük kesinti"
+  },
+  "fields": {
+    "actions": "İşlemler",
+    "affected": "Etkilenen",
+    "component": "Bileşen",
+    "description": "Açıklama",
+    "group": "Grup",
+    "impact": "Etki",
+    "integration": "Bağlı sunucu",
+    "kind": "Tür",
+    "message": "Açıklama",
+    "scheduled_end": "Planlanan bitiş",
+    "scheduled_start": "Planlanan başlangıç",
+    "sort_order": "Sıra",
+    "starts": "Başlangıç",
+    "status": "Durum",
+    "title": "Başlık"
+  },
+  "impact": {
+    "none": "Etki yok",
+    "minor": "Düşük",
+    "major": "Yüksek",
+    "critical": "Kritik"
+  },
+  "incident": {
+    "investigating": "İnceleniyor",
+    "identified": "Sorun belirlendi",
+    "monitoring": "İzleniyor",
+    "resolved": "Çözüldü",
+    "scheduled": "Planlandı",
+    "in_progress": "Sürüyor",
+    "completed": "Tamamlandı"
+  },
+  "kind": {
+    "incident": "Kesinti",
+    "maintenance": "Planlı bakım"
+  },
+  "public": {
+    "title": "Hizmet durumu",
+    "lead": "Altyapımızın anlık durumu, süren kesintiler ve planlı bakımlar.",
+    "description": "Hizmetlerin anlık durumu, kesintiler ve planlı bakım çalışmaları.",
+    "level": {
+      "ok": "Tüm sistemler çalışıyor",
+      "maintenance": "Planlı bakım sürüyor",
+      "minor": "Bazı hizmetlerde sorun var",
+      "major": "Büyük kesinti"
+    },
+    "open_title": "Süren kesintiler",
+    "maintenance_title": "Planlı bakımlar",
+    "components_title": "Bileşenler",
+    "no_components": "Henüz izlenen bileşen yok.",
+    "history_title": "Son 14 gün",
+    "no_history": "Son 14 günde kayıt yok.",
+    "feed": "Atom akışı ile takip edin",
+    "back": "Hizmet durumuna dön"
+  }
+}

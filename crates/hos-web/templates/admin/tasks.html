@@ -1,0 +1,77 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ ctx.title }}</h1><p>{% match client %}{% when Some((cid, cname)) %}{{ t("tasks.admin.for_client") }} <a href="{{ url("/admin/clients/" ~ cid) }}">{{ cname }}</a>{% when None %}{{ t("tasks.admin.lead") }}{% endmatch %}</p></div>
+</div>
+<nav class="tabs" aria-label="{{ t("common.a11y.tabs") }}">
+  {%- for (href, label, current) in tab_items() %}
+  <a href="{{ href }}"{% if current %} aria-current="page"{% endif %}>{{ label }}</a>
+  {%- endfor %}
+</nav>
+<div class="admin-grid admin-grid--side mt-4">
+  <div>
+  {%- if rows.is_empty() %}
+  {% call ui::empty("check-circle", t("tasks.admin.empty_title"), t("tasks.admin.empty_text")) %}{% endcall %}
+  {%- else %}
+  <form method="post" action="{{ url("/admin/tasks/bulk") }}">
+  {% call ui::csrf() %}{% endcall %}
+  <input type="hidden" name="back" value="{{ back() }}">
+  <div class="bulkbar">
+    <span class="bulkbar__count" aria-live="polite">{{ tv("admin.shell.selected", "count", 0) }}</span>
+    <label class="visually-hidden" for="b-action">{{ t("admin.common.bulk_action") }}</label>
+    <select class="select select--sm" id="b-action" name="action">
+      <option value="complete">{{ t("tasks.admin.complete") }}</option>
+      <option value="reopen">{{ t("tasks.admin.reopen") }}</option>
+    </select>
+    <button class="btn btn--soft btn--sm" type="submit">{{ t("admin.common.apply_selected") }}</button>
+  </div>
+  <div class="table-wrap"><table class="table table--dense table--stack">
+    <thead><tr><th scope="col" class="check"><input type="checkbox" data-check-all="ids" aria-label="{{ t("admin.common.select_all") }}"></th><th scope="col">{{ t("tasks.fields.title") }}</th><th scope="col">{{ t("tasks.fields.due_date") }}</th><th scope="col">{{ t("tasks.fields.assignee") }}</th><th scope="col">{{ t("tasks.fields.priority") }}</th><th scope="col"><span class="visually-hidden">{{ t("tasks.fields.actions") }}</span></th></tr></thead>
+    <tbody>{% for r in rows %}<tr>
+      <td class="check"><input type="checkbox" name="ids" value="{{ r.task.id }}" aria-label="{{ r.task.title }}"></td>
+      <td data-label="{{ t("tasks.fields.title") }}"><a class="row-link{% if r.task.status.as_str() == "done" %} biz-muted{% endif %}" href="{{ url("/admin/tasks/" ~ r.task.id) }}">{% if r.task.status.as_str() == "done" %}<s>{{ r.task.title }}</s>{% else %}{{ r.task.title }}{% endif %}</a>{% match r.client_name %}{% when Some(cn) %}{% match r.task.client_id %}{% when Some(cid) %}<span class="sub"><a href="{{ url("/admin/clients/" ~ cid) }}">{{ cn }}</a></span>{% when None %}{% endmatch %}{% when None %}{% endmatch %}</td>
+      <td data-label="{{ t("tasks.fields.due_date") }}" class="nowrap">{% match r.task.due_date %}{% when Some(dd) %}{% if overdue(r.task) %}<span class="badge badge--danger">{{ d(dd) }}</span>{% else %}{{ d(dd) }}{% endif %}{% when None %}—{% endmatch %}</td>
+      <td data-label="{{ t("tasks.fields.assignee") }}">{{ o(r.assignee_name) }}</td>
+      <td data-label="{{ t("tasks.fields.priority") }}">{{ pbadge(r.task.priority) }}</td>
+      <td class="num biz-cellact">
+        {%- if r.task.status.as_str() == "open" %}<button class="btn btn--soft btn--sm" type="submit" formaction="{{ url("/admin/tasks/" ~ r.task.id ~ "/status") }}" name="status" value="done">{{ icon("check") }}{{ t("tasks.admin.complete") }}</button>
+        {%- else %}<button class="btn btn--ghost btn--sm" type="submit" formaction="{{ url("/admin/tasks/" ~ r.task.id ~ "/status") }}" name="status" value="open">{{ icon("refresh") }}{{ t("tasks.admin.reopen") }}</button>{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  </form>
+  {%- endif %}
+  </div>
+  <aside>
+    {% call ui::card(form_title()) %}
+    <form method="post" action="{% match editing %}{% when Some(et) %}{{ url("/admin/tasks/" ~ et.id) }}{% when None %}{{ url("/admin/tasks") }}{% endmatch %}" class="stack">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::field("title", t("tasks.fields.title"), edit_value("title"), required=true) %}{% endcall %}
+      {% call ui::textarea("body", t("tasks.fields.body"), edit_value("body"), rows=3) %}{% endcall %}
+      {% call ui::field("due_date", t("tasks.fields.due_date"), edit_value("due"), kind="date") %}{% endcall %}
+      {%- let pv = edit_value("priority") %}
+      <div class="field"><label class="field__label" for="f-priority">{{ t("tasks.fields.priority") }}</label>
+        <select class="select" id="f-priority" name="priority">
+          {%- for (p, pl) in priority_options() %}<option value="{{ p }}"{{ sel(p, pv) }}>{{ pl }}</option>{% endfor %}
+        </select></div>
+      {%- let av = edit_value("assignee") %}
+      <div class="field"><label class="field__label" for="f-assigned_to">{{ t("tasks.fields.assignee") }}</label>
+        <select class="select" id="f-assigned_to" name="assigned_to">
+          <option value="">{{ t("tasks.admin.unassigned") }}</option>
+          {%- for (v, l) in staff_options %}<option value="{{ v }}"{{ sel(v, av) }}>{{ l }}</option>{% endfor %}
+        </select></div>
+      {%- let cv = edit_value("client") %}
+      {%- if !cv.is_empty() %}<input type="hidden" name="client_id" value="{{ cv }}"><input type="hidden" name="from_client" value="1">{% endif %}
+      <div class="biz-actions">
+        <button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button>
+        {%- if editing.is_some() %}<a class="btn btn--ghost" href="{{ url("/admin/tasks") }}">{{ t("common.actions.cancel") }}</a>{% endif %}
+      </div>
+    </form>
+    {%- match editing %}{% when Some(et) %}
+    <form method="post" action="{{ url("/admin/tasks/" ~ et.id ~ "/delete") }}" class="mt-4" data-confirm="{{ t("tasks.admin.delete_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--danger btn--sm" type="submit">{{ icon("trash") }}{{ t("admin.common.delete") }}</button></form>
+    {%- when None %}{% endmatch %}
+    {% endcall %}
+  </aside>
+</div>
+{% endblock %}

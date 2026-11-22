@@ -1,0 +1,56 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ ctx.title }}</h1><p>{{ sbadge_of(self.m.status) }}</p></div>
+</div>
+<div class="admin-grid admin-grid--side">
+  <div class="stack">
+    {% call ui::card(t("inbound.admin.message")) %}
+    <dl class="biz-dl">
+      <dt>{{ t("inbound.fields.received") }}</dt><dd>{{ datetime(self.m.created_at) }} · {{ t(format!("inbound.source.{}", self.m.source.as_str()).as_str()) }}</dd>
+      <dt>{{ t("inbound.fields.sender") }}</dt><dd class="biz-break">{{ o(self.m.sender) }}</dd>
+      <dt>{{ t("inbound.fields.recipient") }}</dt><dd class="biz-break">{{ o(self.m.recipient) }}</dd>
+      <dt>{{ t("inbound.fields.reason") }}</dt><dd>{{ reason() }}</dd>
+      <dt>{{ t("inbound.fields.attachments") }}</dt><dd class="biz-break">{% if self.m.attachment_names.is_empty() %}—{% else %}{{ attachments() }}{% endif %}</dd>
+      {%- match ticket_number %}{% when Some(n) %}{% match self.m.ticket_id %}{% when Some(tid) %}
+      <dt>{{ t("inbound.fields.ticket") }}</dt><dd><a href="{{ url("/admin/support/tickets/" ~ tid) }}">{{ n }}</a></dd>
+      {%- when None %}{% endmatch %}{% when None %}{% endmatch %}
+    </dl>
+    {% endcall %}
+    {%- if is_quarantined() %}
+    {% call ui::card(t("inbound.admin.body")) %}
+    <div class="mail-body">{{ nl2br(body().as_str()) }}</div>
+    {%- if !self.m.attachment_names.is_empty() %}<p class="biz-muted mt-4">{{ t("inbound.admin.attachments_not_kept") }}</p>{% endif %}
+    {% endcall %}
+    {%- endif %}
+  </div>
+  <aside>
+    {%- if is_quarantined() %}
+    {% call ui::card(t("inbound.admin.review")) %}
+    <p>{% match account %}{% when Some(a) %}{{ tv("inbound.admin.release_for_client", "name", a) }}{% when None %}{{ t("inbound.admin.release_as_guest") }}{% endmatch %}</p>
+    <form method="post" action="{{ url("/admin/support/inbound/" ~ self.m.id ~ "/release") }}" class="stack">
+      {% call ui::csrf() %}{% endcall %}
+      <div class="field"><label class="field__label" for="f-department_id">{{ t("inbound.fields.department") }}</label>
+        <select class="select" id="f-department_id" name="department_id" required>
+          {%- for d in departments %}<option value="{{ d.id }}"{{ dept_sel(d) }}>{{ d.name }}</option>{% endfor %}
+        </select></div>
+      <button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("inbound.admin.release") }}</button>
+    </form>
+    {%- match ticket_number %}{% when Some(n) %}
+    <p class="biz-muted mt-4">{{ t("inbound.admin.append_hint") }}</p>
+    <form method="post" action="{{ url("/admin/support/inbound/" ~ self.m.id ~ "/append") }}" class="mt-2">
+      {% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--sm" type="submit">{{ icon("ticket") }}{{ tv("inbound.admin.append", "number", n) }}</button>
+    </form>
+    {%- when None %}{% endmatch %}
+    <form method="post" action="{{ url("/admin/support/inbound/" ~ self.m.id ~ "/discard") }}" class="mt-4" data-confirm="{{ t("inbound.admin.discard_confirm") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--danger btn--sm" type="submit">{{ icon("trash") }}{{ t("inbound.admin.discard") }}</button>
+    </form>
+    {% endcall %}
+    {%- endif %}
+  </aside>
+</div>
+{% endblock %}

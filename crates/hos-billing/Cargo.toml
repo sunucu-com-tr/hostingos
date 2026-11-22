@@ -1,0 +1,42 @@
+[package]
+name = "hos-billing"
+description = "HostingOS billing rules: order -> invoice -> payment -> provisioning, taxes, coupons and credit."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+hos-core = { workspace = true, features = ["sqlx"] }
+hos-db = { workspace = true }
+hos-virt = { workspace = true }
+hos-panels = { workspace = true }
+hos-domains = { workspace = true }
+hos-payments = { workspace = true }
+hos-mail = { workspace = true }
+hos-seo = { workspace = true }
+hos-einvoice = { workspace = true }
+hos-pdf = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true }
+ipnet = { workspace = true }
+rust_decimal = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+dotenvy = { workspace = true }
+http = { workspace = true }
+rust_decimal_macros = { workspace = true }
+tokio = { workspace = true }
+# Provider API mocks of the real-gateway flows (tests/it/gateways.rs).
+wiremock = { workspace = true }

@@ -1,0 +1,147 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ p.name }}</h1><p>{{ lbl("admin.catalog.types", p.product_type.as_str()) }} · <span class="mono">{{ p.slug }}</span>
+    {%- if p.is_retired %} {{ badge(t("admin.catalog.retired"), "") }}{% elif p.is_hidden %} {{ badge(t("admin.catalog.hidden"), "warning") }}{% else %} {{ badge(t("admin.catalog.visible"), "success") }}{% endif %}</p></div>
+  <div class="page-head__actions">{% if !storefront_url.is_empty() && !p.is_hidden %}<a class="btn btn--ghost" href="{{ storefront_url }}" target="_blank" rel="noopener">{{ icon("external-link") }}{{ t("admin.catalog.view_store") }}</a>{% endif %}</div>
+</div>
+<nav class="chips" aria-label="{{ t("admin.catalog.sections") }}">
+  <a class="chip" href="#details">{{ t("admin.catalog.section_details") }}</a><a class="chip" href="#pricing">{{ t("admin.catalog.section_pricing") }}</a><a class="chip" href="#module">{{ t("admin.catalog.section_module") }}</a><a class="chip" href="#extras">{{ t("admin.catalog.section_extras") }}</a>
+</nav>
+
+<section id="details" class="mt-4">
+{% call ui::card(t("admin.catalog.section_details")) %}
+<form class="stack" method="post" action="{{ url("/admin/catalog/products/" ~ p.id) }}">
+  {% call ui::csrf() %}{% endcall %}
+  <div class="form-grid">
+    {% call ui::field("name", t("admin.common.name"), p.name, required=true) %}{% endcall %}
+    {% call ui::field("slug", t("admin.catalog.slug"), p.slug, required=true) %}{% endcall %}
+    <div class="field"><label class="field__label" for="e-type">{{ t("admin.catalog.type") }}</label>
+      <select class="select" id="e-type" name="product_type">{% for (v, l) in types %}<option value="{{ v }}"{{ sel(v, p.product_type.as_str()) }}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="field"><label class="field__label" for="e-group">{{ t("admin.catalog.group") }}</label>
+      <select class="select" id="e-group" name="group_id"><option value="">—</option>{% for g in groups %}<option value="{{ g.id }}"{{ group_sel(g.id) }}>{{ g.name }}</option>{% endfor %}</select></div>
+    <div class="field span-all">{% call ui::field("tagline", t("admin.catalog.tagline"), p.tagline.clone().unwrap_or_default()) %}{% endcall %}</div>
+  </div>
+  <div class="field"><label class="field__label" for="e-desc">{{ t("admin.common.description") }}</label>
+    <div class="md-editor">
+      <textarea class="textarea textarea--code" id="e-desc" name="description" rows="10" hx-post="{{ url("/admin/preview/markdown") }}" hx-trigger="keyup changed delay:600ms, load" hx-target="#e-desc-preview" hx-swap="innerHTML">{{ p.description.clone().unwrap_or_default() }}</textarea>
+      <div class="md-preview prose" id="e-desc-preview" aria-live="polite"></div>
+    </div>
+    <p class="field__hint">{{ t("admin.common.markdown_hint") }}</p></div>
+  {% call ui::textarea("features", t("admin.catalog.features"), features, rows=5, hint=t("admin.catalog.features_hint")) %}{% endcall %}
+  <details class="fieldset"><summary>{{ t("admin.catalog.translation") }} — {{ other_label }}</summary>
+    <div class="stack mt-4">
+      <div class="form-grid">
+        {% call ui::field("tr_name", t("admin.common.name"), tr_name) %}{% endcall %}
+        {% call ui::field("tr_tagline", t("admin.catalog.tagline"), tr_tagline) %}{% endcall %}
+      </div>
+      <div class="field"><label class="field__label" for="e-trdesc">{{ t("admin.common.description") }}</label>
+        <div class="md-editor">
+          <textarea class="textarea textarea--code" id="e-trdesc" name="tr_description" rows="8" hx-post="{{ url("/admin/preview/markdown") }}" hx-trigger="keyup changed delay:600ms, load" hx-target="#e-trdesc-preview" hx-swap="innerHTML">{{ tr_description }}</textarea>
+          <div class="md-preview prose" id="e-trdesc-preview" aria-live="polite"></div>
+        </div></div>
+      {% call ui::textarea("tr_features", t("admin.catalog.features"), tr_features, rows=4) %}{% endcall %}
+      <p class="field__hint">{{ t("admin.catalog.translation_hint") }}</p>
+    </div>
+  </details>
+  <div class="form-grid">
+    <div class="field"><label class="field__label" for="e-pay">{{ t("admin.catalog.pay_type") }}</label>
+      <select class="select" id="e-pay" name="pay_type">{% for (v, l) in pay_types %}<option value="{{ v }}"{{ sel(v, p.pay_type.as_str()) }}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="field"><label class="field__label" for="e-dom">{{ t("admin.catalog.requires_domain") }}</label>
+      <select class="select" id="e-dom" name="requires_domain">{% for (v, l) in domain_reqs %}<option value="{{ v }}"{{ sel(v, p.requires_domain.as_str()) }}>{{ l }}</option>{% endfor %}</select></div>
+    <input type="hidden" name="auto_setup" value="{{ p.auto_setup.as_str() }}">
+    <div class="field"><label class="field__label" for="e-wel">{{ t("admin.catalog.welcome_email") }}</label>
+      <select class="select" id="e-wel" name="welcome_email_template"><option value="">{{ t("admin.catalog.welcome_default") }}</option>{% for (k, l) in templates %}<option value="{{ k }}"{% if p.welcome_email_template.as_deref() == Some(k.as_str()) %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    {% call ui::field("sort_order", t("admin.catalog.sort_order"), p.sort_order.to_string(), inputmode="numeric") %}{% endcall %}
+  </div>
+  <div class="checks">
+    {% call ui::checkbox("is_taxable", t("admin.catalog.taxable"), p.is_taxable) %}{% endcall %}
+    {% call ui::checkbox("is_featured", t("admin.catalog.featured_label"), p.is_featured) %}{% endcall %}
+    {% call ui::checkbox("is_hidden", t("admin.catalog.hidden_label"), p.is_hidden) %}{% endcall %}
+  </div>
+  <div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button></div>
+</form>
+{% endcall %}
+</section>
+
+<section id="pricing" class="mt-6">
+{% call ui::card(t("admin.catalog.section_pricing"), t("admin.catalog.pricing_lead")) %}
+{%- if currencies.is_empty() %}<p class="muted">{{ t("admin.catalog.no_currencies") }}</p>{% else %}
+<form method="post" action="{{ url("/admin/catalog/products/" ~ p.id ~ "/pricing") }}">
+  {% call ui::csrf() %}{% endcall %}
+  <div class="table-wrap"><table class="table table--dense matrix">
+    <thead><tr><th>{{ t("admin.catalog.cycle") }}</th>{% for c in currencies %}<th class="num">{{ c.code }} · {{ t("admin.catalog.price") }}</th><th class="num">{{ c.code }} · {{ t("admin.orders.setup") }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {%- for row in matrix %}
+    <tr><th scope="row">{{ row.label }}</th>
+      {%- for cell in row.cells %}
+      <td class="num"><input class="input input--sm" name="price_{{ cell.currency }}_{{ row.cycle }}" value="{{ cell.price }}" inputmode="decimal" aria-label="{{ row.label }} {{ cell.currency }} {{ t("admin.catalog.price") }}"></td>
+      <td class="num"><input class="input input--sm" name="setup_{{ cell.currency }}_{{ row.cycle }}" value="{{ cell.setup }}" inputmode="decimal" aria-label="{{ row.label }} {{ cell.currency }} {{ t("admin.orders.setup") }}"></td>
+      {%- endfor %}</tr>
+    {%- endfor %}
+    </tbody>
+  </table></div>
+  <p class="field__hint">{{ t("admin.catalog.pricing_hint") }}</p>
+  <div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--primary" type="submit">{{ t("admin.catalog.save_prices") }}</button></div>
+</form>
+{%- endif %}
+{% endcall %}
+</section>
+
+<section id="module" class="mt-6">
+{% call ui::card(t("admin.catalog.section_module"), t("admin.catalog.module_lead")) %}
+<form class="stack" method="post" action="{{ url("/admin/catalog/products/" ~ p.id ~ "/module") }}">
+  {% call ui::csrf() %}{% endcall %}
+  <div class="form-grid">
+    <div class="field"><label class="field__label" for="m-int">{{ t("admin.catalog.integration") }}</label>
+      <select class="select" id="m-int" name="integration_id"><option value="">{{ t("admin.catalog.manual_provisioning") }}</option>{% for i in module_integrations %}<option value="{{ i.id }}"{{ integration_sel(i.id) }}>{{ i.name }} ({{ i.kind }}){% if !i.is_active %} — {{ t("admin.integrations.inactive") }}{% endif %}</option>{% endfor %}</select>
+      {%- if module_category.is_empty() %}<p class="field__hint">{{ t("admin.catalog.no_module_type") }}</p>{% elif module_integrations.is_empty() %}<p class="field__hint">{{ t("admin.catalog.no_module_integrations") }}{% if can("integrations.manage") %} <a href="{{ url("/admin/integrations") }}">{{ t("admin.integrations.title") }}</a>{% endif %}</p>{% endif %}</div>
+    <div class="field"><label class="field__label" for="m-setup">{{ t("admin.catalog.auto_setup") }}</label>
+      <select class="select" id="m-setup" name="auto_setup">{% for (v, l) in setups %}<option value="{{ v }}"{{ sel(v, p.auto_setup.as_str()) }}>{{ l }}</option>{% endfor %}</select></div>
+  </div>
+  {%- if !module_fields.is_empty() %}
+  <div class="btn-row">
+    <button class="btn btn--soft btn--sm" type="button" hx-get="{{ url("/admin/catalog/products/" ~ p.id ~ "/remote") }}" hx-include="#m-int" hx-target="#module-remote" hx-swap="innerHTML" hx-indicator="#module-remote">{{ icon("refresh") }}{{ t("admin.catalog.fetch_remote") }}</button>
+    <span class="muted small">{{ t("admin.catalog.fetch_remote_hint") }}</span>
+  </div>
+  <div class="form-grid" id="module-remote" aria-live="polite">
+    {%- for f in module_fields %}{% if f.remote %}
+    <div class="field"><label class="field__label" for="mf-{{ f.key }}">{{ f.label }}</label><input class="input" id="mf-{{ f.key }}" name="{{ f.key }}" value="{{ f.value }}"></div>
+    {%- endif %}{% endfor %}
+  </div>
+  <div class="form-grid">
+    {%- for f in module_fields %}{% if !f.remote %}
+    <div class="field"><label class="field__label" for="mf-{{ f.key }}">{{ f.label }}</label><input class="input" id="mf-{{ f.key }}" name="{{ f.key }}" value="{{ f.value }}"{% if f.numeric %} inputmode="numeric"{% endif %}></div>
+    {%- endif %}{% endfor %}
+  </div>
+  {%- endif %}
+  <div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button></div>
+</form>
+{% endcall %}
+</section>
+
+<section id="extras" class="mt-6">
+{% call ui::card(t("admin.catalog.section_extras")) %}
+<form class="stack" method="post" action="{{ url("/admin/catalog/products/" ~ p.id ~ "/extras") }}">
+  {% call ui::csrf() %}{% endcall %}
+  <fieldset class="fieldset"><legend>{{ t("admin.catalog.config_groups") }}</legend>
+    {%- if config_groups.is_empty() %}<p class="muted">{{ t("admin.catalog.no_config_groups") }} <a href="{{ url("/admin/catalog/options") }}">{{ t("admin.options.title") }}</a></p>{% endif %}
+    <div class="checks checks--grid">{% for g in config_groups %}<label class="check"><input type="checkbox" name="config_groups" value="{{ g.id }}"{% if attached_group(g.id) %} checked{% endif %}> {{ g.name }} <span class="muted">({{ g.option_count }})</span></label>{% endfor %}</div>
+  </fieldset>
+  <div class="form-grid">
+    {% call ui::field("stock_quantity", t("admin.catalog.stock_quantity"), p.stock_quantity.to_string(), inputmode="numeric") %}{% endcall %}
+  </div>
+  <div class="checks">
+    {% call ui::checkbox("stock_control", t("admin.catalog.stock_control"), p.stock_control) %}{% endcall %}
+    {% call ui::checkbox("allow_quantity", t("admin.catalog.allow_quantity"), p.allow_quantity) %}{% endcall %}
+    {% call ui::checkbox("is_retired", t("admin.catalog.retired_label"), p.is_retired) %}{% endcall %}
+  </div>
+  <div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button></div>
+</form>
+{% endcall %}
+{%- if !in_use %}
+<form class="mt-4" method="post" action="{{ url("/admin/catalog/products/" ~ p.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--danger btn--sm" type="submit">{{ icon("x") }}{{ t("admin.catalog.delete_product") }}</button></form>
+{%- else %}<p class="muted small mt-4">{{ t("admin.catalog.in_use_hint") }}</p>{% endif %}
+</section>
+{% endblock %}

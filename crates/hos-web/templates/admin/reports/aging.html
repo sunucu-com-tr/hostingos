@@ -1,0 +1,50 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/reports/_macros.html" as rp %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+{% include "admin/reports/_head.html" %}
+{% call rp::filters(s, false) %}{% endcall %}
+
+<section class="card report-card">
+  {% call rp::head(t("admin_settings.reports.aging_title"), tv("admin_settings.reports.as_of", "date", d(as_of)), url(s.export("aging"))) %}{% endcall %}
+  <div class="card__body">
+    {%- if rows.is_empty() %}
+    <p class="muted">{{ t("admin_settings.reports.aging_empty") }}</p>
+    {%- else %}
+    {%- if chart_svg.is_empty() %}
+    <p class="muted small">{{ tv("admin_settings.reports.aging_none_in", "currency", s.filters.currency.as_str()) }}</p>
+    {%- else %}
+    {{ chart_svg|safe }}
+    {%- endif %}
+    <p class="report-note small">{{ icon("info") }}{{ t("admin_settings.reports.per_currency") }}</p>
+    <div class="table-wrap mt-2"><table class="table table--dense table--stack">
+      <thead><tr>
+        <th scope="col">{{ t("admin.common.currency") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.not_due") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.days_1_30") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.days_31_60") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.days_61_90") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.days_90") }}</th>
+        <th scope="col" class="num">{{ t("admin.common.total") }}</th>
+        <th scope="col" class="num">{{ t("admin_settings.reports.invoice_count") }}</th>
+      </tr></thead>
+      <tbody>
+      {%- for r in rows %}
+      <tr>
+        <th scope="row" data-label="{{ t("admin.common.currency") }}">{{ r.currency.as_str() }}</th>
+        <td class="num" data-label="{{ t("admin_settings.reports.not_due") }}">{{ money_in(r.current, r.currency) }}</td>
+        <td class="num" data-label="{{ t("admin_settings.reports.days_1_30") }}">{{ money_in(r.days_1_30, r.currency) }}</td>
+        <td class="num" data-label="{{ t("admin_settings.reports.days_31_60") }}">{{ money_in(r.days_31_60, r.currency) }}</td>
+        <td class="num" data-label="{{ t("admin_settings.reports.days_61_90") }}">{{ money_in(r.days_61_90, r.currency) }}</td>
+        <td class="num" data-label="{{ t("admin_settings.reports.days_90") }}">{{ money_in(r.days_over_90, r.currency) }}</td>
+        <td class="num" data-label="{{ t("admin.common.total") }}"><strong>{{ money_in(r.total, r.currency) }}</strong></td>
+        <td class="num" data-label="{{ t("admin_settings.reports.invoice_count") }}"><a href="{{ url("/admin/invoices?status=unpaid") }}">{{ num(r.invoice_count) }}</a></td>
+      </tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
+    {%- endif %}
+  </div>
+</section>
+{% endblock %}

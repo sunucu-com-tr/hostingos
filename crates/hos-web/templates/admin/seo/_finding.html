@@ -1,0 +1,5 @@
+{#- One finding `f: FindingView` as a list item. -#}
+<li><span class="sev">{{ badge(sev_label(f.severity), f.tone) }}</span>
+  <div><strong>{{ f.message }}</strong>
+    {%- if !f.hint.is_empty() %}<p class="hint">{{ f.hint }}</p>{% endif %}
+    {%- if !f.urls.is_empty() %}<p class="hint mono">{% for u in f.urls %}{{ u }}{% if !loop.last %}, {% endif %}{% endfor %}</p>{% endif %}</div></li>

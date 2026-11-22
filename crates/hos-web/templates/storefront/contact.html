@@ -1,0 +1,55 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% import "components/blocks.html" as blk %}
+{% block content %}
+<section class="page-hero">
+  <div class="container page-hero__inner">
+    <h1>{{ title }}</h1>
+    <p class="lead">{{ lead }}</p>
+  </div>
+</section>
+<section class="section section--tight">
+  <div class="container contact-layout">
+    <div class="card">
+      <div class="card__body">
+        {%- if sent %}
+        {% call ui::alert("success", t("storefront.contact.sent")) %}{% endcall %}
+        {%- endif %}
+        {%- if !guests_allowed && !logged_in() %}
+        {% call ui::alert("info", t("storefront.contact.errors.login_required")) %}{% endcall %}
+        <p><a class="btn btn--primary" href="{{ url("/auth/login") }}?next={{ url("/contact")|urlencode }}">{{ t("common.actions.login") }}</a></p>
+        {%- else %}
+        {% call ui::form_errors(errors) %}{% endcall %}
+        <form class="form" method="post" action="{{ url("/contact") }}" novalidate>
+          {% call ui::csrf() %}{% endcall %}
+          {% call ui::honeypot() %}{% endcall %}
+          <div class="form-row">
+            {% call ui::field("name", t("storefront.contact.name"), form.name, error=errors.get("name"), required=true, autocomplete="name") %}{% endcall %}
+            {% call ui::field("email", t("storefront.contact.email"), form.email, kind="email", error=errors.get("email"), required=true, autocomplete="email") %}{% endcall %}
+          </div>
+          {%- if departments.len() > 1 %}
+          {% call ui::select("department", t("storefront.contact.department"), departments, form.department.as_str()) %}{% endcall %}
+          {%- endif %}
+          {% call ui::field("subject", t("storefront.contact.subject"), form.subject, error=errors.get("subject"), required=true) %}{% endcall %}
+          {% call ui::textarea("message", t("storefront.contact.message"), form.message, error=errors.get("message"), required=true, rows=7) %}{% endcall %}
+          <p class="small muted">{{ t("storefront.contact.privacy") }}</p>
+          <div><button type="submit" class="btn btn--primary btn--lg">{{ icon("send") }}{{ t("storefront.contact.submit") }}</button></div>
+        </form>
+        {%- endif %}
+      </div>
+    </div>
+    <aside class="contact-aside" aria-labelledby="reach-title">
+      {%- let company = store().company.clone() %}
+      <h2 id="reach-title">{{ t("storefront.contact.reach_us") }}</h2>
+      <ul class="list-links">
+        {%- if !company.support_email.is_empty() %}<li><a href="mailto:{{ company.support_email }}">{{ icon("life-buoy") }}<span>{{ t("storefront.contact.support") }}<small class="mono">{{ company.support_email }}</small></span></a></li>{% endif %}
+        {%- if !company.email.is_empty() %}<li><a href="mailto:{{ company.email }}">{{ icon("mail") }}<span>{{ t("storefront.contact.email") }}<small class="mono">{{ company.email }}</small></span></a></li>{% endif %}
+        {%- if !company.phone.is_empty() %}<li><a href="{{ tel_href(company.phone) }}">{{ icon("phone") }}<span>{{ t("storefront.contact.phone") }}<small class="mono">{{ company.phone }}</small></span></a></li>{% endif %}
+        {%- if !company.address.is_empty() %}<li><span class="cluster">{{ icon("map-pin") }}<span>{{ t("storefront.contact.address") }}<small>{{ company.address }}</small></span></span></li>{% endif %}
+        <li><a href="{{ url("/kb") }}">{{ icon("book") }}<span>{{ t("storefront.nav.kb") }}<small>{{ t("storefront.contact.kb_hint") }}</small></span></a></li>
+      </ul>
+    </aside>
+  </div>
+</section>
+{% call blk::render(blocks) %}{% endcall %}
+{% endblock %}

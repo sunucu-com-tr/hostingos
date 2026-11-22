@@ -1,0 +1,49 @@
+name: Bug report
+description: Something does not work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Security problems: do not file them here** (see SECURITY.md).
+        Remove secrets, customer data and internal host names from logs before pasting them.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `hostingos version` or the version on /platform/system.
+      placeholder: "hostingos 0.1.0 (abc123def456 2026-01-01, x86_64-unknown-linux-musl)"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Install type
+      options:
+        - Binary (systemd)
+        - Docker / Compose
+        - Kubernetes / other container platform
+        - From source (cargo run)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log lines
+      description: Redacted. Will be formatted as code.
+      render: text

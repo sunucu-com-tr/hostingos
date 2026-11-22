@@ -1,0 +1,42 @@
+{#- Studio template (friendly, small business / agency): warm split hero with
+    a rounded "sticker" search card and an illustration built from big
+    geometric shapes — a browser window, a sun, stacked blocks and a leaf
+    (decorative SVG; brand / accent tokens). Included by home.html. -#}
+<section class="hero hero--studio">
+  <div class="container hero__inner">
+    <div class="hero__main">
+      {%- if !posts.is_empty() %}
+      {%- let latest = posts[0].clone() %}
+      <a class="pill-link" href="{{ latest.href }}"><span class="badge badge--brand">{{ t("storefront.home.new") }}</span><span>{{ latest.title }}</span>{{ icon("arrow-right") }}</a>
+      {%- endif %}
+      <h1>{{ hero_title }}</h1>
+      <p class="hero__lead">{{ hero_lead }}</p>
+      <div class="hero__search">{% call cat::domain_search("") %}{% endcall %}</div>
+      {% include "themes/_tld_chips.html" %}
+      {% include "themes/_hero_actions.html" %}
+    </div>
+    <div class="hero__visual">
+      <svg class="hero-art hero-art--studio" viewBox="0 0 520 480" width="520" height="480" aria-hidden="true" focusable="false">
+        <circle cx="400" cy="96" r="64" class="art-sun"/>
+        <rect x="300" y="300" width="190" height="150" rx="75" class="art-pill"/>
+        <path d="M40 420c0-110 70-170 170-170h40v170z" class="art-hill"/>
+        <g class="art-window">
+          <rect x="70" y="80" width="330" height="250" rx="28" class="art-win"/>
+          <path d="M70 128h330" class="art-win-rule"/>
+          <circle cx="102" cy="104" r="8" class="art-win-dot"/><circle cx="128" cy="104" r="8" class="art-win-dot"/><circle cx="154" cy="104" r="8" class="art-win-dot"/>
+          <rect x="102" y="156" width="150" height="22" rx="11" class="art-ink"/>
+          <rect x="102" y="192" width="110" height="14" rx="7" class="art-ink art-ink--soft"/>
+          <rect x="102" y="232" width="96" height="38" rx="19" class="art-fill-brand"/>
+          <rect x="270" y="156" width="104" height="114" rx="22" class="art-fill-accent"/>
+          <circle cx="322" cy="200" r="22" class="art-win"/>
+          <path d="M282 262c14-26 66-26 80 0" class="art-win-rule"/>
+        </g>
+        <g class="art-stack">
+          <rect x="390" y="230" width="90" height="34" rx="17" class="art-fill-brand"/>
+          <rect x="406" y="190" width="74" height="34" rx="17" class="art-fill-accent"/>
+        </g>
+        <path d="M30 120c40-50 100-40 110 0-50 20-90 20-110 0z" class="art-leaf"/>
+      </svg>
+    </div>
+  </div>
+</section>

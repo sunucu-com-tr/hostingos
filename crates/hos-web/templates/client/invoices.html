@@ -1,0 +1,50 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}"><link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div><h1>{{ t("client.invoices.title") }}</h1><p>{{ t("client.invoices.lead") }}</p></div>
+  <div class="btn-row"><a class="btn btn--soft" href="{{ url("/client/billing") }}">{{ icon("credit-card") }}{{ t("client.invoices.credit_link") }}</a></div>
+</div>
+<form class="toolbar" method="get" action="{{ url("/client/invoices") }}">
+  <label class="visually-hidden" for="f-status">{{ t("client.invoices.status") }}</label>
+  <select class="select" id="f-status" name="status" data-autosubmit>
+    {%- for (v, label) in statuses %}<option value="{{ v }}"{% if *v == status %} selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <noscript><button type="submit" class="btn btn--ghost">{{ t("client.common.filter") }}</button></noscript>
+</form>
+<div class="card">
+{%- if rows.is_empty() %}
+  <div class="card__body">{% call ui::empty("receipt", t("client.invoices.empty"), t("client.invoices.empty_text")) %}{% endcall %}</div>
+{%- else %}
+  <div class="table-wrap">
+    <table class="table table--stack">
+      <thead><tr>{% if mass_pay() %}<th scope="col" class="mass-pick"><span class="visually-hidden">{{ t("client.invoices.mass_select") }}</span></th>{% endif %}<th scope="col">{{ t("client.invoices.number") }}</th><th scope="col">{{ t("client.invoices.issued") }}</th><th scope="col">{{ t("client.invoices.due") }}</th><th scope="col" class="num">{{ t("client.invoices.total") }}</th><th scope="col">{{ t("client.invoices.status") }}</th><th scope="col"><span class="visually-hidden">{{ t("client.common.actions") }}</span></th></tr></thead>
+      <tbody>
+      {%- for r in rows %}
+        <tr>
+          {%- if mass_pay() %}<td class="mass-pick">{% if selectable(r.invoice) %}<label class="check"><input type="checkbox" name="invoice" value="{{ r.invoice.id }}" form="mass-pay"> <span class="visually-hidden">{{ tv("client.invoices.mass_pick", "number", invoice_number(r.invoice)) }}</span></label>{% endif %}</td>{% endif %}
+          <td data-label="{{ t("client.invoices.number") }}"><a href="{{ url("/client/invoices/") }}{{ r.invoice.id }}"><strong>{{ invoice_number(r.invoice) }}</strong></a></td>
+          <td data-label="{{ t("client.invoices.issued") }}">{{ day(r.invoice.issue_date) }}</td>
+          <td data-label="{{ t("client.invoices.due") }}">{{ day(r.invoice.due_date) }}{% if overdue(r.invoice) %} {{ badge(t("client.invoices.overdue"), "danger") }}{% endif %}</td>
+          <td class="num" data-label="{{ t("client.invoices.total") }}">{{ money_in(r.invoice.total, r.invoice.currency) }}</td>
+          <td data-label="{{ t("client.invoices.status") }}">{{ st(r.invoice.status.as_str()) }}</td>
+          <td class="nowrap">{% if r.invoice.status.as_str() == "unpaid" || r.invoice.status.as_str() == "payment_pending" %}<a class="btn btn--primary btn--sm" href="{{ url("/client/invoices/") }}{{ r.invoice.id }}#pay">{{ t("client.invoices.pay") }}</a>{% else %}<a class="btn btn--ghost btn--sm" href="{{ url("/client/invoices/") }}{{ r.invoice.id }}">{{ t("client.common.view") }}</a>{% endif %}</td>
+        </tr>
+      {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- endif %}
+</div>
+{%- if mass_pay() %}
+<form id="mass-pay" class="card mass-pay" method="post" action="{{ url("/client/invoices/mass-pay") }}">
+  {% call ui::csrf() %}{% endcall %}
+  <div class="card__body mass-pay__body">
+    <div><h2 class="mass-pay__title">{{ t("client.invoices.mass_title") }}</h2><p class="small muted">{{ t("client.invoices.mass_text") }}</p></div>
+    <button type="submit" class="btn btn--primary">{{ icon("credit-card") }}{{ t("client.invoices.mass_submit") }}</button>
+  </div>
+</form>
+{%- endif %}
+{% call ui::pagination(pager) %}{% endcall %}
+{% endblock %}

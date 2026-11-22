@@ -1,0 +1,6 @@
+{#- File input for ticket attachments (`max_files`, `max_kb`, `errors`). -#}
+<div class="field{% if errors.has("files") %} field--error{% endif %}">
+  <label class="field__label" for="f-files">{{ t("client.tickets.attachments") }}</label>
+  <input class="input" id="f-files" name="files" type="file" multiple accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.zip">
+  {%- if errors.has("files") %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("files") }}</p>{% else %}<p class="field__hint">{{ tv2("client.tickets.attachments_hint", "count", max_files, "size", max_kb) }}</p>{% endif %}
+</div>

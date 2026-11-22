@@ -1,0 +1,42 @@
+{#- Cloud template: centred hero over a restrained brand mesh (decorative,
+    CSS gradients), big headline, pill domain search, TLD chips and a drawn
+    control-panel preview (decorative SVG, token colours only). Included by storefront/home.html. -#}
+<section class="hero hero--cloud">
+  <div class="hero__mesh" aria-hidden="true"></div>
+  <div class="container hero__inner">
+    <div class="hero__main">
+      {%- if !posts.is_empty() %}
+      {%- let latest = posts[0].clone() %}
+      <a class="pill-link" href="{{ latest.href }}"><span class="badge badge--brand">{{ t("storefront.home.new") }}</span><span>{{ latest.title }}</span>{{ icon("arrow-right") }}</a>
+      {%- endif %}
+      <h1>{{ hero_title }}</h1>
+      <p class="hero__lead">{{ hero_lead }}</p>
+      <div class="hero__search">{% call cat::domain_search("") %}{% endcall %}</div>
+      {% include "themes/_tld_chips.html" %}
+      {% include "themes/_hero_actions.html" %}
+    </div>
+    <svg class="hero-art hero-art--cloud" viewBox="0 0 1000 320" width="1000" height="320" aria-hidden="true" focusable="false">
+      <rect x="1" y="1" width="998" height="318" rx="22" class="art-card"/>
+      <path d="M1 46h998" class="art-rule"/>
+      <circle cx="26" cy="24" r="5" class="art-dot"/><circle cx="44" cy="24" r="5" class="art-dot"/><circle cx="62" cy="24" r="5" class="art-dot"/>
+      <rect x="380" y="14" width="240" height="20" rx="10" class="art-well"/>
+      <path d="M190 46v273" class="art-rule"/>
+      <rect x="16" y="66" width="158" height="30" rx="9" class="art-fill-soft"/>
+      <rect x="30" y="77" width="18" height="8" rx="4" class="art-fill-brand"/><rect x="58" y="77" width="90" height="8" rx="4" class="art-bar art-bar--brand"/>
+      <rect x="30" y="116" width="18" height="8" rx="4" class="art-bar"/><rect x="58" y="116" width="74" height="8" rx="4" class="art-bar"/>
+      <rect x="30" y="146" width="18" height="8" rx="4" class="art-bar"/><rect x="58" y="146" width="96" height="8" rx="4" class="art-bar"/>
+      <rect x="30" y="176" width="18" height="8" rx="4" class="art-bar"/><rect x="58" y="176" width="62" height="8" rx="4" class="art-bar"/>
+      <rect x="30" y="206" width="18" height="8" rx="4" class="art-bar"/><rect x="58" y="206" width="84" height="8" rx="4" class="art-bar"/>
+      <g class="art-tiles">
+        <rect x="214" y="68" width="238" height="78" rx="14" class="art-tile"/><rect x="232" y="88" width="70" height="8" rx="4" class="art-bar"/><rect x="232" y="108" width="120" height="18" rx="6" class="art-fill-brand"/>
+        <rect x="474" y="68" width="238" height="78" rx="14" class="art-tile"/><rect x="492" y="88" width="84" height="8" rx="4" class="art-bar"/><rect x="492" y="108" width="96" height="18" rx="6" class="art-ink"/><circle cx="686" cy="92" r="6" class="art-fill-accent"/>
+        <rect x="734" y="68" width="242" height="78" rx="14" class="art-tile"/><rect x="752" y="88" width="64" height="8" rx="4" class="art-bar"/><rect x="752" y="108" width="140" height="18" rx="6" class="art-ink"/>
+      </g>
+      <rect x="214" y="166" width="762" height="132" rx="14" class="art-tile"/>
+      <path d="M236 206h716M236 240h716M236 274h716" class="art-grid"/>
+      <path d="M236 270L300 252 364 258 428 226 492 236 556 204 620 214 684 186 748 196 812 170 876 180 952 150V284H236Z" class="art-area"/>
+      <path d="M236 270L300 252 364 258 428 226 492 236 556 204 620 214 684 186 748 196 812 170 876 180 952 150" class="art-line"/>
+      <circle cx="952" cy="150" r="6" class="art-node"/>
+    </svg>
+  </div>
+</section>

@@ -1,0 +1,17 @@
+{% extends "layouts/auth.html" %}
+{% import "components/ui.html" as ui %}
+{% block card %}
+<header class="auth-card__head">
+  <span class="badge badge--accent">{{ t("platform.area") }}</span>
+  <h1>{{ t("platform.login.two_factor_title") }}</h1>
+  <p>{{ t("platform.login.two_factor_lead") }}</p>
+</header>
+{% call ui::form_errors(errors) %}{% endcall %}
+<form class="form" method="post" action="/platform/login/2fa" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::field("code", t("auth.two_factor.code"), "", error=errors.get("code"), required=true, autocomplete="one-time-code", inputmode="numeric", autofocus=true) %}{% endcall %}
+  <button type="submit" class="btn btn--primary btn--block btn--lg">{{ icon("shield") }}{{ t("platform.login.verify") }}</button>
+</form>
+<p class="muted small mt-4">{{ t("platform.login.recovery_hint") }}</p>
+<p class="small mt-2"><a href="/platform/login">{{ t("platform.login.back") }}</a></p>
+{% endblock %}

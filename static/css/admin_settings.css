@@ -1,0 +1,266 @@
+/* Admin settings / staff / developer / reports screens — loaded by those
+   templates through `{% block admin_head %}`. Design tokens from tokens.css;
+   everything in the `pages` layer like admin.css. */
+@layer pages {
+  /* ------------------------------------------------------------ settings */
+  .settings-form .card__body,
+  .settings-grid {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: minmax(0, 1fr);
+  }
+  @media (min-width: 48rem) {
+    .settings-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .settings-grid > .field,
+  .settings-grid > .check {
+    margin: 0;
+  }
+  .settings-grid__wide {
+    grid-column: 1 / -1;
+  }
+  .settings-general .form-grid {
+    align-items: start;
+  }
+
+  .settings-intro {
+    display: grid;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+  }
+
+  /* Uploaded logo / favicon slots. */
+  .asset-slots {
+    gap: 0;
+    padding-block: 0;
+  }
+  .asset-slot {
+    display: grid;
+    gap: var(--space-3);
+    padding-block: var(--space-5);
+  }
+  .asset-slot + .asset-slot {
+    border-top: 1px solid var(--line);
+  }
+  .asset-slot__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: var(--control-h-sm);
+  }
+  .asset-slot__upload {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2) var(--space-3);
+    align-items: center;
+  }
+  .asset-slot__upload .field__hint {
+    grid-column: 1 / -1;
+  }
+  @media (max-width: 30rem) {
+    .asset-slot__upload {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .asset-slot__preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 4.5rem;
+    padding: var(--space-3);
+    background: var(--surface-sunken);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius);
+  }
+  .asset-slot__preview img {
+    max-width: 100%;
+    max-height: 4rem;
+    object-fit: contain;
+  }
+  .asset-slot__preview--favicon img {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  /* Scheduled task row: cron input + active toggle + save. */
+  .task-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: center;
+  }
+  .task-form .input {
+    width: 8.5rem;
+    max-width: 100%;
+  }
+
+  .dns-steps {
+    margin: 0;
+    padding-inline-start: var(--space-4);
+    display: grid;
+    gap: var(--space-1);
+  }
+  .dns-steps code {
+    overflow-wrap: anywhere;
+  }
+
+  /* E-mail template editor: form next to the live preview on wide screens. */
+  .email-editor {
+    display: grid;
+    gap: var(--space-6);
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+  @media (min-width: 72rem) {
+    .email-editor {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+  }
+  .email-preview {
+    display: block;
+    width: 100%;
+    min-height: 28rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+
+  /* ------------------------------------------------------------ staff & roles */
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .matrix th[scope="row"] {
+    font-weight: 500;
+  }
+  .matrix__cell {
+    width: 7rem;
+    text-align: center;
+  }
+  .matrix__check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    cursor: pointer;
+  }
+  .matrix__check input {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--brand);
+  }
+  .matrix__check input:disabled {
+    cursor: not-allowed;
+  }
+
+  /* Notification centre. */
+  .notice-list {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .notice {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .notice--unread {
+    border-inline-start: 3px solid var(--brand);
+    background: var(--brand-softer);
+  }
+  .notice__body {
+    flex: 1 1 18rem;
+    min-width: 0;
+  }
+  .notice__body p {
+    margin: 0;
+  }
+  .notice__title {
+    font-weight: 600;
+  }
+  .notice__text {
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+  }
+
+  /* ------------------------------------------------------------ developer */
+  .secret-once {
+    border-color: var(--success);
+    box-shadow: 0 0 0 3px var(--success-soft);
+  }
+  .scope-list {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+  }
+  .event-grid {
+    display: grid;
+    gap: var(--space-1) var(--space-4);
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  }
+
+  /* ------------------------------------------------------------ reports */
+  .report-filters {
+    margin-top: var(--space-4);
+  }
+  .report-filters .field {
+    min-width: 9rem;
+  }
+  .report-note {
+    display: flex;
+    gap: var(--space-2);
+    align-items: flex-start;
+    color: var(--muted);
+    margin: 0 0 var(--space-3);
+  }
+  .report-note .icon {
+    flex: none;
+    margin-top: 0.15em;
+  }
+  .report-card .card__head {
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+  .report-card svg.chart {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+  .report-grid {
+    display: grid;
+    gap: var(--space-6);
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+  @media (min-width: 72rem) {
+    .report-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+  }
+  .report-stats {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    margin-bottom: var(--space-3);
+  }
+  .report-stats .card__body p {
+    margin: 0;
+  }
+}

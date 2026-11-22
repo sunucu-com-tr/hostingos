@@ -1,0 +1,31 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head"><div><h1>{{ t("client.upgrade.title") }}</h1><p>{{ tv("client.upgrade.lead", "name", product.name) }}</p></div></div>
+{%- if options.is_empty() %}
+<div class="card"><div class="card__body">{% call ui::empty("zap", t("client.upgrade.none")) %}{% endcall %}</div></div>
+{%- else %}
+<div class="grid grid--3">
+{%- for o in options %}
+  <section class="card">
+    <header class="card__head"><h2>{{ o.name }}</h2></header>
+    <div class="card__body stack">
+    {%- if o.error.is_empty() %}
+      <p class="stat__value">{{ o.recurring }}</p>
+      <p>{% if o.credit %}{{ tv("client.upgrade.credit_now", "amount", o.due_now) }}{% else %}{{ tv("client.upgrade.due_now", "amount", o.due_now) }}{% endif %}</p>
+      <p class="small muted">{{ o.note }}</p>
+      <form class="stack-sm" method="post" action="{{ url("/client/services/") }}{{ s.id }}/upgrade">
+        {% call ui::csrf() %}{% endcall %}
+        <input type="hidden" name="product" value="{{ o.id }}">
+        <label class="check"><input type="checkbox" name="confirm" value="1" required> <span>{{ t("client.upgrade.confirm") }}</span></label>
+        <button type="submit" class="btn btn--primary btn--block">{{ t("client.upgrade.order") }}</button>
+      </form>
+    {%- else %}
+      <p class="muted">{{ o.error }}</p>
+    {%- endif %}
+    </div>
+  </section>
+{%- endfor %}
+</div>
+{%- endif %}
+{% endblock %}

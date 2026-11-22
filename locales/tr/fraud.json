@@ -1,0 +1,40 @@
+{
+  "menu": "Dolandırıcılık kontrolü",
+  "admin": {
+    "title": "Dolandırıcılık kontrolü",
+    "lead": "Siparişler kabul edilirken çalışan kurallar ve engel listesi. Eşiği aşan siparişler bekletilir ve sipariş sayfasından incelenir.",
+    "held_orders": "Bekletilen siparişler",
+    "rules_title": "Kurallar",
+    "rules_hint": "Her kural risk puanı ekler; toplam eşiğe ulaşırsa sipariş “dolandırıcılık şüphesi” durumuna alınır ve kurulum yapılmaz.",
+    "enabled": "Yerleşik kuralları çalıştır",
+    "block_disposable": "Geçici e-posta adreslerini puanla (60)",
+    "hold_score": "Bekletme eşiği",
+    "hold_score_hint": "Engel listesi 100, geçici e-posta 60, başka müşteride kayıtlı kart 50, IP hızı 40, aynı IP'den farklı hesaplar 40, müşteri hızı 30 puan.",
+    "max_orders_per_ip": "Bir IP'den 24 saatte en fazla sipariş",
+    "max_clients_per_ip": "Bir IP'den 24 saatte başka hesap sayısı",
+    "max_orders_per_client": "Bir müşterinin 24 saatte en fazla siparişi",
+    "saved": "Kurallar kaydedildi.",
+    "invalid": "Geçersiz değer.",
+    "invalid_value": "Değer bu tür için geçerli değil (e-posta, alan adı ya da IP / CIDR).",
+    "bans_title": "Engel listesi",
+    "bans_hint": "Listedeki e-posta, alan adı (alt alan adları dahil) veya IP ağlarından gelen siparişler bekletilir.",
+    "bans_empty": "Engel listesi boş.",
+    "ban_add": "Engel ekle",
+    "ban_added": "Engel eklendi.",
+    "ban_deleted": "Engel kaldırıldı.",
+    "value_hint": "ornek@alan.com, alan.com, 203.0.113.7 ya da 203.0.113.0/24",
+    "delete_confirm": "Engel kaldırılsın mı?"
+  },
+  "fields": {
+    "kind": "Tür",
+    "value": "Değer",
+    "reason": "Neden",
+    "added": "Eklenme",
+    "actions": "İşlemler"
+  },
+  "kind": {
+    "email": "E-posta adresi",
+    "domain": "E-posta alan adı",
+    "ip": "IP adresi / ağı"
+  }
+}

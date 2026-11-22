@@ -1,0 +1,25 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ title }}</h1><p>{{ t("admin.integrations.inventory_lead") }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/integrations/" ~ row.id) }}">{{ icon("settings") }}{{ t("admin.integrations.settings") }}</a></div></div>
+{%- if !error.is_empty() %}{% call ui::alert("danger", tv("admin.common.failed", "reason", error)) %}{% endcall %}{% endif %}
+<div class="stack-lg">
+{% call ui::card(t("admin.integrations.nodes")) %}
+{%- if nodes.is_empty() %}<p class="muted">—</p>{% else %}
+<div class="table-wrap"><table class="table table--dense"><thead><tr><th>{{ t("admin.common.name") }}</th><th>{{ t("admin.common.status") }}</th><th>CPU</th><th>{{ t("admin.vm.memory") }}</th><th>{{ t("admin.integrations.location") }}</th></tr></thead>
+<tbody>{% for n in nodes %}<tr><td class="mono">{{ n.name }}</td><td>{% if n.online %}{{ badge(t("admin.integrations.online"), "success") }}{% else %}{{ badge(t("admin.integrations.offline"), "danger") }}{% endif %}</td><td>{% match n.cpu_cores %}{% when Some(c) %}{{ c }}{% when None %}—{% endmatch %}</td><td>{% match n.memory_used_mb %}{% when Some(u) %}{{ u }}{% when None %}—{% endmatch %} / {% match n.memory_total_mb %}{% when Some(tm) %}{{ tm }} MB{% when None %}—{% endmatch %}</td><td>{% match n.location %}{% when Some(l) %}{{ l }}{% when None %}—{% endmatch %}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+{% endcall %}
+{% call ui::card(t("admin.integrations.vms"), t("admin.integrations.vms_lead")) %}
+{%- if vms.is_empty() %}<p class="muted">—</p>{% else %}
+<div class="table-wrap"><table class="table table--dense"><thead><tr><th>{{ t("admin.common.name") }}</th><th>ID</th><th>{{ t("admin.common.status") }}</th><th>IP</th><th>{{ t("admin.integrations.linked") }}</th></tr></thead>
+<tbody>{% for v in vms %}<tr><td>{{ v.info.name }}<span class="sub">{{ o(v.info.hostname) }}</span></td><td class="mono small">{{ v.info.vm.id }}{% match v.info.vm.node %}{% when Some(nd) %}<span class="sub">{{ nd }}</span>{% when None %}{% endmatch %}</td><td>{{ sbadge(vm_status(v.info.status).as_str()) }}</td><td class="mono small">{% for ip in v.info.ipv4 %}{{ ip }} {% endfor %}</td>
+  <td>{% match v.service %}{% when Some(sid) %}<a href="{{ url("/admin/services/" ~ sid) }}">{{ t("admin.integrations.open_service") }}</a>{% when None %}
+  <form class="inline-form" method="post" action="{{ url("/admin/integrations/" ~ row.id ~ "/link-vm") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="external_id" value="{{ v.info.vm.id }}"><input type="hidden" name="node" value="{{ v.info.vm.node.clone().unwrap_or_default() }}"><input class="input input--sm mono" name="service_id" placeholder="{{ t("admin.integrations.service_id") }}" aria-label="{{ t("admin.integrations.service_id") }}" required><button class="btn btn--soft btn--sm" type="submit">{{ t("admin.integrations.link") }}</button></form>{% endmatch %}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+{% endcall %}
+{% call ui::card(t("admin.integrations.templates")) %}
+{%- if templates.is_empty() %}<p class="muted">—</p>{% else %}<ul class="chips">{% for tp in templates %}<li class="chip" title="{{ tp.id }}">{{ tp.name }}</li>{% endfor %}</ul>{% endif %}
+{% endcall %}
+<p class="muted small">{{ tv("admin.integrations.local_vms", "count", local.len()) }}</p>
+</div>
+{% endblock %}

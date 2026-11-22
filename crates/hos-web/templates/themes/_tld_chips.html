@@ -1,0 +1,8 @@
+{#- Popular extensions with their first-year price, under a domain search. -#}
+{%- if !tlds.is_empty() %}
+<ul class="tld-chips hero__tlds" aria-label="{{ t("storefront.home.tld_prices") }}">
+  {%- for c in tlds %}
+  <li class="tld-chip"><strong>.{{ c.tld }}</strong><span>{% match c.price %}{% when Some(p) %}{{ money(p) }}{% when None %}—{% endmatch %}</span></li>
+  {%- endfor %}
+</ul>
+{%- endif %}

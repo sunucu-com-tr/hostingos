@@ -1,0 +1,8 @@
+{%- if !providers.is_empty() %}
+<div class="oauth">
+  {%- for p in providers %}
+  <a class="btn btn--oauth btn--block" href="{{ p.href }}">{{ icon(p.kind) }}{{ p.label }}</a>
+  {%- endfor %}
+</div>
+<p class="divider"><span>{{ t("auth.or") }}</span></p>
+{%- endif %}

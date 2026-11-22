@@ -1,0 +1,35 @@
+[package]
+name = "hos-virt"
+description = "VirtProvider implementations for HostingOS: Proxmox VE, VMware vSphere/ESXi, Virtualizor, Hetzner Cloud and an in-memory mock."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+hos-core = { workspace = true, features = ["net"] }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+des = { workspace = true }
+futures = { workspace = true }
+hex = { workspace = true }
+hyper = { workspace = true }
+rand = { workspace = true }
+reqwest = { workspace = true }
+rustls = { workspace = true }
+rustls-platform-verifier = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+tokio = { workspace = true }
+tokio-rustls = { workspace = true }
+tokio-tungstenite = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+wiremock = { workspace = true }

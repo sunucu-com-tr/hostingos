@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>{{ full_title() }}</title>
+<link rel="stylesheet" href="{{ asset("css/client.css") }}">
+</head>
+<body class="invoice-print">
+<main class="invoice-sheet">
+  <header class="invoice-sheet__head">
+    <div>
+      <p class="invoice-sheet__brand">{{ site_name }}</p>
+      <address>{% if !seller.legal_name.is_empty() %}<strong>{{ seller.legal_name }}</strong>{% endif %}{% if !seller.address.is_empty() %}<span>{{ seller.address }}</span>{% endif %}{% if !seller.tax_number.is_empty() %}<span>{{ seller.tax_office }} {{ seller.tax_number }}</span>{% endif %}{% if !seller.email.is_empty() %}<span>{{ seller.email }}</span>{% endif %}</address>
+    </div>
+    <div class="invoice-sheet__meta">
+      <h1>{{ t("client.invoices.print_heading") }}</h1>
+      <p><strong>{{ number() }}</strong></p>
+      <p>{{ t("client.invoices.issued") }}: {{ day(d.invoice.issue_date) }}</p>
+      <p>{{ t("client.invoices.due") }}: {{ day(d.invoice.due_date) }}</p>
+      <p>{{ t("client.invoices.status") }}: {{ status_label() }}</p>
+    </div>
+  </header>
+  <section class="invoice-sheet__to">
+    <h2>{{ t("client.invoices.bill_to") }}</h2>
+    <address>{% for l in snapshot %}<span>{{ l }}</span>{% endfor %}</address>
+  </section>
+  <table class="invoice-sheet__items">
+    <thead><tr><th>{{ t("client.invoices.item") }}</th><th class="num">{{ t("client.invoices.amount") }}</th></tr></thead>
+    <tbody>
+    {%- for it in d.items %}<tr><td>{{ it.description }}</td><td class="num">{{ cur(it.amount) }}</td></tr>{% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><th>{{ t("client.invoices.subtotal") }}</th><td class="num">{{ cur(d.invoice.subtotal) }}</td></tr>
+      {%- if !d.invoice.discount_total.is_zero() %}<tr><th>{{ t("client.invoices.discount") }}</th><td class="num">−{{ cur(d.invoice.discount_total) }}</td></tr>{% endif %}
+      {%- for tx in d.tax_lines %}<tr><th>{{ tx.name }} (%{{ tx.rate.normalize() }})</th><td class="num">{{ cur(tx.tax_amount) }}</td></tr>{% endfor %}
+      <tr class="grand"><th>{{ t("client.invoices.total") }}</th><td class="num">{{ cur(d.invoice.total) }}</td></tr>
+      <tr><th>{{ t("client.invoices.balance") }}</th><td class="num">{{ cur(d.invoice.balance) }}</td></tr>
+    </tfoot>
+  </table>
+  <p class="invoice-sheet__note">{{ t("client.invoices.print_note") }}</p>
+  <p class="invoice-sheet__actions"><a href="{{ url("/client/invoices/") }}{{ d.invoice.id }}">{{ t("client.invoices.back") }}</a></p>
+</main>
+</body>
+</html>

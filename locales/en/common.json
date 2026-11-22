@@ -1,0 +1,94 @@
+{
+  "a11y": {
+    "breadcrumbs": "Breadcrumb",
+    "main_nav": "Main navigation",
+    "menu": "Menu",
+    "sidebar": "Panel navigation",
+    "skip": "Skip to content",
+    "tabs": "Tabs",
+    "mobile_nav": "Mobile menu"
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "copied": "Copied",
+    "copy": "Copy",
+    "login": "Sign in",
+    "logout": "Sign out",
+    "register": "Sign up",
+    "save": "Save",
+    "toggle_theme": "Light / dark theme"
+  },
+  "cycle": {
+    "annual": "Annual",
+    "biennial": "Biennial",
+    "monthly": "Monthly",
+    "one_time": "One-time",
+    "quarterly": "Quarterly",
+    "semiannual": "Semi-annual",
+    "triennial": "Triennial"
+  },
+  "errors": {
+    "offline": "Could not connect. Check your internet connection.",
+    "request_failed": "The request could not be completed. Please try again."
+  },
+  "form": {
+    "fix_errors": "Please correct the highlighted fields."
+  },
+  "lang": {
+    "switch": "Change language"
+  },
+  "nav": {
+    "home": "Home",
+    "storefront": "View site"
+  },
+  "no": "No",
+  "pagination": {
+    "label": "Pagination",
+    "next": "Next page",
+    "prev": "Previous page"
+  },
+  "per": {
+    "annual": "/yr",
+    "biennial": "/2 yr",
+    "monthly": "/mo",
+    "one_time": "one-time",
+    "quarterly": "/quarter",
+    "semiannual": "/6 mo",
+    "triennial": "/3 yr"
+  },
+  "status": {
+    "active": "Active",
+    "answered": "Answered",
+    "archived": "Archived",
+    "cancelled": "Cancelled",
+    "closed": "Closed",
+    "collections": "In collections",
+    "completed": "Completed",
+    "customer_reply": "Customer reply",
+    "draft": "Draft",
+    "expired": "Expired",
+    "failed": "Failed",
+    "fraud": "Fraud",
+    "grace": "Grace period",
+    "in_progress": "In progress",
+    "inactive": "Inactive",
+    "on_hold": "On hold",
+    "open": "Open",
+    "overdue": "Overdue",
+    "paid": "Paid",
+    "partially_refunded": "Partially refunded",
+    "payment_pending": "Payment pending",
+    "pending": "Pending",
+    "pending_transfer": "Pending transfer",
+    "published": "Published",
+    "redemption": "Redemption",
+    "refunded": "Refunded",
+    "scheduled": "Scheduled",
+    "suspended": "Suspended",
+    "terminated": "Terminated",
+    "trial": "Trial",
+    "unpaid": "Unpaid"
+  },
+  "yes": "Yes"
+}

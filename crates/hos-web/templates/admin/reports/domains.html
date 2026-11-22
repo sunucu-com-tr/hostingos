@@ -1,0 +1,60 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/reports/_macros.html" as rp %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+{% include "admin/reports/_head.html" %}
+{% call rp::filters(s, false) %}
+  <div class="field"><label class="field__label" for="f-days">{{ t("admin_settings.reports.renewal_window") }}</label>
+    <input class="input" id="f-days" type="number" name="days" min="1" max="365" inputmode="numeric" value="{{ days }}"></div>
+{% endcall %}
+<p class="report-note small">{{ icon("info") }}{{ t("admin_settings.reports.domains_hint") }}</p>
+
+<div class="report-grid mt-4">
+  <section class="card report-card">
+    {% call rp::head(t("admin_settings.reports.tld_title"), t("admin_settings.reports.tld_lead"), url(s.export("tlds"))) %}{% endcall %}
+    <div class="card__body">
+      {%- if tlds.is_empty() %}
+      <p class="muted">{{ t("admin_settings.reports.domains_empty") }}</p>
+      {%- else %}
+      {{ chart_svg|safe }}
+      <details class="chart-table">
+        <summary>{{ t("admin.common.show_table") }}</summary>
+        <div class="table-wrap mt-2"><table class="table table--dense">
+          <thead><tr><th scope="col">{{ t("admin_settings.reports.tld") }}</th><th scope="col" class="num">{{ t("admin.common.total") }}</th><th scope="col" class="num">{{ t("admin.common.active") }}</th><th scope="col" class="num">{{ t("admin_settings.reports.auto_renew") }}</th></tr></thead>
+          <tbody>{% for r in tlds %}<tr><td class="mono">.{{ r.tld }}</td><td class="num">{{ num(r.total) }}</td><td class="num">{{ num(r.active) }}</td><td class="num">{{ num(r.auto_renew) }}</td></tr>{% endfor %}</tbody>
+        </table></div>
+      </details>
+      {%- endif %}
+    </div>
+  </section>
+
+  <section class="card report-card">
+    {% call rp::head(t("admin_settings.reports.renewals_title"), tn("admin_settings.reports.renewals_lead", days), url(s.export("renewals"))) %}{% endcall %}
+    <div class="card__body">
+      {%- if renewals.is_empty() %}
+      <p class="muted">{{ t("admin_settings.reports.renewals_empty") }}</p>
+      {%- else %}
+      <div class="table-wrap"><table class="table table--dense table--stack">
+        <thead><tr>
+          <th scope="col">{{ t("admin_settings.reports.domain") }}</th>
+          <th scope="col">{{ t("admin_settings.reports.expires") }}</th>
+          <th scope="col" class="num">{{ t("admin_settings.reports.renewal_amount") }}</th>
+        </tr></thead>
+        <tbody>
+        {%- for r in renewals %}
+        <tr>
+          <th scope="row" data-label="{{ t("admin_settings.reports.domain") }}"><a href="{{ url("/admin/domains/" ~ r.id) }}" class="mono">{{ r.name }}</a>
+            <span class="sub small"><a href="{{ url("/admin/clients/" ~ r.client_id) }}">{{ r.client_name }}</a></span></th>
+          <td data-label="{{ t("admin_settings.reports.expires") }}" class="nowrap">{{ dtopt(r.expires_at) }}
+            <span class="sub small">{{ sbadge(r.status) }}{% if r.auto_renew %} {{ badge(t("admin_settings.reports.auto_renew"), "") }}{% endif %}</span></td>
+          <td class="num" data-label="{{ t("admin_settings.reports.renewal_amount") }}">{{ money_in(r.recurring_amount, r.currency) }}</td>
+        </tr>
+        {%- endfor %}
+        </tbody>
+      </table></div>
+      {%- endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

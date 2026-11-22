@@ -1,0 +1,54 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ t("platform.tenant_new.title") }}</h1>
+    <p>{{ t("platform.tenant_new.lead") }}</p>
+  </div>
+</div>
+{% call ui::steps(steps, 1) %}{% endcall %}
+{% call ui::form_errors(errors) %}{% endcall %}
+<form class="stack-lg pf-steps-form mt-6" method="post" action="/platform/tenants" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::card() %}
+  <fieldset class="stack">
+    <legend>1. {{ t("platform.tenant_new.step_company") }}</legend>
+    <div class="form-row">
+      {% call ui::field("name", t("platform.tenant_new.name"), form.name, error=errors.get("name"), required=true, autofocus=true) %}{% endcall %}
+      {% call ui::field("slug", t("platform.tenant_new.slug"), form.slug, error=errors.get("slug"), required=true, hint=tv("platform.tenant_new.slug_hint", "domain", base_domain)) %}{% endcall %}
+    </div>
+    <div class="form-row">
+      {% call ui::field("custom_domain", t("platform.tenant_new.custom_domain"), form.custom_domain, error=errors.get("custom_domain"), hint=t("platform.tenant_new.custom_domain_hint"), placeholder="www.example.com") %}{% endcall %}
+      {% call ui::select("locale", t("platform.tenant_new.locale"), locales, form.locale.as_str()) %}{% endcall %}
+      {% call ui::select("currency", t("platform.tenant_new.currency"), currencies, form.currency.as_str()) %}{% endcall %}
+    </div>
+  </fieldset>
+  {% endcall %}
+  {% call ui::card() %}
+  <fieldset class="stack">
+    <legend>2. {{ t("platform.tenant_new.step_plan") }}</legend>
+    <div class="form-row">
+      {% call ui::select("plan", t("platform.tenant_new.plan"), plans, form.plan.as_str()) %}{% endcall %}
+      {% call ui::select("billing_cycle", t("platform.tenant_new.cycle"), cycles, form.billing_cycle.as_str()) %}{% endcall %}
+      {% call ui::field("trial_days", t("platform.tenant_new.trial_days"), form.trial_days, kind="number", error=errors.get("trial_days"), hint=t("platform.tenant_new.trial_hint"), inputmode="numeric") %}{% endcall %}
+    </div>
+  </fieldset>
+  {% endcall %}
+  {% call ui::card() %}
+  <fieldset class="stack">
+    <legend>3. {{ t("platform.tenant_new.step_owner") }}</legend>
+    <div class="form-row">
+      {% call ui::field("owner_email", t("platform.tenant_new.owner_email"), form.owner_email, kind="email", error=errors.get("owner_email"), required=true, hint=t("platform.tenant_new.owner_hint")) %}{% endcall %}
+      {% call ui::field("owner_first_name", t("platform.tenant_new.owner_first_name"), form.owner_first_name) %}{% endcall %}
+      {% call ui::field("owner_last_name", t("platform.tenant_new.owner_last_name"), form.owner_last_name) %}{% endcall %}
+    </div>
+  </fieldset>
+  {% endcall %}
+  <div class="btn-row">
+    <button class="btn btn--primary btn--lg" type="submit">{{ icon("rocket") }}{{ t("platform.tenant_new.submit") }}</button>
+    <a class="btn btn--ghost" href="/platform/tenants">{{ t("common.actions.cancel") }}</a>
+  </div>
+</form>
+{% endblock %}

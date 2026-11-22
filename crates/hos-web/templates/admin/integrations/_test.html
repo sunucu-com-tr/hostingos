@@ -1,0 +1,2 @@
+{%- if ok %}<p class="check-pass" role="status">{{ icon("check") }}{{ t("admin.integrations.test_ok") }}{% if !message.is_empty() %} — {{ message }}{% endif %}</p>
+{%- else %}<p class="check-fail" role="alert">{{ icon("x") }}{{ t("admin.integrations.test_failed") }}{% if !message.is_empty() %} — {{ message }}{% endif %}</p>{% endif %}

@@ -1,0 +1,4 @@
+IBM Plex Sans (variable, wght axis), latin + latin-ext subsets
+Licence: SIL Open Font License 1.1 (OFL.txt in this directory)
+Upstream: https://github.com/google/fonts
+Copied from the npm package @fontsource-variable/ibm-plex-sans@5.3.0 (files/ibm-plex-sans-latin-wght-normal.woff2, files/ibm-plex-sans-latin-ext-wght-normal.woff2), unmodified.

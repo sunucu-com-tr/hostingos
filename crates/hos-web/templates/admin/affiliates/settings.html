@@ -1,0 +1,51 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("affiliates.admin.title") }}</h1><p>{{ t("affiliates.admin.settings_lead") }}</p></div></div>
+<div class="mt-2">{% call ui::tabs(tabs.as_slice(), url("/admin/affiliates/settings")) %}{% endcall %}</div>
+{%- if !error.is_empty() %}<div class="mt-4">{% call ui::alert("error", error) %}{% endcall %}</div>{% endif %}
+<form method="post" action="{{ url("/admin/affiliates/settings") }}" class="stack-lg mt-4">
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::card(t("affiliates.admin.section_programme")) %}
+  <div class="stack">
+    {% call ui::checkbox("enabled", t("affiliates.admin.enabled"), s.enabled) %}{% endcall %}
+    {% call ui::checkbox("self_signup", t("affiliates.admin.self_signup"), s.self_signup) %}{% endcall %}
+    <div class="form-grid form-grid--2">
+      {% call ui::field("cookie_days", t("affiliates.admin.cookie_days"), s.cookie_days, kind="number", hint=t("affiliates.admin.cookie_days_hint"), required=true) %}{% endcall %}
+      <div class="field"><label class="field__label" for="f-attribution">{{ t("affiliates.admin.attribution") }}</label>
+        <select class="select" id="f-attribution" name="attribution">
+          <option value="first"{% if !s.last_click %} selected{% endif %}>{{ t("affiliates.admin.first_click") }}</option>
+          <option value="last"{% if s.last_click %} selected{% endif %}>{{ t("affiliates.admin.last_click") }}</option>
+        </select></div>
+    </div>
+  </div>
+  {% endcall %}
+  {% call ui::card(t("affiliates.admin.section_commission"), t("affiliates.admin.commission_hint")) %}
+  <div class="stack">
+    <div class="form-grid form-grid--2">
+      <div class="field"><label class="field__label" for="f-commission_type">{{ t("affiliates.fields.commission_type") }}</label>
+        <select class="select" id="f-commission_type" name="commission_type">
+          <option value="percent"{{ sel(s.commission_type, "percent") }}>{{ t("affiliates.rate.percent") }}</option>
+          <option value="fixed"{{ sel(s.commission_type, "fixed") }}>{{ t("affiliates.rate.fixed") }}</option>
+        </select></div>
+      {% call ui::field("commission_value", t("affiliates.fields.commission_value"), dec(s.commission_value), inputmode="decimal", required=true) %}{% endcall %}
+    </div>
+    {% call ui::checkbox("recurring", t("affiliates.admin.recurring"), s.recurring) %}{% endcall %}
+    <div class="form-grid form-grid--2">
+      {% call ui::field("clearance_days", t("affiliates.admin.clearance_days"), s.clearance_days, kind="number", hint=t("affiliates.admin.clearance_hint"), required=true) %}{% endcall %}
+      {% call ui::field("min_payout", t("affiliates.admin.min_payout"), dec(s.min_payout), inputmode="decimal", hint=t("affiliates.admin.min_payout_hint"), required=true) %}{% endcall %}
+    </div>
+  </div>
+  {% endcall %}
+  {% call ui::card(t("affiliates.admin.section_payouts")) %}
+  <div class="stack">
+    {% call ui::checkbox("payout_credit", t("affiliates.admin.payout_credit"), s.payout_credit) %}{% endcall %}
+    {% call ui::checkbox("payout_manual", t("affiliates.admin.payout_manual"), s.payout_manual) %}{% endcall %}
+  </div>
+  {% endcall %}
+  {%- if can("affiliates.manage") %}
+  <div><button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button></div>
+  {%- endif %}
+</form>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}"><link rel="stylesheet" href="{{ asset("css/vm.css") }}">{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div>
+    <h1>{{ t("client.vm.title") }}</h1>
+    <p>{{ product_name }}{% if !hostname.is_empty() %} · <span class="mono">{{ hostname }}</span>{% endif %}</p>
+  </div>
+  <div class="btn-row">
+    {%- if console_enabled() %}
+    <a class="btn btn--soft" href="{{ url("/client/services/") }}{{ s.id }}/server/console/view">{{ icon("terminal") }}{{ t("client.vm.console") }}</a>
+    {%- endif %}
+    <a class="btn btn--ghost" href="{{ url("/client/services/") }}{{ s.id }}">{{ t("client.vm.service_details") }}</a>
+  </div>
+</div>
+{% let tab = "overview" %}{% include "client/_vm_tabs.html" %}
+{%- if !error.is_empty() %}{% call ui::alert("warning", error) %}{% endcall %}{% endif %}
+<div class="vm-layout">
+  <div class="stack">
+    {% include "client/_vm_live.html" %}
+    <section class="card">
+      <header class="card__head"><h2>{{ t("client.vm.power") }}</h2></header>
+      <div class="card__body btn-row">
+        {%- if running() %}
+        <form method="post" action="{{ url("/client/services/") }}{{ s.id }}/server/power" data-confirm="{{ t("client.vm.confirm_reboot") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="reboot"><button type="submit" class="btn btn--soft">{{ icon("refresh") }}{{ t("client.vm.reboot") }}</button></form>
+        <form method="post" action="{{ url("/client/services/") }}{{ s.id }}/server/power" data-confirm="{{ t("client.vm.confirm_shutdown") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="shutdown"><button type="submit" class="btn btn--soft">{{ t("client.vm.shutdown") }}</button></form>
+        <form method="post" action="{{ url("/client/services/") }}{{ s.id }}/server/power" data-confirm="{{ t("client.vm.confirm_stop") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="stop"><button type="submit" class="btn btn--danger">{{ t("client.vm.force_off") }}</button></form>
+        <form method="post" action="{{ url("/client/services/") }}{{ s.id }}/server/power" data-confirm="{{ t("client.vm.confirm_reset") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="reset"><button type="submit" class="btn btn--ghost">{{ t("client.vm.reset") }}</button></form>
+        {%- else %}
+        <form method="post" action="{{ url("/client/services/") }}{{ s.id }}/server/power">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="action" value="start"><button type="submit" class="btn btn--primary">{{ icon("zap") }}{{ t("client.vm.start") }}</button></form>
+        {%- endif %}
+      </div>
+    </section>
+  </div>
+  <div class="stack">
+    <section class="card">
+      <header class="card__head"><h2>{{ t("client.vm.specs") }}</h2></header>
+      <div class="card__body">
+        <dl class="dl">
+          {%- match info %}{% when Some(i) %}
+          {%- match i.cpu_cores %}{% when Some(c) %}<div><dt>{{ t("client.vm.cpu_cores") }}</dt><dd>{{ c }}</dd></div>{% when None %}{% endmatch %}
+          {%- match i.memory_mb %}{% when Some(m) %}<div><dt>{{ t("client.vm.memory") }}</dt><dd>{{ m }} MB</dd></div>{% when None %}{% endmatch %}
+          {%- match i.disk_gb %}{% when Some(d) %}<div><dt>{{ t("client.vm.disk") }}</dt><dd>{{ d }} GB</dd></div>{% when None %}{% endmatch %}
+          {%- match i.template %}{% when Some(tp) %}<div><dt>{{ t("client.vm.os") }}</dt><dd>{{ tp }}</dd></div>{% when None %}{% endmatch %}
+          {%- when None %}
+          {%- match vm %}{% when Some(v) %}{% match v.os_template %}{% when Some(tp) %}<div><dt>{{ t("client.vm.os") }}</dt><dd>{{ tp }}</dd></div>{% when None %}{% endmatch %}{% when None %}{% endmatch %}
+          {%- endmatch %}
+        </dl>
+      </div>
+    </section>
+    <section class="card">
+      <header class="card__head"><div><h2>{{ t("client.vm.network") }}</h2><p class="muted small"><a href="{{ url("/client/services/") }}{{ s.id }}/server/network">{{ t("client.vm.rdns_manage") }}</a></p></div></header>
+      <div class="card__body">
+      {%- if ips.is_empty() %}
+        {%- match info %}{% when Some(i) %}
+        <ul class="row-list">{% for ip in i.ipv4 %}<li><span class="mono">{{ ip }}</span></li>{% endfor %}{% for ip in i.ipv6 %}<li><span class="mono">{{ ip }}</span></li>{% endfor %}</ul>
+        {%- when None %}<p class="muted">—</p>{% endmatch %}
+      {%- else %}
+        <ul class="row-list">
+        {%- for ip in ips %}<li><span class="mono">{{ ip.address }}</span><span class="muted small mono">{% match ip.ptr %}{% when Some(p) %}{{ p }}{% when None %}—{% endmatch %}</span></li>{% endfor %}
+        </ul>
+      {%- endif %}
+      </div>
+    </section>
+    <section class="card">
+      <header class="card__head"><div><h2>{{ t("client.vm.manage_more") }}</h2></div></header>
+      <div class="card__body">
+        <ul class="row-list">
+          <li><a href="{{ url("/client/services/") }}{{ s.id }}/server/backups"><span><strong>{{ t("client.vm.tab.backups") }}</strong><span class="muted small">{{ t("client.vm.snapshots_lead") }}</span></span>{{ icon("chevron-right") }}</a></li>
+          <li><a href="{{ url("/client/services/") }}{{ s.id }}/server/recovery"><span><strong>{{ t("client.vm.tab.recovery") }}</strong><span class="muted small">{{ t("client.vm.recovery_lead") }}</span></span>{{ icon("chevron-right") }}</a></li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}"><link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div><h1>{{ tv("client.invoices.detail_title", "number", number()) }}</h1><p>{{ st(d.invoice.status.as_str()) }}{% if overdue %} {{ badge(t("client.invoices.overdue"), "danger") }}{% endif %}</p></div>
+  <div class="btn-row"><a class="btn btn--ghost" href="{{ url("/client/invoices/") }}{{ d.invoice.id }}/print" target="_blank" rel="noopener">{{ icon("file-text") }}{{ t("client.invoices.print") }}</a>
+    <a class="btn btn--ghost" href="{{ url("/client/invoices/") }}{{ d.invoice.id }}/pdf">{{ icon("download") }}{{ t("einvoice.invoice_pdf.download") }}</a>
+    {%- if let Some(legal) = d.invoice.external_ref %}
+    <a class="btn btn--ghost" href="{{ url("/client/invoices/") }}{{ d.invoice.id }}/e-invoice" title="{{ t("einvoice.invoice_pdf.legal_number") }}: {{ legal }}">{{ icon("download") }}{{ t("einvoice.invoice_pdf.legal") }}</a>
+    {%- endif %}</div>
+</div>
+{%- if waiting() %}
+<div hx-get="{{ url("/client/invoices/") }}{{ d.invoice.id }}/status" hx-trigger="load delay:2s, every 4s" hx-swap="innerHTML" class="mb-8">
+  <div class="alert alert--info" role="status"><span class="spinner" aria-hidden="true"></span><div><strong>{{ t("client.invoices.verifying") }}</strong><p>{{ t("client.invoices.verifying_text") }}</p></div></div>
+</div>
+{%- endif %}
+<div class="invoice-layout">
+  <section class="card">
+    <div class="card__body stack">
+      <div class="grid grid--2">
+        <dl class="dl">
+          <div><dt>{{ t("client.invoices.issued") }}</dt><dd>{{ day(d.invoice.issue_date) }}</dd></div>
+          <div><dt>{{ t("client.invoices.due") }}</dt><dd>{{ day(d.invoice.due_date) }}</dd></div>
+          {%- match d.invoice.paid_at %}{% when Some(p) %}<div><dt>{{ t("client.invoices.paid_at") }}</dt><dd>{{ date(p) }}</dd></div>{% when None %}{% endmatch %}
+        </dl>
+        <address class="billing-address">{% for l in snapshot %}<span>{{ l }}</span>{% endfor %}</address>
+      </div>
+      <div class="table-wrap">
+        <table class="table table--stack">
+          <thead><tr><th scope="col">{{ t("client.invoices.item") }}</th><th scope="col" class="num">{{ t("client.invoices.amount") }}</th></tr></thead>
+          <tbody>
+          {%- for it in d.items %}
+            <tr><td data-label="{{ t("client.invoices.item") }}">{{ it.description }}{% match it.period_start %}{% when Some(ps) %}<span class="muted small"> ({{ day(ps) }}{% match it.period_end %}{% when Some(pe) %} – {{ day(pe) }}{% when None %}{% endmatch %})</span>{% when None %}{% endmatch %}</td><td class="num" data-label="{{ t("client.invoices.amount") }}">{{ cur(it.amount) }}</td></tr>
+          {%- endfor %}
+          </tbody>
+        </table>
+      </div>
+      <dl class="totals">
+        <div><dt>{{ t("client.invoices.subtotal") }}</dt><dd>{{ cur(d.invoice.subtotal) }}</dd></div>
+        {%- if !d.invoice.discount_total.is_zero() %}<div><dt>{{ t("client.invoices.discount") }}</dt><dd>−{{ cur(d.invoice.discount_total) }}</dd></div>{% endif %}
+        {%- for tx in d.tax_lines %}<div><dt>{{ tx.name }} (%{{ tx.rate.normalize() }})</dt><dd>{{ cur(tx.tax_amount) }}</dd></div>{% endfor %}
+        <div class="totals__grand"><dt>{{ t("client.invoices.total") }}</dt><dd>{{ cur(d.invoice.total) }}</dd></div>
+        {%- if !d.invoice.credit_applied.is_zero() %}<div><dt>{{ t("client.invoices.credit_used") }}</dt><dd>−{{ cur(d.invoice.credit_applied) }}</dd></div>{% endif %}
+        {%- if !d.invoice.amount_paid.is_zero() %}<div><dt>{{ t("client.invoices.paid_amount") }}</dt><dd>−{{ cur(d.invoice.amount_paid) }}</dd></div>{% endif %}
+        <div class="totals__grand"><dt>{{ t("client.invoices.balance") }}</dt><dd>{{ cur(d.invoice.balance) }}</dd></div>
+      </dl>
+      {%- match d.invoice.notes %}{% when Some(n) %}<p class="small muted">{{ n }}</p>{% when None %}{% endmatch %}
+      {%- if let Some(m) = mass %}
+      <section class="mass-pay-lines" aria-labelledby="mass-title">
+        <h2 id="mass-title" class="mass-pay__title">{{ t("client.invoices.mass_pays") }}</h2>
+        <p class="small muted">{{ t("client.invoices.mass_pays_text") }}</p>
+        <ul class="mass-pay-list">
+          {%- for it in m.items %}
+          <li><a href="{{ url("/client/invoices/") }}{{ it.invoice_id }}">{{ it.number.as_deref().unwrap_or("-") }}</a><span class="mono">{{ cur(it.amount) }}</span><span class="muted small">{{ mass_state(it) }}</span></li>
+          {%- endfor %}
+        </ul>
+      </section>
+      {%- endif %}
+    </div>
+  </section>
+  <aside class="stack">
+    {%- match pay %}{% when Some(p) %}
+    <section class="card" id="pay" aria-labelledby="pay-title">
+      <header class="card__head"><h2 id="pay-title">{{ t("client.invoices.pay_title") }}</h2></header>
+      <div class="card__body">
+      {%- if p.choices.is_empty() %}
+        {% call ui::alert("warning", t("client.invoices.no_methods")) %}{% endcall %}
+      {%- else %}
+        <form class="stack" method="post" action="{{ url("/client/invoices/") }}{{ d.invoice.id }}/pay">
+          {% call ui::csrf() %}{% endcall %}
+          <fieldset class="radio-cards">
+            <legend class="visually-hidden">{{ t("client.invoices.pay_title") }}</legend>
+            {%- for (v, label) in p.choices %}
+            <label class="radio-card"><input type="radio" name="method" value="{{ v }}"{% if *v == p.selected %} checked{% endif %}><span>{{ label }}</span><span class="radio-card__price">{% if v == "credit" %}{{ icon("credit-card") }}{% else %}{{ icon("lock") }}{% endif %}</span></label>
+            {%- let counts = installments_of(v) %}
+            {%- if !counts.is_empty() %}
+            <div class="installment-pick">
+              <label class="small" for="inst-{{ v }}">{{ tv("client.invoices.installments_for", "gateway", label) }}</label>
+              <select class="select" id="inst-{{ v }}" name="installments_{{ v }}">
+                <option value="1">{{ t("client.invoices.single_payment") }}</option>
+                {%- for n in counts %}<option value="{{ n }}">{{ tv("client.invoices.installment_n", "count", n) }}</option>{% endfor %}
+              </select>
+            </div>
+            {%- endif %}
+            {%- endfor %}
+          </fieldset>
+          <button type="submit" class="btn btn--primary btn--block btn--lg">{{ tv("client.invoices.pay_amount", "amount", cur(d.invoice.balance)) }}</button>
+          {%- if p.has_credit %}<p class="small muted">{{ tv("client.invoices.credit_available", "amount", p.credit) }}</p>{% endif %}
+          {%- if !p.installments.is_empty() %}<p class="small muted">{{ t("client.invoices.installments_note") }}</p>{% endif %}
+        </form>
+      {%- endif %}
+      </div>
+    </section>
+    {%- when None %}{% endmatch %}
+    {%- if !txns.is_empty() %}
+    <section class="card">
+      <header class="card__head"><h2>{{ t("client.invoices.transactions") }}</h2></header>
+      <div class="card__body">
+        <ul class="row-list">
+        {%- for tx in txns %}
+          <li><span><strong>{{ tx.gateway }}</strong><span class="muted small">{{ datetime(tx.occurred_at) }}</span></span><span class="nowrap">{{ money_in(tx.amount, tx.currency) }} {{ st(tx.status.as_str()) }}</span></li>
+        {%- endfor %}
+        </ul>
+      </div>
+    </section>
+    {%- endif %}
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+[package]
+name = "hos-pdf"
+description = "HostingOS document PDFs (invoices, credit notes) in pure Rust: krilla + an embedded, subset OFL font."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+hos-core = { workspace = true }
+chrono = { workspace = true }
+krilla = { workspace = true }
+rust_decimal = { workspace = true }
+rustybuzz = { workspace = true }
+thiserror = { workspace = true }
+wuff = { workspace = true }
+
+[dev-dependencies]
+pdf-extract = { workspace = true }
+rust_decimal_macros = { workspace = true }

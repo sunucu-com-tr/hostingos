@@ -1,0 +1,55 @@
+{#- Checkout step 3: payment method, terms, place order. -#}
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}">{% endblock %}
+{% block content %}
+<section class="section section--tight">
+  <div class="container stack-lg">
+    <div class="page-head"><div><h1>{{ t("cart.checkout.review_title") }}</h1></div></div>
+    {% let labels = steps() %}{% call ui::steps(labels.as_slice(), 3) %}{% endcall %}
+    <form class="cart-layout" method="post" action="{{ url("/checkout/place") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <input type="hidden" name="cart" value="{{ cart_id }}">
+      <div class="stack">
+        <section class="card">
+          <header class="card__head between"><h2>{{ t("cart.checkout.billing_to") }}</h2><a class="small" href="{{ url("/checkout") }}">{{ t("cart.checkout.change") }}</a></header>
+          <div class="card__body"><address class="billing-address"><strong>{{ billing_name }}</strong>{% for l in billing_lines %}<span>{{ l }}</span>{% endfor %}</address></div>
+        </section>
+        <section class="card">
+          <header class="card__head"><h2>{{ t("cart.checkout.payment") }}</h2></header>
+          <div class="card__body stack">
+            {%- match view.totals %}{% when Some(tt) %}{% if tt.free %}<p class="muted">{{ t("cart.checkout.nothing_to_pay") }}</p>{% endif %}{% when None %}{% endmatch %}
+            {%- if choices.is_empty() %}
+            {% call ui::alert("warning", t("cart.checkout.no_methods")) %}{% endcall %}
+            {%- else %}
+            <fieldset class="radio-cards">
+              <legend class="visually-hidden">{{ t("cart.checkout.payment") }}</legend>
+              {%- for c in choices %}
+              <label class="radio-card">
+                <input type="radio" name="payment" value="{{ c.value }}"{% if c.value == selected %} checked{% endif %}>
+                <span>{{ c.label }}{% if !c.note.is_empty() %}<small>{{ c.note }}</small>{% endif %}</span>
+                <span class="radio-card__price">{% if c.value == "credit" %}{{ icon("credit-card") }}{% else %}{{ icon("lock") }}{% endif %}</span>
+              </label>
+              {%- endfor %}
+            </fieldset>
+            {%- endif %}
+          </div>
+        </section>
+        <section class="card">
+          <div class="card__body stack">
+            {% call ui::textarea("notes", t("cart.checkout.notes"), "", rows=3) %}{% endcall %}
+            <label class="check"><input type="checkbox" name="terms" value="1" required> <span>{{ t("cart.checkout.accept_terms") }}{% if !terms_href.is_empty() %} <a href="{{ terms_href }}" target="_blank" rel="noopener">{{ t("cart.checkout.terms_link") }}</a>{% endif %}</span></label>
+          </div>
+        </section>
+      </div>
+      <aside class="sticky stack">
+        {% include "cart/_mini_summary.html" %}
+        {%- if view.can_checkout %}
+        <button type="submit" class="btn btn--primary btn--block btn--lg">{{ icon("lock") }}{{ t("cart.checkout.place") }}</button>
+        {%- endif %}
+        <p class="small muted">{{ t("cart.checkout.place_note") }}</p>
+      </aside>
+    </form>
+  </div>
+</section>
+{% endblock %}

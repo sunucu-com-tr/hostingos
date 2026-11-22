@@ -1,0 +1,231 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% import "admin/_macros.html" as ax %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/vm.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="label">Design system · debug builds only</p>
+    <h1>Styleguide</h1>
+    <p>Every component in <code>templates/components/*.html</code> and <code>static/css/</code>, in every state. Ink/paper neutrals carry the UI; <code>--brand</code> (tenant colour) is an accent only — links, selection, focus, featured badges, charts.</p>
+  </div>
+  <div class="btn-row">
+    <button type="button" class="btn btn--soft" data-dialog-open="sg-modal">{{ icon("layers") }}Modal</button>
+    <button type="button" class="btn btn--soft" data-dialog-open="sg-drawer">{{ icon("list") }}Drawer</button>
+  </div>
+</div>
+
+<div class="stack-lg">
+  {% call ui::card("Tokens", "tokens.css · warm-neutral ink/paper, brand accent, AA status colours (both themes)") %}
+  <div class="cell-grid cell-grid--4">
+    <div class="sg-swatch"><span class="sg-swatch__chip sg-chip--ink"></span><span class="label">--ink</span><span class="small muted">Text, primary action</span></div>
+    <div class="sg-swatch"><span class="sg-swatch__chip sg-chip--bg"></span><span class="label">--bg / --surface</span><span class="small muted">Paper</span></div>
+    <div class="sg-swatch"><span class="sg-swatch__chip sg-chip--line"></span><span class="label">--line</span><span class="small muted">1px hairlines (no shadows)</span></div>
+    <div class="sg-swatch"><span class="sg-swatch__chip sg-chip--brand"></span><span class="label">--brand</span><span class="small muted">Accent only (tenant)</span></div>
+  </div>
+  <dl class="dl">
+    <div><dt>Sans</dt><dd>Geist (variable 100–900) — İstanbul’da ılık, güçlü, şeffaf çağrı · Ğğ Şş İı Çç Öö Üü</dd></div>
+    <div><dt>Mono</dt><dd class="mono">Geist Mono — 1.234,56 ₺ · ornek.com.tr · 185.112.44.10 · INV-2026-0042</dd></div>
+    <div><dt>Scale</dt><dd>--step--2 11px label · --step--1 13px · --step-0 16px (panels 14px) · --step-1…5 fluid clamp()</dd></div>
+    <div><dt>Shape</dt><dd>radius 4 / 6 / 8px; pill only on badges · 4px spacing grid · 12-column container</dd></div>
+  </dl>
+  {% endcall %}
+
+  {% call ui::card("Labels & section head", ".eyebrow (auto-numbered inside .section__head) · .label · .page-head") %}
+  <header class="section__head">
+    <p class="eyebrow">Hizmetler</p>
+    <h2>İhtiyacınıza uygun hizmeti seçin</h2>
+    <p>Section heads open with a hairline and a mono label; the label carries an automatic index.</p>
+  </header>
+  <p class="cluster"><span class="label">Mono label</span><span class="mono small">tabular 0123456789</span></p>
+  {% endcall %}
+
+  {% call ui::card("Buttons", "btn + --primary --accent --soft --ghost --danger --link · --sm --lg --block --icon · busy / disabled") %}
+  <div class="btn-row">
+    <button class="btn btn--primary" type="button">{{ icon("check") }}Primary</button>
+    <button class="btn btn--accent" type="button">Accent</button>
+    <button class="btn btn--soft" type="button">Soft</button>
+    <button class="btn" type="button">Default</button>
+    <button class="btn btn--ghost" type="button">Ghost</button>
+    <button class="btn btn--danger" type="button">{{ icon("x") }}Danger</button>
+    <button class="btn btn--link" type="button">Link</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn--primary btn--sm" type="button">Small</button>
+    <button class="btn btn--primary btn--lg" type="button">Large</button>
+    <button class="btn btn--soft btn--icon" type="button" aria-label="Settings">{{ icon("settings") }}</button>
+    <button class="btn btn--ghost btn--icon btn--sm" type="button" aria-label="Close">{{ icon("x") }}</button>
+    <button class="btn btn--primary" type="button" aria-busy="true">Busy keeps width</button>
+    <button class="btn btn--primary" type="button" disabled>Disabled</button>
+  </div>
+  {% endcall %}
+
+  {% call ui::card("Badges & status", "badge(text, tone) · status_badge(status) — one size, one shape") %}
+  <div class="cluster">
+    {{ badge("Neutral", "") }} {{ badge("Brand", "brand") }} {{ badge("Info", "info") }} {{ badge("Success", "success") }}
+    {{ badge("Warning", "warning") }} {{ badge("Danger", "danger") }} {{ badge("Accent", "accent") }}
+  </div>
+  <div class="cluster">
+    {%- for s in statuses %}{{ status_badge(s) }}{% endfor %}
+  </div>
+  <div class="cluster"><span class="tag">#tag</span><a class="tag" href="#">#link-tag</a><kbd>⌘K</kbd></div>
+  {% endcall %}
+
+  <div class="grid grid--2">
+    {% call ui::card("Form", "field / textarea / select / checkbox · hint and error share one slot") %}
+    <form class="form" method="post" action="#">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::field("name", "Ad soyad", "Ayşe Yılmaz", required=true, hint="Faturada görünecek ad.") %}{% endcall %}
+      {% call ui::field("email", "E-posta", "ayse@", kind="email", error=errors.get("email"), required=true) %}{% endcall %}
+      <div class="form-row">
+        {% call ui::select("cycle", "Ödeme dönemi", options, "annual") %}{% endcall %}
+        {% call ui::field("qty", "Adet", "1", kind="number", inputmode="numeric") %}{% endcall %}
+      </div>
+      {% call ui::textarea("note", "Not", "", hint="İsteğe bağlı.", rows=3) %}{% endcall %}
+      {% call ui::checkbox("terms", "Kullanım koşullarını kabul ediyorum", true) %}{% endcall %}
+      <div class="input-group"><span class="input-group__addon">https://</span><input class="input" aria-label="Alan adı" value="ornek.com.tr"></div>
+      <div class="btn-row"><button class="btn btn--primary" type="button">Kaydet</button><button class="btn btn--ghost" type="button">Vazgeç</button></div>
+    </form>
+    {% endcall %}
+
+    <div class="stack-lg">
+      {% call ui::card("Alerts") %}
+      <div class="stack-sm">
+        {% call ui::alert("info", "Bilgi: bakım 02:00'de başlayacak.") %}{% endcall %}
+        {% call ui::alert("success", "Ödemeniz alındı.") %}{% endcall %}
+        {% call ui::alert("warning", "Alan adınızın süresi 7 gün içinde doluyor.") %}{% endcall %}
+        {% call ui::alert("error", "Kart reddedildi.") %}{% endcall %}
+      </div>
+      {% endcall %}
+      {% call ui::card("Steps & tabs") %}
+      {% call ui::steps(steps, 3) %}{% endcall %}
+      {% call ui::tabs(tabs, "#invoices") %}{% endcall %}
+      {% endcall %}
+      {% call ui::card("Key / value") %}
+      <dl class="dl">
+        <div><dt>Sunucu</dt><dd class="mono">vps-ist-04.demo.local</dd></div>
+        <div><dt>IP</dt><dd class="mono">185.112.44.10</dd></div>
+        <div><dt>Sonraki ödeme</dt><dd>12 Aralık 2026</dd></div>
+      </dl>
+      {% endcall %}
+    </div>
+  </div>
+
+  <section class="stats" aria-label="Stat tiles">
+    {% call ui::stat("MRR", money(price), "+12% geçen aya göre", "up", "activity") %}{% endcall %}
+    {% call ui::stat("Aktif hizmet", num(1284), "", "", "server") %}{% endcall %}
+    {% call ui::stat("Ödenmemiş", money(price), "3 fatura gecikmiş", "down", "receipt") %}{% endcall %}
+    {% call ui::stat("Açık talep", num(7)) %}{% endcall %}
+  </section>
+
+  {% call ui::card("Table + pagination", "table-wrap > table (.num = right, mono, tabular; fixed row height; sticky header when it fits; .table--stack on mobile)") %}
+  <div class="table-wrap">
+    <table class="table table--stack">
+      <thead><tr><th scope="col">Fatura</th><th scope="col">Müşteri</th><th scope="col">Durum</th><th scope="col" class="num">Tutar</th></tr></thead>
+      <tbody>
+        <tr><td data-label="Fatura"><a class="mono" href="#">INV-2026-0042</a></td><td data-label="Müşteri">Ayşe Yılmaz</td><td data-label="Durum">{{ status_badge("paid") }}</td><td data-label="Tutar" class="num">{{ money(price) }}</td></tr>
+        <tr><td data-label="Fatura"><a class="mono" href="#">INV-2026-0043</a></td><td data-label="Müşteri">Mehmet Demir</td><td data-label="Durum">{{ status_badge("unpaid") }}</td><td data-label="Tutar" class="num">{{ money(price) }}</td></tr>
+        <tr><td data-label="Fatura"><a class="mono" href="#">INV-2026-0044</a></td><td data-label="Müşteri">Zeynep Kaya</td><td data-label="Durum">{{ status_badge("overdue") }}</td><td data-label="Tutar" class="num">{{ money(price) }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+  {% call ui::pagination(pager) %}{% endcall %}
+  {% endcall %}
+
+  {% call ui::card("Price cards", "components/catalog.html price_card: five subgrid rows shared across the row; ribbon out of flow; featured = inset ring (same box)") %}
+  <div class="price-grid">
+    <article class="price-card">
+      <h3 class="price-card__name">Başlangıç</h3>
+      <p class="price-card__tagline">Kişisel siteler için.</p>
+      <div class="price-card__prices"><div class="price"><span class="price__amount">{{ money(price) }}</span><span class="price__per">{{ t("common.per.monthly") }}</span></div></div>
+      <ul class="feature-list"><li>{{ icon("check") }}<span>10 GB NVMe</span></li><li>{{ icon("check") }}<span>Ücretsiz SSL</span></li></ul>
+      <a class="btn btn--soft btn--block" href="#">Seç</a>
+    </article>
+    <article class="price-card price-card--featured">
+      <span class="price-card__ribbon">Popüler</span>
+      <h3 class="price-card__name">Pro</h3>
+      <p class="price-card__tagline">KOBİ'ler ve e-ticaret siteleri için iki satıra taşan daha uzun açıklama.</p>
+      <div class="price-card__prices"><div class="price"><span class="price__amount">{{ money(price) }}</span><span class="price__per">{{ t("common.per.monthly") }}</span><span class="price__note">Yıllık ödemede tek seferde faturalandırılır</span></div></div>
+      <ul class="feature-list"><li>{{ icon("check") }}<span>30 GB NVMe</span></li><li>{{ icon("check") }}<span>Günlük yedek</span></li><li>{{ icon("check") }}<span>Öncelikli destek</span></li></ul>
+      <a class="btn btn--primary btn--block" href="#">Seç</a>
+    </article>
+    <article class="price-card">
+      <h3 class="price-card__name">Kurumsal</h3>
+      <p class="price-card__tagline">Yoğun trafik.</p>
+      <div class="price-card__prices"><div class="price"><span class="price__amount">{{ money(price) }}</span><span class="price__per">{{ t("common.per.monthly") }}</span></div></div>
+      <ul class="feature-list"><li>{{ icon("check") }}<span>100 GB NVMe</span></li></ul>
+      <a class="btn btn--soft btn--block" href="#">Seç</a>
+    </article>
+  </div>
+  {% endcall %}
+
+  <div class="grid grid--2">
+    {% call ui::card("Spec panel", "technical data panel (storefront hero)") %}
+    <div class="spec-panel">
+      <div class="spec-panel__head"><span>Alan adı fiyatları</span><span>Kayıt</span></div>
+      <table class="spec-panel__table"><tbody>
+        <tr><th scope="row">.com.tr</th><td>{{ money(price) }}<small>{{ t("common.per.annual") }}</small></td></tr>
+        <tr><th scope="row">.com</th><td>{{ money(price) }}<small>{{ t("common.per.annual") }}</small></td></tr>
+      </tbody></table>
+      <div class="spec-panel__foot"><span>2 · uzantı</span><a href="#">Tümü{{ icon("arrow-right") }}</a></div>
+    </div>
+    {% endcall %}
+    {% call ui::card("Empty state") %}
+      {% call ui::empty("receipt", "Henüz fatura yok", "İlk siparişinizden sonra faturalar burada listelenir.") %}
+        <a class="btn btn--primary btn--sm" href="#">Ürünlere göz at</a>
+      {% endcall %}
+    {% endcall %}
+  </div>
+
+  <div class="grid grid--2">
+    {% call ui::card("Code block") %}{% call ui::code("sg-code", "bash", sample_code) %}{% endcall %}{% endcall %}
+    {% call ui::card("Skeleton (htmx loading)") %}{% call ui::skeleton(3) %}{% endcall %}{% endcall %}
+  </div>
+
+  {% call ui::card("Accordion · progress") %}
+  <div class="accordion">
+    <details open><summary>Nasıl yedek alırım?</summary><div class="prose"><p>Kontrol panelinden <kbd>Yedekler</kbd> sekmesine gidin.</p></div></details>
+    <details><summary>SSL ücretli mi?</summary><div class="prose"><p>Hayır, tüm paketlerde ücretsizdir.</p></div></details>
+  </div>
+  <progress class="bar" max="100" value="64">64%</progress>
+  {% endcall %}
+</div>
+
+<div class="stack-lg mt-6">
+  {% call ui::card("Row action menu · list loading", "admin/_macros.html row_menu(label): last column (.col-actions) of every admin list; admin.js positions the panel fixed. Lists get aria-busy on .table-wrap while a filter / sort / page link navigates (skeleton rows, admin.css).") %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Müşteri</th><th>Durum</th><th class="col-actions"><span class="visually-hidden">İşlemler</span></th></tr></thead>
+    <tbody><tr><td><a class="row-link" href="#">Deneme Şirketi</a></td><td>{{ badge("Aktif", "success") }}</td>
+      <td class="col-actions">{% call ax::row_menu("İşlemler") %}<a role="menuitem" href="#">{{ icon("user") }}<span>Aç</span></a><a role="menuitem" href="#">{{ icon("receipt") }}<span>Faturalar</span></a><form><button type="button" role="menuitem">{{ icon("eye") }}<span>Müşteri olarak gir</span></button></form>{% endcall %}</td></tr></tbody>
+  </table></div>
+  {% endcall %}
+  {% call ui::card("KPI trend card (dashboard)", "admin/_kpis.html: value, change vs the previous period (kpi__delta--up good / --down bad), sparkline (viewBox 0 0 100 30), .segmented range picker (7d · 30d · 90d · 12m); loaded with htmx behind .kpi--skeleton placeholders") %}
+  {% call ui::code("sg-kpi", "html", "<a class=\"kpi\" href=\"…\"><p class=\"kpi__label\">…</p><div class=\"kpi__main\"><p class=\"kpi__value\">₺12.400</p><svg class=\"spark\" viewBox=\"0 0 100 30\">…</svg></div><p class=\"kpi__foot\"><span class=\"kpi__delta kpi__delta--up\">+8 %</span><span>önceki: ₺11.480</span></p></a>") %}{% endcall %}
+  {% endcall %}
+  {% call ui::card("VPS management (vm.css)", "usage graph (server-rendered SVG, two series), bandwidth meter (--over), operation progress (determinate / indeterminate), console status; widths via .vm-w-N classes (no inline styles under the CSP)") %}
+  <div class="vm-graphs">
+    <figure class="vm-graph">
+      <figcaption><span>Ağ</span><span class="vm-graph__legend"><span class="vm-graph__key vm-graph__key--a">Gelen <strong>1.2 MB/s</strong></span><span class="vm-graph__key vm-graph__key--b">Giden <strong>0.4 MB/s</strong></span></span></figcaption>
+      <svg class="vm-graph__svg" viewBox="0 0 600 160" preserveAspectRatio="none" role="img" aria-label="Ağ"><line class="vm-graph__grid" x1="0" y1="6" x2="600" y2="6"></line><line class="vm-graph__grid" x1="0" y1="80" x2="600" y2="80"></line><line class="vm-graph__grid" x1="0" y1="154" x2="600" y2="154"></line><polyline class="vm-graph__line vm-graph__line--a" points="0,120 100,90 200,100 300,60 400,70 500,40 600,55"></polyline><polyline class="vm-graph__line vm-graph__line--b" points="0,140 100,135 200,130 300,128 400,120 500,125 600,118"></polyline></svg>
+      <div class="vm-graph__axis"><span>12:00</span><span>max 2 MB/s</span><span>13:00</span></div>
+    </figure>
+    <div class="stack-sm">
+      <p class="small">Trafik %60</p><div class="vm-meter" role="meter" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" aria-label="Trafik"><span class="vm-meter__bar vm-w-60"></span></div>
+      <p class="small">Aşım</p><div class="vm-meter vm-meter--over" role="meter" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" aria-label="Aşım"><span class="vm-meter__bar vm-w-100"></span></div>
+      <p class="small">İşlem %35 · belirsiz</p>
+      <span class="vm-progress" role="progressbar" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100" aria-label="İşlem"><span class="vm-progress__bar vm-w-35"></span></span>
+      <span class="vm-progress" role="progressbar" aria-label="İşlem"><span class="vm-progress__bar vm-progress__bar--indeterminate"></span></span>
+      <div class="console" data-state="connected"><div class="console__bar"><span class="console__status">Bağlandı</span><span class="cluster"><button type="button" class="btn btn--ghost btn--sm">Ctrl+Alt+Del</button></span></div></div>
+    </div>
+  </div>
+  {% endcall %}
+</div>
+
+{% call ui::modal("sg-modal", "Örnek modal") %}
+  <p>Diyaloglar yerel <code>&lt;dialog&gt;</code> elemanıdır; Esc ve arka plana tıklama ile kapanır.</p>
+  <div class="btn-row"><button class="btn btn--primary" type="button" data-dialog-close>Tamam</button></div>
+{% endcall %}
+{% call ui::modal("sg-drawer", "Örnek çekmece", true) %}
+  <p>Çekmece varyantı sağdan açılır (filtreler, hızlı düzenleme).</p>
+{% endcall %}
+{% endblock %}

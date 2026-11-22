@@ -1,0 +1,36 @@
+{#- e-Fatura / e-Arşiv card of the admin invoice page; expects `ep`
+    (routes/admin/einvoice.rs::Panel) and `inv`. -#}
+{% call ui::card(t("einvoice.panel.title")) %}
+{%- if !ep.enabled %}<p class="muted small">{{ t("einvoice.panel.disabled") }}</p>{% endif %}
+{%- if ep.docs.is_empty() %}<p class="muted">{{ t("einvoice.panel.none") }}</p>{% endif %}
+{%- for e in ep.docs %}
+<div class="stack{% if !loop.first %} mt-4{% endif %}">
+  <p><strong>{{ e.kind }}</strong> · {{ e.purpose }} {{ badge(e.status_label, e.tone) }}{% if e.is_test %} {{ badge(t("einvoice.panel.test"), "info") }}{% endif %}</p>
+  {%- if !e.attention.is_empty() %}<div class="alert alert--warning" role="status">{{ icon("alert-triangle") }}<div><strong>{{ t("einvoice.panel.attention") }}</strong> {{ e.attention }}</div></div>{% endif %}
+  <dl class="kv">
+    <dt>{{ t("einvoice.panel.number") }}</dt><dd class="mono">{% if e.number.is_empty() %}—{% else %}{{ e.number }}{% endif %}</dd>
+    <dt>{{ t("einvoice.panel.ettn") }}</dt><dd class="mono small">{{ e.ettn }}</dd>
+    <dt>{{ t("einvoice.panel.attempts") }}</dt><dd>{{ e.attempts }}</dd>
+    {%- if !e.issued_at.is_empty() %}<dt>{{ t("einvoice.panel.issued_at") }}</dt><dd>{{ e.issued_at }}</dd>{% endif %}
+    {%- if !e.cancellable_until.is_empty() && e.can_cancel %}<dt>{{ t("einvoice.panel.cancellable_until") }}</dt><dd>{{ e.cancellable_until }}</dd>{% endif %}
+    {%- if !e.message.is_empty() %}<dt>{{ t("einvoice.panel.message") }}</dt><dd class="small">{{ e.message }}</dd>{% endif %}
+    {%- if !e.last_error.is_empty() %}<dt>{{ t("einvoice.panel.last_error") }}</dt><dd class="small">{{ e.last_error }}</dd>{% endif %}
+  </dl>
+  <div class="btn-row">
+    {%- if e.can_download %}
+    <a class="btn btn--ghost btn--sm" href="{{ url("/admin/einvoice/" ~ e.id ~ "/pdf") }}">{{ icon("download") }}{{ t("einvoice.panel.pdf") }}</a>
+    <a class="btn btn--ghost btn--sm" href="{{ url("/admin/einvoice/" ~ e.id ~ "/ubl") }}">{{ icon("download") }}{{ t("einvoice.panel.ubl") }}</a>
+    {%- endif %}
+    {%- if can("billing.manage") %}
+    {%- if e.can_retry %}<form method="post" action="{{ url("/admin/einvoice/" ~ e.id ~ "/retry") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--soft btn--sm" type="submit">{{ icon("refresh") }}{{ t("einvoice.panel.retry") }}</button></form>{% endif %}
+    {%- if e.can_refresh %}<form method="post" action="{{ url("/admin/einvoice/" ~ e.id ~ "/refresh") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ t("einvoice.panel.refresh") }}</button></form>{% endif %}
+    {%- if !e.attention.is_empty() %}<form method="post" action="{{ url("/admin/einvoice/" ~ e.id ~ "/acknowledge") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ t("einvoice.panel.acknowledge") }}</button></form>{% endif %}
+    {%- if e.can_cancel %}<form method="post" action="{{ url("/admin/einvoice/" ~ e.id ~ "/cancel") }}" data-confirm="{{ t("einvoice.panel.cancel_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--danger btn--sm" type="submit">{{ t("einvoice.panel.cancel") }}</button></form>{% endif %}
+    {%- endif %}
+  </div>
+</div>
+{%- endfor %}
+{%- if ep.can_issue && can("billing.manage") %}
+<form class="mt-4" method="post" action="{{ url("/admin/invoices/" ~ inv.id ~ "/einvoice") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--primary btn--sm" type="submit">{{ icon("send") }}{{ t("einvoice.panel.issue") }}</button></form>
+{%- endif %}
+{% endcall %}

@@ -1,0 +1,5 @@
+{#- Sortable header cells: include with `headers` in scope. Idle columns show
+    a neutral arrow on hover/focus; the active one a solid direction arrow. -#}
+{%- for h in headers %}
+<th scope="col" aria-sort="{{ h.aria }}"{% if h.num %} class="num"{% endif %}><a href="{{ h.href }}">{{ h.label }}{% if h.active %}<span class="sort-ind" aria-hidden="true">{% if h.desc %}{{ icon("arrow-down") }}{% else %}{{ icon("arrow-up") }}{% endif %}</span>{% else %}<span class="sort-ind sort-ind--idle" aria-hidden="true">{{ icon("chevrons-up-down") }}</span>{% endif %}</a></th>
+{%- endfor %}

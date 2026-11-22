@@ -1,0 +1,19 @@
+{% extends "layouts/auth.html" %}
+{% import "components/ui.html" as ui %}
+{% block card %}
+<header class="auth-card__head">
+  <span class="badge badge--accent">{{ t("platform.area") }}</span>
+  <h1>{{ t("platform.login.title") }}</h1>
+  <p>{{ t("platform.login.lead") }}</p>
+</header>
+{% call ui::form_errors(errors) %}{% endcall %}
+<form class="form" id="login-form" method="post" action="/platform/login" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::field("email", t("auth.fields.email"), email, kind="email", required=true, autocomplete="username", autofocus=true) %}{% endcall %}
+  {% call ui::field("password", t("auth.fields.password"), "", kind="password", required=true, autocomplete="current-password") %}{% endcall %}
+  <button type="submit" class="btn btn--primary btn--block btn--lg">{{ icon("log-in") }}{{ t("auth.login.submit") }}</button>
+</form>
+{%- let logins = demo_logins(true) %}
+{%- let form_id = "login-form" %}
+{% include "components/demo_logins.html" %}
+{% endblock %}

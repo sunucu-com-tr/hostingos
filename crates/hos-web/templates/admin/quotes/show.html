@@ -1,0 +1,69 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ ctx.title }} {{ qbadge() }}</h1>
+    <p>{{ quote.subject }} · {{ datetime(quote.created_at) }}</p></div>
+  <div class="page-head__actions">
+    <a class="btn btn--soft" href="{{ url("/admin/quotes/" ~ quote.id ~ "/pdf") }}">{{ icon("download") }}{{ t("quotes.actions.pdf") }}</a>
+    {%- if can("quotes.manage") %}
+    {%- if editable() %}
+    <a class="btn btn--soft" href="{{ url("/admin/quotes/" ~ quote.id ~ "/edit") }}">{{ icon("pencil") }}{{ t("admin.common.edit") }}</a>
+    {%- if !expired %}
+    <form method="post" action="{{ url("/admin/quotes/" ~ quote.id ~ "/send") }}"{% if quote.status.as_str() == "sent" %} data-confirm="{{ t("quotes.admin.resend_confirm") }}"{% endif %}>{% call ui::csrf() %}{% endcall %}<button class="btn btn--primary" type="submit">{{ icon("send") }}{% if quote.status.as_str() == "sent" %}{{ t("quotes.actions.resend") }}{% else %}{{ t("quotes.actions.send") }}{% endif %}</button></form>
+    {%- endif %}
+    {%- if quote.status.as_str() == "sent" && quote.client_id.is_some() && can("billing.manage") && !expired %}
+    <form method="post" action="{{ url("/admin/quotes/" ~ quote.id ~ "/accept") }}" data-confirm="{{ t("quotes.admin.accept_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--soft" type="submit">{{ icon("check") }}{{ t("quotes.admin.accept_for_client") }}</button></form>
+    {%- endif %}
+    <form method="post" action="{{ url("/admin/quotes/" ~ quote.id ~ "/cancel") }}" data-confirm="{{ t("quotes.admin.cancel_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost" type="submit">{{ icon("x") }}{{ t("quotes.actions.cancel") }}</button></form>
+    {%- endif %}
+    {%- if quote.status.as_str() == "draft" %}
+    <form method="post" action="{{ url("/admin/quotes/" ~ quote.id ~ "/delete") }}" data-confirm="{{ t("quotes.admin.delete_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--danger" type="submit">{{ icon("trash") }}{{ t("admin.common.delete") }}</button></form>
+    {%- endif %}
+    {%- endif %}
+  </div>
+</div>
+{%- if expired && editable() %}{% call ui::alert("warning", t("quotes.admin.expired_notice")) %}{% endcall %}{% endif %}
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    {% call ui::card(t("quotes.admin.section_lines")) %}
+    <div class="table-wrap"><table class="table table--dense">
+      <thead><tr><th scope="col">{{ t("quotes.fields.description") }}</th><th scope="col" class="num">{{ t("quotes.fields.quantity") }}</th><th scope="col" class="num">{{ t("quotes.fields.unit_price") }}</th><th scope="col" class="num">{{ t("quotes.fields.discount") }}</th><th scope="col" class="num">{{ t("admin.common.amount") }}</th></tr></thead>
+      <tbody>{% for it in items %}<tr><td>{{ it.description }}{% match it.billing_cycle %}{% when Some(cy) %}<span class="sub">{{ cycle(cy) }}</span>{% when None %}{% endmatch %}{% if !it.taxable %}<span class="sub muted">{{ t("quotes.admin.untaxed") }}</span>{% endif %}</td>
+        <td class="num">{{ dec(it.quantity) }}</td><td class="num">{{ m(it.unit_price, quote.currency) }}</td><td class="num">{% if it.discount_percent.is_zero() %}—{% else %}%{{ dec(it.discount_percent) }}{% endif %}</td><td class="num">{{ m(it.amount, quote.currency) }}</td></tr>{% endfor %}</tbody>
+      <tfoot>
+        <tr><td colspan="4">{{ t("quotes.fields.subtotal") }}</td><td class="num">{{ m(quote.subtotal, quote.currency) }}</td></tr>
+        {%- if !quote.discount_total.is_zero() %}<tr><td colspan="4">{{ t("quotes.fields.discount_total") }}</td><td class="num">−{{ m(quote.discount_total, quote.currency) }}</td></tr>{% endif %}
+        {%- for tx in taxes %}<tr><td colspan="4">{{ tx.name }} (%{{ tx.rate }})</td><td class="num">{{ m(tx.amount, quote.currency) }}</td></tr>{% endfor %}
+        <tr><td colspan="4"><strong>{{ t("admin.common.total") }}</strong></td><td class="num"><strong>{{ m(quote.total, quote.currency) }}</strong></td></tr>
+      </tfoot>
+    </table></div>
+    {% endcall %}
+    {%- match quote.notes %}{% when Some(n) %}
+    {% call ui::card(t("quotes.fields.notes")) %}<div class="prose">{{ md(n) }}</div>{% endcall %}
+    {%- when None %}{% endmatch %}
+  </div>
+  <aside class="stack-lg">
+    {% call ui::card(t("quotes.admin.section_recipient")) %}
+    <dl class="kv">
+      {%- match client %}{% when Some(c) %}
+      <dt>{{ t("quotes.fields.client") }}</dt><dd><a href="{{ url("/admin/clients/" ~ c.id) }}">{{ c.display_name() }}</a><span class="sub muted">{{ c.email }}</span></dd>
+      {%- when None %}
+      <dt>{{ t("quotes.admin.prospect") }}</dt><dd>{{ o(quote.prospect_name) }}<span class="sub muted">{{ o(quote.prospect_email) }}</span>{% match quote.prospect_company %}{% when Some(pc) %}<span class="sub">{{ pc }}</span>{% when None %}{% endmatch %}</dd>
+      {%- endmatch %}
+      <dt>{{ t("quotes.fields.valid_until") }}</dt><dd>{{ d(quote.valid_until) }}</dd>
+      <dt>{{ t("quotes.admin.sent_at") }}</dt><dd>{{ dtopt(quote.sent_at) }}</dd>
+      <dt>{{ t("quotes.admin.viewed_at") }}</dt><dd>{{ dtopt(quote.viewed_at) }}</dd>
+      {%- if quote.accepted_at.is_some() %}<dt>{{ t("quotes.admin.accepted_at") }}</dt><dd>{{ dtopt(quote.accepted_at) }}{% match quote.accepted_ip %}{% when Some(ip) %}<span class="sub mono">{{ ip }}</span>{% when None %}{% endmatch %}</dd>{% endif %}
+      {%- if quote.declined_at.is_some() %}<dt>{{ t("quotes.admin.declined_at") }}</dt><dd>{{ dtopt(quote.declined_at) }}{% match quote.decline_reason %}{% when Some(rs) %}<span class="sub">{{ rs }}</span>{% when None %}{% endmatch %}</dd>{% endif %}
+      {%- match quote.order_id %}{% when Some(oid) %}<dt>{{ t("quotes.admin.order") }}</dt><dd><a href="{{ url("/admin/orders/" ~ oid) }}">{{ t("quotes.admin.open_order") }}</a></dd>{% when None %}{% endmatch %}
+      {%- match quote.invoice_id %}{% when Some(iid) %}<dt>{{ t("quotes.admin.invoice") }}</dt><dd><a href="{{ url("/admin/invoices/" ~ iid) }}">{{ t("quotes.admin.open_invoice") }}</a></dd>{% when None %}{% endmatch %}
+    </dl>
+    {% endcall %}
+    {%- match quote.admin_notes %}{% when Some(an) %}
+    {% call ui::card(t("quotes.fields.admin_notes")) %}<p>{{ nl2br(an) }}</p>{% endcall %}
+    {%- when None %}{% endmatch %}
+  </aside>
+</div>
+{% endblock %}

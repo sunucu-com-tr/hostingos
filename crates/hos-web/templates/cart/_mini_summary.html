@@ -1,0 +1,10 @@
+{#- Compact order summary for checkout steps (`view: CartView`). -#}
+<section class="card cart-summary" aria-labelledby="mini-sum">
+  <header class="card__head between"><h2 id="mini-sum">{{ t("cart.summary.title") }}</h2><a class="small" href="{{ url("/cart") }}">{{ t("cart.summary.edit") }}</a></header>
+  <div class="card__body stack">
+    <ul class="summary-lines">
+      {%- for l in view.lines %}<li{% if l.child %} class="summary-lines__child"{% endif %}><span>{{ l.title }}</span><span>{{ l.amount }}</span></li>{% endfor %}
+    </ul>
+    {%- match view.totals %}{% when Some(tt) %}{% include "cart/_totals.html" %}{% when None %}<p class="muted">{{ view.error }}</p>{% endmatch %}
+  </div>
+</section>

@@ -1,0 +1,11 @@
+{#- Shared KB category fields (`form`, `errors` in scope). -#}
+<div class="form-grid">
+  {% call ui::field("name", t("admin_support.kb.cat_name_tr"), form.name, error=errors.get("name"), required=true) %}{% endcall %}
+  {% call ui::field("name_en", t("admin_support.kb.cat_name_en"), form.name_en) %}{% endcall %}
+  {% call ui::field("slug", t("admin_content.editor.slug"), form.slug, error=errors.get("slug"), hint=t("admin_support.kb.cat_slug_hint")) %}{% endcall %}
+  {% call ui::field("icon", t("admin_support.kb.cat_icon"), form.icon, hint=t("admin_support.kb.cat_icon_hint")) %}{% endcall %}
+  {% call ui::field("description", t("admin_support.kb.cat_desc_tr"), form.description) %}{% endcall %}
+  {% call ui::field("description_en", t("admin_support.kb.cat_desc_en"), form.description_en) %}{% endcall %}
+  {% call ui::field("sort_order", t("admin_content.editor.sort_order"), form.sort_order, error=errors.get("sort_order"), inputmode="numeric") %}{% endcall %}
+</div>
+<div class="checks">{% call ui::checkbox("is_hidden", t("admin_support.kb.cat_hidden"), form.is_hidden) %}{% endcall %}</div>

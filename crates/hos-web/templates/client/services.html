@@ -1,0 +1,40 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head">
+  <div><h1>{{ t("client.services.title") }}</h1><p>{{ t("client.services.lead") }}</p></div>
+  <div class="btn-row"><a class="btn btn--primary" href="{{ url("/") }}">{{ icon("plus") }}{{ t("client.services.order") }}</a></div>
+</div>
+<form class="toolbar" method="get" action="{{ url("/client/services") }}" role="search">
+  <label class="visually-hidden" for="f-q">{{ t("client.common.search") }}</label>
+  <input class="input" id="f-q" type="search" name="q" value="{{ q }}" placeholder="{{ t("client.services.search") }}">
+  <label class="visually-hidden" for="f-status">{{ t("client.invoices.status") }}</label>
+  <select class="select" id="f-status" name="status" data-autosubmit>
+    {%- for (v, label) in statuses %}<option value="{{ v }}"{% if *v == status %} selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <button type="submit" class="btn btn--ghost">{{ icon("search") }}{{ t("client.common.filter") }}</button>
+</form>
+<div class="card">
+{%- if rows.is_empty() %}
+  <div class="card__body">{% call ui::empty("server", t("client.services.empty"), t("client.services.empty_text")) %}<a class="btn btn--primary btn--sm" href="{{ url("/") }}">{{ t("client.dashboard.browse") }}</a>{% endcall %}</div>
+{%- else %}
+  <div class="table-wrap">
+    <table class="table table--stack">
+      <thead><tr><th scope="col">{{ t("client.services.product") }}</th><th scope="col">{{ t("client.services.price") }}</th><th scope="col">{{ t("client.services.next_due") }}</th><th scope="col">{{ t("client.invoices.status") }}</th><th scope="col"><span class="visually-hidden">{{ t("client.common.actions") }}</span></th></tr></thead>
+      <tbody>
+      {%- for r in rows %}
+        <tr>
+          <td data-label="{{ t("client.services.product") }}"><a href="{{ url("/client/services/") }}{{ r.service.id }}"><strong>{{ r.product_name }}</strong></a>{% match r.service.domain %}{% when Some(d) %}<span class="muted small block">{{ domain_label(d) }}</span>{% when None %}{% endmatch %}</td>
+          <td data-label="{{ t("client.services.price") }}">{{ money_in(r.service.recurring_amount, r.service.currency) }} <span class="muted small">{{ per(r.service.billing_cycle) }}</span></td>
+          <td data-label="{{ t("client.services.next_due") }}">{{ day_opt(r.service.next_due_date) }}</td>
+          <td data-label="{{ t("client.invoices.status") }}">{{ st(r.service.status.as_str()) }}</td>
+          <td><a class="btn btn--ghost btn--sm" href="{{ url("/client/services/") }}{{ r.service.id }}">{{ t("client.common.manage") }}</a></td>
+        </tr>
+      {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- endif %}
+</div>
+{% call ui::pagination(pager) %}{% endcall %}
+{% endblock %}

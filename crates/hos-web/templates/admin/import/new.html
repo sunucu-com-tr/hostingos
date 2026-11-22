@@ -1,0 +1,64 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow"><a href="{{ url("/admin/tools/import") }}">{{ t("import.title") }}</a></p>
+    <h1>{{ t("import.new.title") }}</h1>
+    <p>{{ t("import.new.lead") }}</p>
+  </div>
+</div>
+{% call ui::steps([t("import.steps.source"), t("import.steps.connect"), t("import.steps.preview"), t("import.steps.mapping"), t("import.steps.import"), t("import.steps.report")], 1) %}{% endcall %}
+<nav class="tabs mt-4" aria-label="{{ t("import.new.source_kind") }}">
+  <a href="{{ url("/admin/tools/import/new?kind=db") }}"{% if kind == "db" %} aria-current="page"{% endif %}>{{ icon("database") }}{{ t("import.kind.whmcs_db") }}</a>
+  <a href="{{ url("/admin/tools/import/new?kind=api") }}"{% if kind == "api" %} aria-current="page"{% endif %}>{{ icon("plug") }}{{ t("import.kind.whmcs_api") }}</a>
+</nav>
+<form method="post" action="{{ url("/admin/tools/import/new") }}" class="ax-form mt-4" autocomplete="off" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  <input type="hidden" name="kind" value="{{ kind }}">
+  {%- if errors.any() %}<div class="mb-4">{% call ui::form_errors(errors) %}{% endcall %}</div>{% endif %}
+  {%- if kind == "db" %}
+  <section class="form-section form-section--first">
+    <div class="form-section__intro"><h2>{{ t("import.new.db_title") }}</h2><p>{{ t("import.new.db_lead") }}</p></div>
+    <div class="form-section__body"><div class="form-grid">
+      {% call ui::field("host", t("import.new.host"), host, error=errors.get("host"), required=true, placeholder="db.example.net") %}{% endcall %}
+      {% call ui::field("port", t("import.new.port"), port, error=errors.get("port"), inputmode="numeric") %}{% endcall %}
+      {% call ui::field("database", t("import.new.database"), database, error=errors.get("database"), required=true) %}{% endcall %}
+      {% call ui::field("user", t("import.new.user"), user, error=errors.get("user"), required=true, autocomplete="off") %}{% endcall %}
+      {% call ui::field("db_password", t("import.new.password"), "", kind="password", autocomplete="new-password", hint=t("import.new.secret_hint")) %}{% endcall %}
+      <div class="field"><label class="field__label" for="f-tls">{{ t("import.new.tls") }}</label>
+        <select class="select" id="f-tls" name="tls">
+          <option value="verify"{{ sel(tls, "verify") }}>{{ t("import.new.tls_verify") }}</option>
+          <option value="insecure"{{ sel(tls, "insecure") }}>{{ t("import.new.tls_insecure") }}</option>
+          <option value="disabled"{{ sel(tls, "disabled") }}>{{ t("import.new.tls_disabled") }}</option>
+        </select></div>
+      {% call ui::field("cc_hash", t("import.new.cc_hash"), "", kind="password", autocomplete="off", hint=t("import.new.cc_hash_hint")) %}{% endcall %}
+    </div></div>
+  </section>
+  <section class="form-section">
+    <div class="form-section__intro"><h2>{{ t("import.new.attach_title") }}</h2><p>{{ t("import.new.attach_lead") }}</p></div>
+    <div class="form-section__body"><div class="form-grid">
+      {% call ui::field("attach_url", t("import.new.url"), attach_url, kind="url", placeholder="https://billing.example.net/") %}{% endcall %}
+      {% call ui::field("attach_identifier", t("import.new.identifier"), attach_identifier, autocomplete="off") %}{% endcall %}
+      {% call ui::field("attach_secret", t("import.new.api_secret"), "", kind="password", autocomplete="new-password") %}{% endcall %}
+    </div></div>
+  </section>
+  {%- else %}
+  <section class="form-section form-section--first">
+    <div class="form-section__intro"><h2>{{ t("import.new.api_title") }}</h2><p>{{ t("import.new.api_lead") }}</p></div>
+    <div class="form-section__body"><div class="form-grid">
+      {% call ui::field("url", t("import.new.url"), url, kind="url", error=errors.get("url"), required=true, placeholder="https://billing.example.net/") %}{% endcall %}
+      {% call ui::field("identifier", t("import.new.identifier"), identifier, error=errors.get("identifier"), required=true, autocomplete="off") %}{% endcall %}
+      {% call ui::field("api_secret", t("import.new.api_secret"), "", kind="password", error=errors.get("api_secret"), required=true, autocomplete="new-password", hint=t("import.new.secret_hint")) %}{% endcall %}
+      {% call ui::field("api_access_key", t("import.new.access_key"), "", kind="password", autocomplete="off", hint=t("import.new.access_key_hint")) %}{% endcall %}
+    </div>
+    <div class="mt-4">{% call ui::alert("info", t("import.new.api_limits")) %}{% endcall %}</div>
+    </div>
+  </section>
+  {%- endif %}
+  <div class="form-actions">
+    <a class="btn btn--ghost" href="{{ url("/admin/tools/import") }}">{{ t("common.actions.cancel") }}</a>
+    <button class="btn btn--primary" type="submit">{{ icon("plug") }}{{ t("import.new.connect") }}</button>
+  </div>
+</form>
+{% endblock %}

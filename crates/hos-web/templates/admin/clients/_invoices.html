@@ -1,0 +1,10 @@
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th>{{ t("admin.invoices.col_number") }}</th><th>{{ t("admin.invoices.col_issue") }}</th><th>{{ t("admin.invoices.col_due") }}</th><th class="num">{{ t("admin.invoices.col_total") }}</th><th class="num">{{ t("admin.invoices.col_balance") }}</th><th>{{ t("admin.common.status") }}</th></tr></thead>
+  <tbody>{% for i in invoices %}<tr>
+    <td data-label="{{ t("admin.invoices.col_number") }}"><a class="row-link" href="{{ url("/admin/invoices/" ~ i.invoice.id) }}">{% match i.invoice.number %}{% when Some(n) %}{{ n }}{% when None %}{{ t("admin.invoices.draft_label") }}{% endmatch %}</a></td>
+    <td data-label="{{ t("admin.invoices.col_issue") }}">{{ d(i.invoice.issue_date) }}</td>
+    <td data-label="{{ t("admin.invoices.col_due") }}">{{ d(i.invoice.due_date) }}</td>
+    <td data-label="{{ t("admin.invoices.col_total") }}" class="num">{{ m(i.invoice.total, i.invoice.currency) }}</td>
+    <td data-label="{{ t("admin.invoices.col_balance") }}" class="num">{{ m(i.invoice.balance, i.invoice.currency) }}</td>
+    <td data-label="{{ t("admin.common.status") }}">{{ sbadge(i.invoice.status.as_str()) }}</td></tr>{% endfor %}</tbody>
+</table></div>

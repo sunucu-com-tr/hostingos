@@ -1,0 +1,98 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ ctx.title }} {{ cbadge("affiliates.affiliate_status", a.affiliate.status.as_str()) }}</h1>
+    <p><a href="{{ url("/admin/clients/" ~ a.affiliate.client_id) }}">{{ a.client_email }}</a> · <span class="mono">{{ a.affiliate.code }}</span></p></div>
+</div>
+<div class="biz-stats">
+  <div class="biz-stat"><p class="biz-stat__label">{{ t("affiliates.fields.clicks") }}</p><p class="biz-stat__value">{{ num(a.clicks) }}</p></div>
+  <div class="biz-stat"><p class="biz-stat__label">{{ t("affiliates.fields.referrals") }}</p><p class="biz-stat__value">{{ num(a.referrals) }}</p></div>
+  <div class="biz-stat"><p class="biz-stat__label">{{ t("affiliates.fields.pending") }}</p><p class="biz-stat__value">{{ m(a.pending, a.affiliate.currency) }}</p></div>
+  <div class="biz-stat"><p class="biz-stat__label">{{ t("affiliates.fields.balance") }}</p><p class="biz-stat__value">{{ m(a.balance, a.affiliate.currency) }}</p></div>
+</div>
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    {% call ui::card(t("affiliates.client.commissions_title")) %}
+    {%- if commissions.is_empty() %}<p class="biz-muted">{{ t("affiliates.client.no_commissions") }}</p>{% else %}
+    <div class="table-wrap"><table class="table table--dense table--stack">
+      <thead><tr><th scope="col">{{ t("affiliates.fields.date") }}</th><th scope="col">{{ t("affiliates.fields.kind") }}</th><th scope="col">{{ t("affiliates.fields.invoice") }}</th><th scope="col" class="num">{{ t("affiliates.fields.amount") }}</th><th scope="col">{{ t("admin.common.status") }}</th><th scope="col"><span class="visually-hidden">{{ t("affiliates.fields.actions") }}</span></th></tr></thead>
+      <tbody>{% for c in commissions %}<tr>
+        <td data-label="{{ t("affiliates.fields.date") }}" class="nowrap">{{ date(c.created_at) }}</td>
+        <td data-label="{{ t("affiliates.fields.kind") }}">{{ lbl("affiliates.kind", c.kind.as_str()) }}</td>
+        <td data-label="{{ t("affiliates.fields.invoice") }}">{% match c.invoice_id %}{% when Some(iid) %}<a href="{{ url("/admin/invoices/" ~ iid) }}">{{ t("affiliates.admin.open_invoice") }}</a>{% when None %}—{% endmatch %}</td>
+        <td data-label="{{ t("affiliates.fields.amount") }}" class="num mono">{{ m(c.amount, c.currency) }}</td>
+        <td data-label="{{ t("admin.common.status") }}">{{ cbadge("affiliates.status", c.status.as_str()) }}{% match c.reversal_reason %}{% when Some(rr) %}<span class="sub">{{ lbl("affiliates.reason", rr.as_str()) }}</span>{% when None %}{% endmatch %}</td>
+        <td class="num biz-cellact">{%- if can("affiliates.manage") && c.kind != "adjustment" && c.status.as_str() != "reversed" %}<form method="post" action="{{ url("/admin/affiliates/commissions/" ~ c.id ~ "/reverse") }}" data-confirm="{{ t("affiliates.admin.reverse_one_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ icon("x") }}{{ t("affiliates.admin.reverse") }}</button></form>{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {%- endif %}
+    {% endcall %}
+    {% call ui::card(t("affiliates.client.referrals_title")) %}
+    {%- if referrals.is_empty() %}<p class="biz-muted">{{ t("affiliates.client.no_referrals") }}</p>{% else %}
+    <div class="table-wrap"><table class="table table--dense table--stack">
+      <thead><tr><th scope="col">{{ t("affiliates.fields.referral") }}</th><th scope="col">{{ t("affiliates.fields.date") }}</th><th scope="col">{{ t("affiliates.fields.flag") }}</th><th scope="col" class="num">{{ t("affiliates.fields.earned") }}</th></tr></thead>
+      <tbody>{% for r in referrals %}<tr>
+        <td data-label="{{ t("affiliates.fields.referral") }}"><a href="{{ url("/admin/clients/" ~ r.client_id) }}">{{ r.first_name }} {{ r.last_initial }}.</a></td>
+        <td data-label="{{ t("affiliates.fields.date") }}" class="nowrap">{{ date(r.created_at) }}</td>
+        <td data-label="{{ t("affiliates.fields.flag") }}">{% match r.flag %}{% when Some(fl) %}{{ badge(lbl("affiliates.flag", fl.as_str()), "warning") }}{% when None %}—{% endmatch %}</td>
+        <td data-label="{{ t("affiliates.fields.earned") }}" class="num mono">{{ m(r.earned, a.affiliate.currency) }}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {%- endif %}
+    {% endcall %}
+    {%- if !payouts.is_empty() %}
+    {% call ui::card(t("affiliates.client.payouts_title")) %}
+    <div class="table-wrap"><table class="table table--dense table--stack">
+      <thead><tr><th scope="col">{{ t("affiliates.fields.date") }}</th><th scope="col">{{ t("affiliates.fields.method") }}</th><th scope="col" class="num">{{ t("affiliates.fields.amount") }}</th><th scope="col">{{ t("admin.common.status") }}</th></tr></thead>
+      <tbody>{% for p in payouts %}<tr>
+        <td data-label="{{ t("affiliates.fields.date") }}" class="nowrap">{{ date(p.created_at) }}</td>
+        <td data-label="{{ t("affiliates.fields.method") }}">{{ lbl("affiliates.method", p.method.as_str()) }}</td>
+        <td data-label="{{ t("affiliates.fields.amount") }}" class="num mono">{{ m(p.amount, p.currency) }}</td>
+        <td data-label="{{ t("admin.common.status") }}">{{ cbadge("affiliates.payout_status", p.status.as_str()) }}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% endcall %}
+    {%- endif %}
+  </div>
+  <aside class="stack-lg">
+    {% call ui::card(t("affiliates.client.link_title")) %}
+    <div class="biz-copy">
+      <label class="visually-hidden" for="ref-link">{{ t("affiliates.client.link_title") }}</label>
+      <input class="input" id="ref-link" type="text" value="{{ link }}" readonly>
+      <button type="button" class="btn btn--soft" data-copy="#ref-link" data-copied="{{ t("common.actions.copied") }}">{{ icon("copy") }}{{ t("common.actions.copy") }}</button>
+    </div>
+    {% endcall %}
+    {%- if can("affiliates.manage") %}
+    {% call ui::card(t("affiliates.admin.overrides"), t("affiliates.admin.overrides_hint")) %}
+    <form method="post" action="{{ url("/admin/affiliates/" ~ a.affiliate.id) }}" class="stack">
+      {% call ui::csrf() %}{% endcall %}
+      <div class="field"><label class="field__label" for="f-status">{{ t("admin.common.status") }}</label>
+        <select class="select" id="f-status" name="status">
+          <option value="active"{{ sel(a.affiliate.status.as_str(), "active") }}>{{ t("affiliates.affiliate_status.active") }}</option>
+          <option value="suspended"{{ sel(a.affiliate.status.as_str(), "suspended") }}>{{ t("affiliates.affiliate_status.suspended") }}</option>
+        </select></div>
+      {%- let ct = override_type() %}
+      <div class="field"><label class="field__label" for="f-commission_type">{{ t("affiliates.fields.commission_type") }}</label>
+        <select class="select" id="f-commission_type" name="commission_type">
+          <option value="">{{ t("affiliates.admin.programme_default") }}</option>
+          <option value="percent"{{ sel(ct, "percent") }}>{{ t("affiliates.rate.percent") }}</option>
+          <option value="fixed"{{ sel(ct, "fixed") }}>{{ t("affiliates.rate.fixed") }}</option>
+        </select></div>
+      {%- let cv = override_value() %}
+      {% call ui::field("commission_value", t("affiliates.fields.commission_value"), cv, inputmode="decimal") %}{% endcall %}
+      {%- let rc = override_recurring() %}
+      <div class="field"><label class="field__label" for="f-recurring">{{ t("affiliates.fields.recurring") }}</label>
+        <select class="select" id="f-recurring" name="recurring">
+          <option value="">{{ t("affiliates.admin.programme_default") }}</option>
+          <option value="yes"{{ sel(rc, "yes") }}>{{ t("common.yes") }}</option>
+          <option value="no"{{ sel(rc, "no") }}>{{ t("common.no") }}</option>
+        </select></div>
+      <div><button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button></div>
+    </form>
+    {% endcall %}
+    {%- endif %}
+  </aside>
+</div>
+{% endblock %}

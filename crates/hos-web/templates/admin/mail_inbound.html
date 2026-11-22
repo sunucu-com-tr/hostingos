@@ -1,0 +1,44 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ ctx.title }}</h1><p>{{ t("inbound.admin.lead") }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/support/inbound/settings") }}">{{ icon("settings") }}{{ t("inbound.admin.settings_title") }}</a></div>
+</div>
+{%- if !enabled %}
+{% call ui::alert("info", t("inbound.admin.disabled_note")) %}{% endcall %}
+{%- endif %}
+<nav class="tabs" aria-label="{{ t("common.a11y.tabs") }}">
+  {%- for (href, label, current) in tab_items() %}
+  <a href="{{ href }}"{% if current %} aria-current="page"{% endif %}>{{ label }}</a>
+  {%- endfor %}
+</nav>
+<div class="mt-4">
+{%- if rows.is_empty() %}
+{% call ui::empty("inbox", t("inbound.admin.empty_title"), t("inbound.admin.empty_text")) %}{% endcall %}
+{%- else %}
+{%- let select = show.is_empty() %}
+<form method="post" action="{{ url("/admin/support/inbound/bulk") }}" data-confirm="{{ t("inbound.admin.bulk_discard_confirm") }}">
+{%- if select %}
+  {% call ui::csrf() %}{% endcall %}
+  <input type="hidden" name="action" value="discard">
+  <div class="bulkbar">
+    <span class="bulkbar__count" aria-live="polite">{{ tv("admin.shell.selected", "count", 0) }}</span>
+    <button class="btn btn--soft btn--sm" type="submit">{{ icon("trash") }}{{ t("inbound.admin.bulk_discard") }}</button>
+  </div>
+{%- endif %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr>{% if select %}<th scope="col" class="check"><input type="checkbox" data-check-all="ids" aria-label="{{ t("admin.common.select_all") }}"></th>{% endif %}<th scope="col">{{ t("inbound.fields.received") }}</th><th scope="col">{{ t("inbound.fields.sender") }}</th><th scope="col">{{ t("inbound.fields.subject") }}</th><th scope="col">{{ t("inbound.fields.status") }}</th></tr></thead>
+  <tbody>{% for r in rows %}<tr>
+    {%- if select %}<td class="check"><input type="checkbox" name="ids" value="{{ r.id }}" aria-label="{{ o(r.sender) }}"></td>{% endif %}
+    <td data-label="{{ t("inbound.fields.received") }}" class="nowrap">{{ datetime(r.created_at) }}<span class="sub">{{ t(format!("inbound.source.{}", r.source.as_str()).as_str()) }}</span></td>
+    <td data-label="{{ t("inbound.fields.sender") }}" class="biz-break">{{ o(r.sender) }}</td>
+    <td data-label="{{ t("inbound.fields.subject") }}"><a class="row-link" href="{{ url("/admin/support/inbound/" ~ r.id) }}">{% match r.subject %}{% when Some(s) %}{{ s }}{% when None %}{{ t("inbound.no_subject") }}{% endmatch %}</a>{% if !r.attachment_names.is_empty() %}<span class="sub">{{ icon("file-text") }}{{ r.attachment_names.len() }}</span>{% endif %}</td>
+    <td data-label="{{ t("inbound.fields.status") }}">{{ sbadge_of(r.status) }}{% let rs = reason(r.reason) %}{% if !rs.is_empty() %}<span class="sub">{{ rs }}</span>{% endif %}</td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+</form>
+{%- endif %}
+</div>
+{% endblock %}

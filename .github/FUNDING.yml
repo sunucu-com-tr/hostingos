@@ -1,0 +1,14 @@
+# Sponsor button of the repository (GitHub reads this file from the default
+# branch). Every entry is commented out: until the maintainer sets up a
+# funding account, GitHub shows no button. Uncomment the platforms you use
+# and fill in your own account name. Syntax:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+#
+# Not set up yet.
+
+# github: USERNAME
+# open_collective: PROJECT-NAME
+# liberapay: USERNAME
+# ko_fi: USERNAME
+# buy_me_a_coffee: USERNAME
+# custom: ["https://example.invalid/sponsor"]

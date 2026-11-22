@@ -1,0 +1,23 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.search.title") }}</h1></div></div>
+<form class="filters filters--page-search" method="get" action="{{ url("/admin/search") }}" role="search">
+  <div class="field field--grow">{{ icon("search") }}<label class="field__label visually-hidden" for="sq">{{ t("admin.search.label") }}</label>
+  <input class="input" id="sq" type="search" name="q" value="{{ q }}" placeholder="{{ t("admin.search.label") }}" autofocus></div>
+  <div class="filters__actions"><button class="btn btn--primary" type="submit">{{ icon("search") }}{{ t("admin.common.search") }}</button></div>
+</form>
+{%- if q.chars().count() < 2 %}
+{% call ui::empty("search", t("admin.search.hint_title"), t("admin.search.hint_text")) %}{% endcall %}
+{%- elif hits.is_empty() && shortcuts.is_empty() %}
+{% call ui::empty("search", t("admin.search.empty_title"), tv("admin.search.no_results", "q", q)) %}{% endcall %}
+{%- else %}
+<div class="card"><div class="card__body cmdk__results cmdk__results--page">
+{%- for s in shortcuts %}<a class="cmdk__item" href="{{ s.href }}">{{ icon(s.icon) }}<span>{{ s.label }}</span></a>{% endfor %}
+{%- for h in hits %}
+{%- if h.first %}<p class="cmdk__group">{{ h.group }}</p>{% endif %}
+<a class="cmdk__item" href="{{ h.href }}">{{ icon(h.icon) }}<span>{{ h.title }}</span>{% if !h.subtitle.is_empty() %}<small>{{ h.subtitle }}</small>{% endif %}</a>
+{%- endfor %}
+</div></div>
+{%- endif %}
+{% endblock %}

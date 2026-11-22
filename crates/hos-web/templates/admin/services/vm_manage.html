@@ -1,0 +1,165 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/vm.css") }}">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("admin.vm.manage") }}</h1>
+    <p><a href="{{ url("/admin/services/" ~ s.id) }}">{{ o(s.domain) }}</a> · <span class="mono">{{ vm_name }}</span></p></div>
+  <div class="page-head__actions">
+    {%- if can("services.manage") && features.console_relay %}<a class="btn btn--primary btn--sm" href="{{ self.base() }}/console/view">{{ icon("terminal") }}{{ t("admin.vm.console") }}</a>{% endif %}
+    <a class="btn btn--ghost btn--sm" href="{{ self.base() }}">{{ icon("chevron-left") }}{{ t("admin.vm.title") }}</a>
+  </div>
+</div>
+{%- for n in notes %}{% call ui::alert("warning", n) %}{% endcall %}{% endfor %}
+
+<nav class="tabs vm-range" aria-label="{{ t("client.vm.range") }}">
+  {%- for r in ["hour", "day", "week", "month"] %}
+  <a href="{{ self.base() }}/manage?range={{ r }}"{% if range == *r %} aria-current="page"{% endif %}>{{ t(format!("client.vm.range_{}", r).as_str()) }}</a>
+  {%- endfor %}
+</nav>
+<div class="stack-lg">
+  {%- if features.metrics_history || features.bandwidth %}
+  {% include "components/_vm_graphs.html" %}
+  {%- else %}
+  {% call ui::card(t("admin.vm.graphs")) %}<p class="muted">{{ t("client.vm.unsupported") }}</p>{% endcall %}
+  {%- endif %}
+
+  <div class="admin-grid admin-grid--side">
+    <div class="stack-lg">
+      {% call ui::card(t("admin.vm.operations"), t("client.vm.activity_lead")) %}
+      {%- if ops.is_empty() %}<p class="muted">{{ t("client.vm.no_activity") }}</p>{% else %}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>{{ t("admin.vm.op_kind") }}</th><th>{{ t("admin.vm.op_detail") }}</th><th>{{ t("admin.vm.op_status") }}</th><th>{{ t("admin.vm.op_started") }}</th></tr></thead>
+        <tbody>
+        {%- for o in ops %}
+          <tr><td>{{ o.kind }}</td><td class="mono small">{{ o.detail }}{% if !o.error.is_empty() %}<br><span class="vm-ops__error">{{ o.error }}</span>{% endif %}</td>
+            <td>{% if o.status == "succeeded" %}{{ badge(t("client.vm.op_status.succeeded"), "success") }}{% elif o.status == "failed" %}{{ badge(t("client.vm.op_status.failed"), "danger") }}{% else %}{{ badge(t("client.vm.op_status.running"), "info") }}{% match o.progress %}{% when Some(p) %} {{ p }}%{% when None %}{% endmatch %}{% endif %}</td>
+            <td class="small">{{ o.created }}</td></tr>
+        {%- endfor %}
+        </tbody>
+      </table></div>
+      {%- endif %}
+      {% endcall %}
+
+      {% call ui::card(t("admin.vm.console_sessions"), t("admin.vm.console_sessions_lead")) %}
+      {%- if sessions.is_empty() %}<p class="muted">{{ t("client.vm.no_activity") }}</p>{% else %}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>{{ t("admin.vm.session_user") }}</th><th>IP</th><th>{{ t("admin.vm.session_when") }}</th><th>{{ t("admin.vm.session_duration") }}</th><th>{{ t("admin.vm.session_traffic") }}</th><th>{{ t("admin.vm.session_reason") }}</th></tr></thead>
+        <tbody>
+        {%- for x in sessions %}
+          <tr><td>{{ x.user }}{% if x.staff %} {{ badge(t("admin.vm.staff"), "") }}{% endif %}</td><td class="mono small">{{ x.ip }}</td><td class="small">{{ x.issued }}</td><td class="small">{{ x.duration }}</td><td class="small">{{ x.traffic }}</td><td class="mono small">{{ x.reason }}</td></tr>
+        {%- endfor %}
+        </tbody>
+      </table></div>
+      {%- endif %}
+      {% endcall %}
+
+      {% call ui::card(t("client.vm.firewall"), t("client.vm.firewall_lead")) %}
+      {%- match firewall %}{% when Some(fwst) %}
+      <form class="stack" method="post" action="{{ self.base() }}/firewall" data-confirm="{{ t("client.vm.firewall_confirm") }}">
+        {% call ui::csrf() %}{% endcall %}
+        <label class="check"><input type="checkbox" name="enabled" value="1"{% if fwst.enabled %} checked{% endif %}{% if !can("services.manage") %} disabled{% endif %}> <span>{{ t("client.vm.firewall_enable") }}</span></label>
+        <div class="table-wrap"><table class="table vm-fw">
+          <thead><tr><th>{{ t("client.vm.fw_direction") }}</th><th>{{ t("client.vm.fw_protocol") }}</th><th>{{ t("client.vm.fw_port") }}</th><th>{{ t("client.vm.fw_sources") }}</th><th>{{ t("client.vm.fw_comment") }}</th><th><span class="visually-hidden">{{ t("admin.common.delete") }}</span></th></tr></thead>
+          <tbody>
+          {%- for r in fw %}
+            <tr>
+              <td><select class="select" name="r{{ r.idx }}_dir" aria-label="{{ t("client.vm.fw_direction") }}"><option value="in"{% if r.dir == "in" %} selected{% endif %}>{{ t("client.vm.fw_in") }}</option><option value="out"{% if r.dir == "out" %} selected{% endif %}>{{ t("client.vm.fw_out") }}</option></select></td>
+              <td><select class="select" name="r{{ r.idx }}_proto" aria-label="{{ t("client.vm.fw_protocol") }}">{% for p in ["tcp", "udp", "icmp"] %}<option value="{{ p }}"{% if r.proto == *p %} selected{% endif %}>{{ p|upper }}</option>{% endfor %}</select></td>
+              <td><input class="input mono" name="r{{ r.idx }}_port" value="{{ r.port }}" maxlength="11" aria-label="{{ t("client.vm.fw_port") }}"></td>
+              <td><input class="input mono" name="r{{ r.idx }}_src" value="{{ r.src }}" maxlength="900" placeholder="{{ t("client.vm.fw_any") }}" aria-label="{{ t("client.vm.fw_sources") }}"></td>
+              <td><input class="input" name="r{{ r.idx }}_note" value="{{ r.note }}" maxlength="60" aria-label="{{ t("client.vm.fw_comment") }}"></td>
+              <td><label class="check"><input type="checkbox" name="r{{ r.idx }}_drop" value="1"> <span class="visually-hidden">{{ t("admin.common.delete") }}</span>{{ icon("trash") }}</label></td>
+            </tr>
+          {%- endfor %}
+          </tbody>
+        </table></div>
+        {%- if can("services.manage") %}<div><button type="submit" class="btn btn--primary btn--sm">{{ t("client.vm.firewall_save") }}</button></div>{% endif %}
+      </form>
+      {%- when None %}<p class="muted">{{ t("client.vm.unsupported") }}</p>{% endmatch %}
+      {% endcall %}
+    </div>
+
+    <div class="stack-lg">
+      {% call ui::card(t("client.vm.rdns"), t("client.vm.rdns_lead")) %}
+      {%- if ptrs.is_empty() %}<p class="muted">—</p>{% else %}
+      <ul class="row-list vm-ptr">
+      {%- for p in ptrs %}
+        <li><span class="mono">{{ p.ip }}</span>
+        {%- if p.editable && can("services.manage") %}
+          <form class="input-group" method="post" action="{{ self.base() }}/rdns">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="ip" value="{{ p.ip }}"><input class="input mono" name="ptr" aria-label="PTR" value="{% match p.ptr %}{% when Some(v) %}{{ v }}{% when None %}{% endmatch %}" maxlength="253"><button type="submit" class="btn btn--soft btn--sm">{{ t("client.common.save") }}</button></form>
+        {%- else %}<span class="muted small mono">{% match p.ptr %}{% when Some(v) %}{{ v }}{% when None %}—{% endmatch %}</span>{% endif %}</li>
+      {%- endfor %}
+      </ul>
+      {%- endif %}
+      {% endcall %}
+
+      {%- if can("services.manage") %}
+      {% call ui::card(t("client.vm.password_reset"), t("admin.vm.password_lead")) %}
+      {%- if features.password_reset %}
+      <form class="stack-sm" method="post" action="{{ self.base() }}/password" data-confirm="{{ t("client.vm.password_confirm") }}">
+        {% call ui::csrf() %}{% endcall %}
+        <label class="field__label" for="f-user">{{ t("client.vm.username") }}</label>
+        <input class="input mono" id="f-user" name="username" placeholder="root" maxlength="32" autocomplete="off">
+        <label class="check"><input type="checkbox" name="confirm" value="yes" required> <span>{{ t("client.vm.password_confirm_check") }}</span></label>
+        <div><button type="submit" class="btn btn--soft btn--sm">{{ icon("key") }}{{ t("client.vm.password_reset_submit") }}</button></div>
+      </form>
+      {%- else %}<p class="muted">{{ t("client.vm.unsupported") }}</p>{% endif %}
+      {% endcall %}
+
+      {% call ui::card(t("client.vm.rescue"), t("client.vm.rescue_lead")) %}
+      {%- if !features.rescue %}<p class="muted">{{ t("client.vm.unsupported") }}</p>
+      {%- else %}
+      <form method="post" action="{{ self.base() }}/rescue">{% call ui::csrf() %}{% endcall %}
+        {%- if extras.rescue_enabled == Some(true) %}<input type="hidden" name="enable" value="0"><button type="submit" class="btn btn--soft btn--sm">{{ t("client.vm.rescue_disable") }}</button>
+        {%- else %}<input type="hidden" name="enable" value="1"><button type="submit" class="btn btn--soft btn--sm">{{ t("client.vm.rescue_enable") }}</button>{% endif %}
+      </form>
+      {%- endif %}
+      {% endcall %}
+      {%- endif %}
+
+      {% call ui::card(t("client.vm.backups"), t("client.vm.backups_lead")) %}
+      {%- if !features.backups %}<p class="muted">{{ t("client.vm.unsupported") }}</p>
+      {%- elif backups.is_empty() %}<p class="muted">{{ t("client.vm.no_backups") }}</p>
+      {%- else %}
+      <ul class="row-list">
+      {%- for bk in backups %}
+        <li><span><strong>{{ bk.name }}</strong><span class="muted small">{{ date_opt(bk.created_at) }}</span></span>
+        {%- if features.backup_restore && can("services.manage") %}
+          <form method="post" action="{{ self.base() }}/backups/restore" data-confirm="{{ t("client.vm.restore_warning") }}">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="backup" value="{{ bk.id }}"><input type="hidden" name="confirm" value="yes"><button type="submit" class="btn btn--ghost btn--sm">{{ t("client.vm.restore") }}</button></form>
+        {%- endif %}</li>
+      {%- endfor %}
+      </ul>
+      {%- endif %}
+      {% endcall %}
+
+      {% call ui::card(t("admin.vm.isos"), t("admin.vm.isos_lead")) %}
+      {%- if !features.iso %}<p class="muted">{{ t("client.vm.unsupported") }}</p>
+      {%- else %}
+        {%- match extras.mounted_iso %}{% when Some(m) %}
+        <p class="small">{{ t("client.vm.iso_mounted_now") }} <span class="mono">{{ m }}</span></p>
+        {%- if can("services.manage") %}<form method="post" action="{{ self.base() }}/iso/eject">{% call ui::csrf() %}{% endcall %}<button type="submit" class="btn btn--ghost btn--sm">{{ t("client.vm.iso_eject") }}</button></form>{% endif %}
+        {%- when None %}{% endmatch %}
+        {%- if isos.is_empty() %}<p class="muted">{{ t("client.vm.iso_none") }}</p>{% else %}
+        <ul class="row-list">
+        {%- for i in isos %}
+          <li><span><strong class="mono small">{{ i.image.name }}</strong>{% if i.approved.is_some() %}<span class="small">{{ badge(t("admin.vm.iso_approved"), "success") }}</span>{% endif %}</span>
+          {%- if can("services.manage") %}
+            <span class="cluster">
+            {%- match i.approved %}{% when Some(a) %}
+              <form method="post" action="{{ self.base() }}/iso/mount">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="iso" value="{{ i.image.id }}"><input type="hidden" name="boot" value="1"><button type="submit" class="btn btn--ghost btn--sm">{{ t("client.vm.iso_mount") }}</button></form>
+              <form method="post" action="{{ self.base() }}/iso/remove">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="iso_id" value="{{ a.id }}"><button type="submit" class="btn btn--ghost btn--sm">{{ t("admin.vm.iso_revoke") }}</button></form>
+            {%- when None %}
+              <form method="post" action="{{ self.base() }}/iso/approve">{% call ui::csrf() %}{% endcall %}<input type="hidden" name="iso" value="{{ i.image.id }}"><button type="submit" class="btn btn--soft btn--sm">{{ t("admin.vm.iso_approve") }}</button></form>
+            {%- endmatch %}
+            </span>
+          {%- endif %}</li>
+        {%- endfor %}
+        </ul>
+        {%- endif %}
+      {%- endif %}
+      {% endcall %}
+    </div>
+  </div>
+</div>
+{% endblock %}

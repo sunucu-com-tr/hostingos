@@ -1,0 +1,148 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_content.css") }}">
+<script src="{{ asset("js/admin_content.js") }}" defer></script>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>#{{ tk.number }} · {{ tk.subject }}</h1>
+    <p>{{ sbadge(tk.status.as_str()) }} {{ sbadge(tk.priority.as_str()) }} · {{ department }} · {{ t("admin_support.ticket.opened") }} {{ datetime(tk.created_at) }}</p></div>
+  <div class="page-head__actions"><a class="btn btn--ghost" href="{{ url("/admin/support/tickets") }}">{{ icon("chevron-left") }}{{ t("admin_support.tickets.title") }}</a></div>
+</div>
+<div class="admin-grid admin-grid--side">
+  <div class="stack">
+    <section aria-labelledby="thread-h">
+      <h2 id="thread-h" class="visually-hidden">{{ t("admin_support.ticket.thread") }}</h2>
+      <ol class="thread ticket-thread">
+      {%- for mv in messages %}
+        <li id="m-{{ mv.m.id }}" class="msg{% if mv.m.is_internal %} msg--internal{% elif mv.m.author_kind.as_str() == "staff" %} msg--staff{% endif %}">
+          <div class="msg__head">
+            <span><strong>{{ author_label(mv.m) }}</strong>
+              {%- if mv.m.is_internal %} {{ badge(t("admin_support.ticket.internal_badge"), "warning") }}{% elif mv.m.author_kind.as_str() == "staff" %} {{ badge(t("admin_support.authors.staff"), "brand") }}{% else %} {{ badge(lbl("admin_support.authors", mv.m.author_kind.as_str()), "") }}{% endif %}
+              {%- if mv.m.source.as_str() == "email" && !mv.m.is_internal %} {{ badge(t("admin_support.ticket.by_email"), "") }}{% if mv.m.sender_verified != Some(true) %} {{ badge(t("admin_support.ticket.sender_unverified"), "warning") }}{% endif %}{% endif %}</span>
+            <time class="muted" datetime="{{ iso(mv.m.created_at) }}">{{ datetime(mv.m.created_at) }}</time>
+          </div>
+          <div class="msg__body prose">{{ mv.html|safe }}</div>
+          {%- if !mv.files.is_empty() %}
+          <ul class="attachments">
+            {%- for f in mv.files %}
+            <li><a href="{{ url(base ~ "/attachments/" ~ f.id) }}" download>{{ icon("download") }}{{ f.filename }}</a> <span class="muted small">{{ size(f) }}</span></li>
+            {%- endfor %}
+          </ul>
+          {%- endif %}
+        </li>
+      {%- endfor %}
+      </ol>
+    </section>
+
+    {%- if can_manage %}
+    <section class="card" id="reply" aria-labelledby="reply-h">
+      <header class="card__head"><div><h2 id="reply-h">{{ t("admin_support.ticket.reply_title") }}</h2><p class="muted small">{{ t("admin_support.ticket.reply_lead") }}</p></div></header>
+      <div class="card__body">
+      <form class="stack" method="post" action="{{ url(base ~ "/reply") }}" enctype="multipart/form-data">
+        {% call ui::csrf() %}{% endcall %}
+        {% call ui::form_errors(errors) %}{% endcall %}
+        <fieldset class="field">
+          <legend class="field__label">{{ t("admin_support.ticket.mode") }}</legend>
+          <div class="cluster">
+            <label class="check"><input type="radio" name="mode" value="reply" checked> <span>{{ t("admin_support.ticket.mode_reply") }}</span></label>
+            <label class="check"><input type="radio" name="mode" value="note"> <span>{{ t("admin_support.ticket.mode_note") }}</span></label>
+          </div>
+          <p class="field__hint">{{ t("admin_support.ticket.mode_hint") }}</p>
+        </fieldset>
+        {%- if !canned.is_empty() %}
+        <div class="field"><label class="field__label" for="f-canned">{{ t("admin_support.ticket.canned_insert") }}</label>
+          <select class="select" id="f-canned" data-insert-into="#reply-body">
+            <option value="">{{ t("admin_support.ticket.canned_pick") }}</option>
+            {%- for c in canned %}<option value="{{ c.id }}" data-body="{{ c.body }}">{{ c.title }} ({{ c.locale.as_str()|upper }}){% match c.category %}{% when Some(cat) %} · {{ cat }}{% when None %}{% endmatch %}</option>{% endfor %}
+          </select></div>
+        {%- endif %}
+        <div class="field{% if errors.has("body") %} field--error{% endif %}"><label class="field__label" for="reply-body">{{ t("admin_support.ticket.body") }}</label>
+          <textarea class="textarea" id="reply-body" name="body" rows="9" required{% if errors.has("body") %} aria-invalid="true"{% endif %}>{{ body }}</textarea>
+          {%- if errors.has("body") %}<p class="field__error">{{ errors.get("body") }}</p>{% else %}<p class="field__hint">{{ t("admin.common.markdown_hint") }}</p>{% endif %}</div>
+        <div class="form-grid">
+          <div class="field{% if errors.has("files") %} field--error{% endif %}"><label class="field__label" for="f-files">{{ t("admin_support.ticket.files") }}</label>
+            <input class="input" id="f-files" type="file" name="files" multiple>
+            {%- if errors.has("files") %}<p class="field__error">{{ errors.get("files") }}</p>{% else %}<p class="field__hint">{{ tv2("admin_support.ticket.files_hint", "max", max_files, "kb", max_kb) }}</p>{% endif %}</div>
+          <div class="field"><label class="field__label" for="f-after">{{ t("admin_support.ticket.after_status") }}</label>
+            <select class="select" id="f-after" name="after_status">
+              <option value="">{{ t("admin_support.ticket.after_auto") }}</option>
+              {%- for (v, l) in statuses %}{% if v != tk.status.as_str() %}<option value="{{ v }}">{{ l }}</option>{% endif %}{% endfor %}
+            </select></div>
+        </div>
+        <div class="form-actions"><button class="btn btn--primary" type="submit">{{ icon("send") }}{{ t("admin_support.ticket.send") }}</button></div>
+      </form>
+      </div>
+    </section>
+    {%- endif %}
+  </div>
+
+  <aside class="stack" aria-label="{{ t("admin_support.ticket.sidebar") }}">
+    {% call ui::card(t("admin_support.ticket.properties")) %}
+    {%- if can_manage %}
+    <form class="stack" method="post" action="{{ url(base ~ "/update") }}">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::select("status", t("admin.common.status"), statuses.as_slice(), tk.status.as_str()) %}{% endcall %}
+      {% call ui::select("priority", t("admin_support.ticket.priority"), priorities.as_slice(), tk.priority.as_str()) %}{% endcall %}
+      <div class="field"><label class="field__label" for="f-dep">{{ t("admin_support.ticket.department") }}</label>
+        <select class="select" id="f-dep" name="department">{% for d in departments %}<option value="{{ d.id }}"{% if d.id == tk.department_id %} selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label class="field__label" for="f-assignee">{{ t("admin_support.ticket.assignee") }}</label>
+        <select class="select" id="f-assignee" name="assigned_to"><option value="">{{ t("admin_support.tickets.unassigned") }}</option>
+          {%- for (v, l) in staff %}<option value="{{ v }}"{% match tk.assigned_to %}{% when Some(a) %}{% if a.to_string() == v.as_str() %} selected{% endif %}{% when None %}{% endmatch %}>{{ l }}</option>{% endfor %}</select></div>
+      <button class="btn btn--soft btn--block" type="submit">{{ t("common.actions.save") }}</button>
+    </form>
+    {%- else %}
+    <dl class="kv">
+      <dt>{{ t("admin_support.ticket.department") }}</dt><dd>{{ department }}</dd>
+      <dt>{{ t("admin_support.ticket.assignee") }}</dt><dd>{% if assignee.is_empty() %}—{% else %}{{ assignee }}{% endif %}</dd>
+    </dl>
+    {%- endif %}
+    {%- if !related.is_empty() %}
+    <p class="small mt-2">{{ t("admin_support.ticket.related") }}: <a href="{{ url(related_href) }}">{{ related }}</a></p>
+    {%- endif %}
+    {% endcall %}
+
+    {%- if ai_ready %}
+    <section class="card" id="ai-draft" aria-labelledby="ai-h">
+      <header class="card__head"><div><h2 id="ai-h">{{ icon("sparkles") }} {{ t("admin_support.ai.title") }}</h2><p class="muted small">{{ t("admin_support.ai.lead") }}</p></div></header>
+      <div class="card__body stack">
+        <form method="post" action="{{ url(base ~ "/ai-draft") }}" hx-post="{{ url(base ~ "/ai-draft") }}" hx-target="#ai-draft-box" hx-swap="innerHTML" hx-disabled-elt="find button">
+          {% call ui::csrf() %}{% endcall %}
+          <button class="btn btn--soft btn--block" type="submit">{{ icon("sparkles") }}{{ t("admin_support.ai.generate") }}</button>
+        </form>
+        <div id="ai-draft-box" aria-live="polite">{{ ai_box|safe }}</div>
+      </div>
+    </section>
+    {%- endif %}
+
+    {% call ui::card(t("admin_support.ticket.requester")) %}
+    <dl class="kv">
+      <dt>{{ t("admin.common.name") }}</dt><dd>{% match client %}{% when Some(c) %}<a href="{{ url("/admin/clients/" ~ c.id) }}">{{ requester }}</a>{% when None %}{{ requester }} {{ badge(t("admin_support.ticket.guest"), "") }}{% endmatch %}</dd>
+      <dt>{{ t("admin_support.ticket.email") }}</dt><dd>{{ requester_email }}</dd>
+      {%- match client %}{% when Some(c) %}
+      <dt>{{ t("admin.common.status") }}</dt><dd>{{ sbadge(c.status.as_str()) }}</dd>
+      {%- when None %}{% endmatch %}
+    </dl>
+    {%- match client %}{% when Some(c) %}
+    <h3 class="h4 mt-4">{{ t("admin_support.ticket.services") }}</h3>
+    {%- if client_services.is_empty() %}<p class="muted small">{{ t("admin_support.ticket.no_services") }}</p>{% else %}
+    <ul class="side-list">
+      {%- for s in client_services %}<li><a href="{{ url("/admin/services/" ~ s.service.id) }}">{{ s.product_name }}</a>{% match s.service.domain %}{% when Some(d) %} <span class="muted small">{{ d }}</span>{% when None %}{% endmatch %} {{ sbadge(s.service.status.as_str()) }}</li>{% endfor %}
+    </ul>{% endif %}
+    {%- if can_billing %}
+    <h3 class="h4 mt-4">{{ t("admin_support.ticket.unpaid") }}</h3>
+    {%- if unpaid.is_empty() %}<p class="muted small">{{ t("admin_support.ticket.no_unpaid") }}</p>{% else %}
+    <ul class="side-list">
+      {%- for i in unpaid %}<li><a href="{{ url("/admin/invoices/" ~ i.invoice.id) }}">{{ o(i.invoice.number) }}</a> <span class="num">{{ m(i.invoice.balance, i.invoice.currency) }}</span> <span class="muted small">{{ d(i.invoice.due_date) }}</span></li>{% endfor %}
+    </ul>{% endif %}
+    {%- endif %}
+    <h3 class="h4 mt-4">{{ t("admin_support.ticket.recent") }}</h3>
+    {%- if recent.is_empty() %}<p class="muted small">{{ t("admin_support.ticket.no_recent") }}</p>{% else %}
+    <ul class="side-list">
+      {%- for r in recent %}<li><a href="{{ url("/admin/support/tickets/" ~ r.ticket.id) }}">#{{ r.ticket.number }} {{ r.ticket.subject }}</a> {{ sbadge(r.ticket.status.as_str()) }}</li>{% endfor %}
+    </ul>{% endif %}
+    <p class="mt-4"><a class="btn btn--ghost btn--sm" href="{{ url("/admin/support/tickets/new?client=" ~ c.id) }}">{{ icon("plus") }}{{ t("admin_support.new.title") }}</a></p>
+    {%- when None %}{% endmatch %}
+    {% endcall %}
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{#- VM operation log (htmx-polled every 3 s while one runs). -#}
+<div class="vm-ops"{% if busy %} hx-get="{{ feed_url }}" hx-trigger="every 3s" hx-swap="outerHTML"{% endif %} aria-live="polite">
+{%- if ops.is_empty() %}<p class="muted">{{ t("client.vm.no_activity") }}</p>{% else %}
+  <ul class="row-list">
+  {%- for o in ops %}
+    <li><span><strong>{{ o.kind }}</strong>{% if !o.detail.is_empty() %} <span class="muted small mono">{{ o.detail }}</span>{% endif %}<span class="muted small">{{ o.created }}{% if !o.finished.is_empty() %} → {{ o.finished }}{% endif %}</span>
+      {%- if o.status == "running" || o.status == "queued" %}
+      <span class="vm-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100"{% match o.progress %}{% when Some(p) %} aria-valuenow="{{ p }}"{% when None %}{% endmatch %} aria-label="{{ o.kind }}"><span class="vm-progress__bar{% match o.progress %}{% when Some(p) %} vm-w-{{ p / 5 * 5 }}{% when None %} vm-progress__bar--indeterminate{% endmatch %}"></span></span>
+      {%- endif %}
+      {%- if !o.error.is_empty() %}<span class="small vm-ops__error">{{ o.error }}</span>{% endif %}</span>
+      <span>{% if o.status == "succeeded" %}{{ badge(t("client.vm.op_status.succeeded"), "success") }}{% elif o.status == "failed" %}{{ badge(t("client.vm.op_status.failed"), "danger") }}{% else %}{{ badge(t("client.vm.op_status.running"), "info") }}{% endif %}</span></li>
+  {%- endfor %}
+  </ul>
+{%- endif %}
+</div>

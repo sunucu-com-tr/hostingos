@@ -1,0 +1,43 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("affiliates.admin.title") }}</h1><p>{{ t("affiliates.admin.rates_lead") }}</p></div></div>
+<div class="mt-2">{% call ui::tabs(tabs.as_slice(), url("/admin/affiliates/rates")) %}{% endcall %}</div>
+<div class="stack-lg mt-4">
+{%- if rows.is_empty() %}
+{% call ui::empty("percent", t("affiliates.admin.rates_empty"), t("affiliates.admin.rates_empty_text")) %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th scope="col">{{ t("affiliates.fields.product") }}</th><th scope="col">{{ t("affiliates.fields.commission_type") }}</th><th scope="col" class="num">{{ t("affiliates.fields.commission_value") }}</th><th scope="col">{{ t("affiliates.fields.recurring") }}</th><th scope="col"><span class="visually-hidden">{{ t("affiliates.fields.actions") }}</span></th></tr></thead>
+  <tbody>{% for r in rows %}<tr>
+    <td data-label="{{ t("affiliates.fields.product") }}">{{ r.product_name }}</td>
+    <td data-label="{{ t("affiliates.fields.commission_type") }}">{{ lbl("affiliates.rate", r.commission_type.as_str()) }}</td>
+    <td data-label="{{ t("affiliates.fields.commission_value") }}" class="num">{% if r.commission_type == "none" %}—{% else %}{{ dec(r.commission_value) }}{% endif %}</td>
+    <td data-label="{{ t("affiliates.fields.recurring") }}">{{ yesno(r.recurring) }}</td>
+    <td class="num biz-cellact">{%- if can("affiliates.manage") %}<form method="post" action="{{ url("/admin/affiliates/rates/" ~ r.product_id ~ "/delete") }}" data-confirm="{{ t("affiliates.admin.rate_delete_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm" type="submit">{{ icon("trash") }}{{ t("admin.common.delete") }}</button></form>{% endif %}</td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{%- endif %}
+{%- if can("affiliates.manage") %}
+{% call ui::card(t("affiliates.admin.rate_add")) %}
+<form method="post" action="{{ url("/admin/affiliates/rates") }}" class="stack">
+  {% call ui::csrf() %}{% endcall %}
+  <div class="form-grid form-grid--2">
+    <div class="field"><label class="field__label" for="f-product_id">{{ t("affiliates.fields.product") }}</label>
+      <select class="select" id="f-product_id" name="product_id" required>{% for (v, l) in products %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+    <div class="field"><label class="field__label" for="f-rtype">{{ t("affiliates.fields.commission_type") }}</label>
+      <select class="select" id="f-rtype" name="commission_type">
+        <option value="percent">{{ t("affiliates.rate.percent") }}</option>
+        <option value="fixed">{{ t("affiliates.rate.fixed") }}</option>
+        <option value="none">{{ t("affiliates.rate.none") }}</option>
+      </select></div>
+    {% call ui::field("commission_value", t("affiliates.fields.commission_value"), "", inputmode="decimal") %}{% endcall %}
+  </div>
+  {% call ui::checkbox("recurring", t("affiliates.admin.recurring"), false) %}{% endcall %}
+  <div><button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button></div>
+</form>
+{% endcall %}
+{%- endif %}
+</div>
+{% endblock %}

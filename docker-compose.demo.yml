@@ -1,0 +1,150 @@
+# HostingOS — public demo (docs/DEMO.md): the app in demo mode and its own
+# PostgreSQL. Nothing else: TLS and the public hostname come from the reverse
+# proxy in front of it (Coolify's proxy, Caddy, nginx, Traefik …).
+#
+# Runbook: docs/deploy/DEMO-DEPLOY.md. Variables: .env.demo.example.
+#
+#   cp .env.demo.example .env.demo        # fill in the three secrets + URL
+#   docker compose -f docker-compose.demo.yml --env-file .env.demo up -d --build
+#
+# The app listens on port 8080 inside the compose network only. On a plain
+# Docker host whose reverse proxy runs outside Docker, add the port mapping
+# file to reach it on 127.0.0.1:8080:
+#
+#   docker compose -f docker-compose.demo.yml -f docker-compose.demo.ports.yml \
+#     --env-file .env.demo up -d --build
+#
+# Image: built from this repository's Dockerfile by default. To run a
+# published image instead, set HOS_DEMO_IMAGE (e.g. ghcr.io/OWNER/hostingos:0.1.0)
+# and run `docker compose … pull` before `up` (without --build).
+#
+# The demo database holds nothing but the demo, which is deleted and
+# re-created every HOS_DEMO_RESET_MINUTES (default 30): no backups needed.
+# Never point this stack at a database with real data (the app refuses to
+# start on one). Reset by hand at any time:
+#
+#   docker compose -f docker-compose.demo.yml --env-file .env.demo exec app \
+#     /usr/local/bin/hostingos demo-reset
+
+name: hostingos-demo
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hostingos
+      POSTGRES_USER: hostingos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD (openssl rand -hex 32)}
+    volumes:
+      - demo-pgdata:/var/lib/postgresql/data
+    # Not published: only the app reaches it, over the compose network.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hostingos -d hostingos"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # The image's entrypoint starts as root, fixes the data directory's
+    # ownership and switches to the `postgres` user: it needs these
+    # capabilities and nothing else.
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    shm_size: 128mb
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+          # Not `pids_limit:` next to `deploy:` — Compose rejects the two
+          # together ("can't set distinct values").
+          pids: 200
+
+  app:
+    image: ${HOS_DEMO_IMAGE:-hostingos-demo:local}
+    build:
+      context: .
+      args:
+        HOS_BUILD_COMMIT: ${HOS_BUILD_COMMIT:-unknown}
+    # One process: web, job worker, scheduler and the demo reset loop (demo
+    # mode needs exactly one). In demo mode `serve` applies pending
+    # migrations (as `serve --migrate`) and seeds the demo before the port
+    # opens; no separate `migrate` step is needed.
+    command: ["serve"]
+    environment:
+      HOS_DEMO_MODE: "1"
+      HOS_DEMO_RESET_MINUTES: ${HOS_DEMO_RESET_MINUTES:-30}
+      DATABASE_URL: postgres://hostingos:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD (openssl rand -hex 32)}@postgres:5432/hostingos
+      DATABASE_URL_DIRECT: postgres://hostingos:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD (openssl rand -hex 32)}@postgres:5432/hostingos
+      HOS_SECRET_KEY: ${HOS_SECRET_KEY:?set HOS_SECRET_KEY (openssl rand -base64 32)}
+      # Public URL of the demo; its host becomes the demo company's domain.
+      HOS_BASE_URL: ${HOS_BASE_URL:?set HOS_BASE_URL, e.g. https://demo.example.com}
+      HOS_BASE_DOMAIN: ${HOS_BASE_DOMAIN:-localhost}
+      HOS_BIND: 0.0.0.0:8080
+      # Client IP for the per-visitor rate limits (docs/deploy/DEMO-DEPLOY.md,
+      # "Proxies"): behind Cloudflare set HOS_CLIENT_IP_HEADER=CF-Connecting-IP;
+      # otherwise the X-Forwarded-For entry HOS_TRUSTED_PROXY_HOPS places from
+      # the right is used. HOS_TRUSTED_PROXIES: the address range of the
+      # Docker network the reverse proxy reaches the app through; these
+      # headers count only from there (empty: from every peer, with a
+      # warning in the log).
+      HOS_TRUST_PROXY: ${HOS_TRUST_PROXY:-true}
+      HOS_TRUSTED_PROXIES: ${HOS_TRUSTED_PROXIES:-}
+      HOS_TRUSTED_PROXY_HOPS: ${HOS_TRUSTED_PROXY_HOPS:-1}
+      HOS_CLIENT_IP_HEADER: ${HOS_CLIENT_IP_HEADER:-}
+      # Slow clients (docs/DEPLOYMENT.md, "HTTP timeouts"); empty = default.
+      HOS_HTTP_HEADER_TIMEOUT_SECS: ${HOS_HTTP_HEADER_TIMEOUT_SECS:-}
+      HOS_HTTP_BODY_TIMEOUT_SECS: ${HOS_HTTP_BODY_TIMEOUT_SECS:-}
+      HOS_HTTP_REQUEST_TIMEOUT_SECS: ${HOS_HTTP_REQUEST_TIMEOUT_SECS:-}
+      HOS_OUTBOUND_POLICY: public
+      HOS_DEBUG: "0"
+      HOS_LOG_FORMAT: ${HOS_LOG_FORMAT:-json}
+      RUST_LOG: ${RUST_LOG:-info,sqlx=warn}
+    expose:
+      - "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 60s
+    # Runs as uid 10001 (Dockerfile). Writes nothing to its filesystem:
+    # templates and migrations are in the binary, static/ and locales/ are
+    # read-only, all data is in PostgreSQL.
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+          # Not `pids_limit:` next to `deploy:` — Compose rejects the two
+          # together ("can't set distinct values").
+          pids: 256
+    # The binary probes itself (plain HTTP to 127.0.0.1:8080, no shell);
+    # /readyz also checks the database and its migrations. The first start migrates and seeds
+    # the demo before the port opens, hence start_period.
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/hostingos", "healthcheck", "--path", "/readyz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+
+volumes:
+  demo-pgdata:

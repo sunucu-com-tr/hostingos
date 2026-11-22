@@ -1,0 +1,83 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head">
+  <div><h1>{{ domain_label(d.name) }}</h1><p>{{ st(d.status.as_str()) }}{% if !days_text().is_empty() %} <span class="muted">{{ days_text() }}</span>{% endif %}</p></div>
+  <div class="btn-row">
+    {%- if manageable() %}
+    <a class="btn btn--soft" href="{{ url("/client/domains/") }}{{ d.id }}/dns">{{ icon("layers") }}{{ t("client.domains.dns") }}</a>
+    <a class="btn btn--ghost" href="{{ url("/client/domains/") }}{{ d.id }}/contacts">{{ icon("users") }}{{ t("client.domains.contacts") }}</a>
+    {%- endif %}
+  </div>
+</div>
+{%- if expiring() && manageable() %}{% call ui::alert("warning", tv("client.domains.expiring_warning", "date", date_opt(d.expires_at))) %}{% endcall %}{% endif %}
+{%- if d.status.as_str() == "grace" || d.status.as_str() == "redemption" || d.status.as_str() == "expired" %}{% call ui::alert("error", t("client.domains.expired_warning")) %}{% endcall %}{% endif %}
+{%- if !manageable() && !(d.status.as_str() == "grace" || d.status.as_str() == "redemption" || d.status.as_str() == "expired") %}{% call ui::alert("info", t("client.domains.not_manageable")) %}{% endcall %}{% endif %}
+<div class="grid grid--2">
+  <section class="card">
+    <header class="card__head"><h2>{{ t("client.domains.overview") }}</h2></header>
+    <div class="card__body">
+      <dl class="dl">
+        <div><dt>{{ t("client.domains.registered") }}</dt><dd>{{ date_opt(d.registered_at) }}</dd></div>
+        <div><dt>{{ t("client.domains.expires") }}</dt><dd>{{ date_opt(d.expires_at) }}</dd></div>
+        <div><dt>{{ t("client.domains.renewal_price") }}</dt><dd>{{ money_in(d.recurring_amount, d.currency) }}</dd></div>
+      </dl>
+    </div>
+  </section>
+  {%- if renewable() %}
+  <section class="card">
+    <header class="card__head"><h2>{{ t("client.domains.renew") }}</h2></header>
+    <div class="card__body stack">
+      <form class="input-group" method="post" action="{{ url("/client/domains/") }}{{ d.id }}/renew">
+        {% call ui::csrf() %}{% endcall %}
+        <label class="visually-hidden" for="f-years">{{ t("client.domains.years") }}</label>
+        <select class="select" id="f-years" name="years">{% for (v, label) in years %}<option value="{{ v }}">{{ label }}</option>{% endfor %}</select>
+        <button type="submit" class="btn btn--primary">{{ t("client.domains.renew_submit") }}</button>
+      </form>
+      <p class="small muted">{{ t("client.domains.renew_note") }}</p>
+    </div>
+  </section>
+  {%- endif %}
+</div>
+{%- if manageable() %}
+<div class="grid grid--2 mt-8">
+  <section class="card">
+    <header class="card__head"><div><h2>{{ t("client.domains.nameservers") }}</h2><p class="muted small">{{ t("client.domains.ns_lead") }}</p></div></header>
+    <div class="card__body">
+      <form class="stack" method="post" action="{{ url("/client/domains/") }}{{ d.id }}/nameservers">
+        {% call ui::csrf() %}{% endcall %}
+        <label class="visually-hidden" for="f-ns">{{ t("client.domains.nameservers") }}</label>
+        <textarea class="textarea mono" id="f-ns" name="nameservers" rows="4" required>{{ nameservers }}</textarea>
+        <button type="submit" class="btn btn--soft">{{ t("client.common.save") }}</button>
+      </form>
+    </div>
+  </section>
+  <section class="card">
+    <header class="card__head"><h2>{{ t("client.domains.settings") }}</h2></header>
+    <div class="card__body stack">
+      {% include "client/_domain_toggles.html" %}
+    </div>
+  </section>
+</div>
+<section class="card mt-8" id="epp">
+  <header class="card__head"><div><h2>{{ t("client.domains.epp") }}</h2><p class="muted small">{{ t("client.domains.epp_lead") }}</p></div></header>
+  <div class="card__body stack">
+    {%- match epp %}{% when Some(code) %}
+      {% call ui::code("epp-code", t("client.domains.epp"), code) %}{% endcall %}
+    {%- when None %}
+      {%- if !epp_error.is_empty() %}{% call ui::alert("error", epp_error) %}{% endcall %}{% endif %}
+      {%- if locked %}<p class="muted">{{ t("client.common.impersonation_locked") }}</p>
+      {%- elif !has_password %}<p class="muted">{{ t("client.domains.epp_set_password") }} <a href="{{ url("/client/account/security") }}">{{ t("client.account.tab_security") }}</a></p>
+      {%- else %}
+      <form class="input-group" method="post" action="{{ url("/client/domains/") }}{{ d.id }}/epp#epp">
+        {% call ui::csrf() %}{% endcall %}
+        <label class="visually-hidden" for="f-epp-pw">{{ t("client.domains.epp_password") }}</label>
+        <input class="input" id="f-epp-pw" name="password" type="password" required autocomplete="current-password" placeholder="{{ t("client.domains.epp_password") }}">
+        <button type="submit" class="btn btn--soft">{{ icon("key") }}{{ t("client.domains.epp_show") }}</button>
+      </form>
+      {%- endif %}
+    {%- endmatch %}
+  </div>
+</section>
+{%- endif %}
+{% endblock %}

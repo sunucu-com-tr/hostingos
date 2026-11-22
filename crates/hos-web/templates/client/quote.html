@@ -1,0 +1,9 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}"><link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% block page %}
+<div class="biz-toolbar"><a class="btn btn--soft btn--sm" href="{{ url("/client/quotes/" ~ quote.id ~ "/pdf") }}">{{ icon("download") }}{{ t("quotes.actions.pdf") }}</a>
+{%- match quote.invoice_id %}{% when Some(iid) %}<a class="btn btn--primary btn--sm" href="{{ url("/client/invoices/" ~ iid) }}">{{ icon("receipt") }}{{ t("quotes.client.view_invoice") }}</a>{% when None %}{% endmatch %}</div>
+{% include "quotes/_doc.html" %}
+{% include "quotes/_answer.html" %}
+{% endblock %}

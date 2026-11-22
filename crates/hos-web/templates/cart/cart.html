@@ -1,0 +1,45 @@
+{#- Cart page; the #cart region (cart/_cart.html) is swapped by htmx after each change. -#}
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}">{% endblock %}
+{% block content %}
+<section class="section section--tight">
+  <div class="container stack-lg">
+    <div class="page-head">
+      <div>
+        <h1>{{ t("cart.title") }}</h1>
+        <p class="muted">{{ t("cart.lead") }}</p>
+      </div>
+      <div class="btn-row">
+        <a class="btn btn--ghost" href="{{ url("/") }}">{{ icon("plus") }}{{ t("cart.continue") }}</a>
+      </div>
+    </div>
+    {% include "cart/_cart.html" %}
+    <section class="card" aria-labelledby="add-domain-title">
+      <header class="card__head"><div><h2 id="add-domain-title">{{ t("cart.domain.title") }}</h2><p class="muted small">{{ t("cart.domain.lead") }}{% if !tld_hint.is_empty() %} <span class="mono">{{ tld_hint }}</span>{% endif %}</p></div></header>
+      <div class="card__body">
+        <form class="cart-domain-form" method="post" action="{{ url("/cart/domain") }}" hx-post="{{ url("/cart/domain") }}" hx-target="#cart" hx-swap="outerHTML">
+          {% call ui::csrf() %}{% endcall %}
+          <div class="field">
+            <label class="field__label" for="f-domain">{{ t("cart.domain.name") }}</label>
+            <input class="input" id="f-domain" name="domain" type="text" required autocomplete="off" placeholder="ornek.com" maxlength="253" value="{{ transfer }}">
+          </div>
+          <div class="field">
+            <label class="field__label" for="f-action">{{ t("cart.domain.action") }}</label>
+            <select class="select" id="f-action" name="action">
+              <option value="register">{{ t("cart.domain.register") }}</option>
+              <option value="transfer"{% if !transfer.is_empty() %} selected{% endif %}>{{ t("cart.domain.transfer") }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label" for="f-epp">{{ t("cart.domain.epp") }}</label>
+            <input class="input" id="f-epp" name="epp" type="text" autocomplete="off" maxlength="128" aria-describedby="f-epp-hint"{% if !transfer.is_empty() %} autofocus{% endif %}>
+            <p class="field__hint" id="f-epp-hint">{{ t("cart.domain.epp_hint") }}</p>
+          </div>
+          <div class="cart-domain-form__submit"><button type="submit" class="btn btn--soft">{{ icon("plus") }}{{ t("cart.domain.add") }}</button></div>
+        </form>
+      </div>
+    </section>
+  </div>
+</section>
+{% endblock %}

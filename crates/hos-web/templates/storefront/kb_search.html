@@ -1,0 +1,28 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<section class="page-hero">
+  <div class="container page-hero__inner">
+    <nav class="breadcrumbs" aria-label="{{ t("common.a11y.breadcrumbs") }}"><ol><li><a href="{{ url("/") }}">{{ t("common.nav.home") }}</a></li><li><a href="{{ url("/kb") }}">{{ t("storefront.kb.title") }}</a></li><li><span aria-current="page">{{ t("storefront.kb.search_title") }}</span></li></ol></nav>
+    <h1>{{ t("storefront.kb.search_title") }}</h1>
+    {%- let search_value = q.as_str() %}
+    {% include "storefront/_kb_search_form.html" %}
+  </div>
+</section>
+<section class="section section--tight">
+  <div class="container container--narrow stack">
+    {%- if q.is_empty() %}
+    <p class="muted">{{ t("storefront.kb.search_hint") }}</p>
+    {%- elif results.is_empty() %}
+    {% call ui::empty("search", tv("storefront.kb.no_results", "q", q), t("storefront.kb.no_results_text")) %}
+      <a class="btn btn--primary btn--sm" href="{{ url("/contact") }}">{{ t("storefront.nav.contact") }}</a>
+    {% endcall %}
+    {%- else %}
+    <p class="label" role="status">{{ tn("storefront.kb.results", results.len()) }}</p>
+    <ul class="list-links">
+      {%- for a in results %}<li><a href="{{ a.href }}">{{ icon("file-text") }}<span>{{ a.title }}<small>{{ a.excerpt }}</small></span></a></li>{% endfor %}
+    </ul>
+    {%- endif %}
+  </div>
+</section>
+{% endblock %}

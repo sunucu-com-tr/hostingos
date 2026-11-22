@@ -1,0 +1,12 @@
+{% extends "layouts/auth.html" %}
+{% block card %}
+<div class="auth-card__head">
+  <h1>{{ t("admin.impersonate.end_title") }}</h1>
+  <p>{{ t("admin.impersonate.end_text") }}</p>
+</div>
+<form method="post" action="{{ url("/admin/impersonation/end") }}" class="stack">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <button class="btn btn--primary btn--block" type="submit">{{ icon("log-out") }}{{ t("admin.impersonate.end_button") }}</button>
+</form>
+<p class="center mt-4"><a href="{{ url("/client") }}">{{ t("admin.impersonate.back_to_client") }}</a></p>
+{% endblock %}

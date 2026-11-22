@@ -1,0 +1,31 @@
+[package]
+name = "hos-einvoice"
+description = "HostingOS Turkish e-invoicing (e-Fatura / e-Arşiv): UBL-TR 2.1 builder and integrator clients (Paraşüt, Nilvera, mock)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+hos-core = { workspace = true, features = ["net"] }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true }
+quick-xml = { workspace = true }
+reqwest = { workspace = true }
+rust_decimal = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+rust_decimal_macros = { workspace = true }
+tokio = { workspace = true }
+wiremock = { workspace = true }

@@ -1,0 +1,28 @@
+{#- Update banner of the platform console. Needs: banner (UpdateBanner). -#}
+{% import "components/ui.html" as ui %}
+{%- if banner.visible() %}
+<div class="pf-update-banner stack-sm" aria-label="{{ t("updates.title") }}">
+  {%- match banner.available %}{% when Some(v) %}
+  <div class="alert{% if banner.security %} alert--warning{% endif %}" role="status">
+    {{ icon("download") }}
+    <div class="pf-update-banner__row">
+      <span>{{ banner.available_text }}{% if !banner.verified %} {{ badge(t("updates.trust.unverified"), "warning") }}{% endif %}</span>
+      <a class="btn btn--sm{% if banner.security %} btn--primary{% else %} btn--ghost{% endif %}" href="/platform/updates#release-{{ v }}">{{ t("updates.banner.review") }}</a>
+    </div>
+  </div>
+  {%- when None %}{% endmatch %}
+  {%- for n in banner.notices %}
+  <div class="alert alert--{{ n.tone }}" role="status">
+    {%- if n.tone == "success" %}{{ icon("check-circle") }}{% else %}{{ icon("alert-triangle") }}{% endif %}
+    <div class="pf-update-banner__row">
+      <a href="{{ n.link }}">{{ n.text }}</a>
+      <form method="post" action="/platform/updates/notifications/{{ n.id }}/dismiss">
+        {% call ui::csrf() %}{% endcall %}
+        <input type="hidden" name="next" value="{{ current_url() }}">
+        <button class="btn btn--ghost btn--sm" type="submit">{{ t("updates.banner.dismiss") }}</button>
+      </form>
+    </div>
+  </div>
+  {%- endfor %}
+</div>
+{%- endif %}

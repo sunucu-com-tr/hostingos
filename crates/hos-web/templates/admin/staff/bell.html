@@ -1,0 +1,3 @@
+<a class="btn btn--ghost btn--icon bell" id="admin-bell" href="{{ url("/admin/notifications") }}" hx-get="{{ url("/admin/notifications/bell") }}" hx-trigger="every 120s" hx-swap="outerHTML"
+  aria-label="{% if unread > 0 %}{{ tn("admin_settings.notifications.unread", unread) }}{% else %}{{ t("admin_settings.notifications.title") }}{% endif %}">{{ icon("bell") }}
+  {%- if unread > 0 %}<span class="bell__count" aria-hidden="true">{% if unread > 99 %}99+{% else %}{{ unread }}{% endif %}</span>{% endif %}</a>

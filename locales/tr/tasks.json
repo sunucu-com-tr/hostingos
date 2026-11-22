@@ -1,0 +1,39 @@
+{
+  "menu": "Yapılacaklar",
+  "admin": {
+    "title": "Yapılacaklar",
+    "lead": "Ekibin görevleri, son tarihleri ve sorumluları.",
+    "for_client": "Müşteri görevleri:",
+    "show_open": "Açık",
+    "show_mine": "Bana atanan",
+    "show_done": "Tamamlanan",
+    "show_all": "Tümü",
+    "empty_title": "Görev yok",
+    "empty_text": "Yeni bir görev ekleyin; son tarihi geçenler kırmızı gösterilir.",
+    "new": "Yeni görev",
+    "edit": "Görevi düzenle",
+    "unassigned": "Atanmamış",
+    "complete": "Tamamla",
+    "reopen": "Yeniden aç",
+    "saved": "Görev kaydedildi.",
+    "completed": "Görev tamamlandı.",
+    "reopened": "Görev yeniden açıldı.",
+    "deleted": "Görev silindi.",
+    "delete_confirm": "Görev silinsin mi?",
+    "title_required": "Başlık gerekli.",
+    "invalid": "Geçersiz tarih."
+  },
+  "fields": {
+    "title": "Başlık",
+    "body": "Ayrıntı",
+    "due_date": "Son tarih",
+    "assignee": "Sorumlu",
+    "priority": "Öncelik",
+    "actions": "İşlemler"
+  },
+  "priority": {
+    "low": "Düşük",
+    "normal": "Normal",
+    "high": "Yüksek"
+  }
+}

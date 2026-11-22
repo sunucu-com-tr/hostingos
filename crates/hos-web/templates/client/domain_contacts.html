@@ -1,0 +1,32 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head"><div><h1>{{ t("client.domains.contacts") }}</h1><p>{{ tv("client.domains.contacts_lead", "domain", domain_label(d.name)) }}</p></div></div>
+<form class="card form-narrow" method="post" action="{{ url("/client/domains/") }}{{ d.id }}/contacts" novalidate>
+  <div class="card__body stack">
+    {% call ui::csrf() %}{% endcall %}
+    {% call ui::form_errors(errors) %}{% endcall %}
+    <div class="form-row">
+      {% call ui::field("first_name", t("cart.checkout.first_name"), form.first_name, error=errors.get("first_name"), required=true) %}{% endcall %}
+      {% call ui::field("last_name", t("cart.checkout.last_name"), form.last_name, error=errors.get("last_name"), required=true) %}{% endcall %}
+    </div>
+    {% call ui::field("organization", t("cart.checkout.company"), form.organization) %}{% endcall %}
+    <div class="form-row">
+      {% call ui::field("email", t("cart.checkout.email"), form.email, kind="email", error=errors.get("email"), required=true) %}{% endcall %}
+      {% call ui::field("phone", t("cart.checkout.phone"), form.phone, kind="tel", error=errors.get("phone"), required=true) %}{% endcall %}
+    </div>
+    {% call ui::field("address_line1", t("cart.checkout.address1"), form.address_line1, error=errors.get("address_line1"), required=true) %}{% endcall %}
+    {% call ui::field("address_line2", t("cart.checkout.address2"), form.address_line2) %}{% endcall %}
+    <div class="form-row">
+      {% call ui::field("postal_code", t("cart.checkout.postal_code"), form.postal_code, error=errors.get("postal_code"), required=true) %}{% endcall %}
+      {% call ui::field("city", t("cart.checkout.city"), form.city, error=errors.get("city"), required=true) %}{% endcall %}
+    </div>
+    <div class="form-row">
+      {% call ui::field("state", t("cart.checkout.state"), form.state) %}{% endcall %}
+      {% call ui::select("country_code", t("cart.checkout.country"), countries, form.country_code.as_str(), error=errors.get("country_code")) %}{% endcall %}
+    </div>
+    <p class="small muted">{{ t("client.domains.contacts_note") }}</p>
+  </div>
+  <div class="card__foot"><button type="submit" class="btn btn--primary">{{ t("client.common.save") }}</button></div>
+</form>
+{% endblock %}

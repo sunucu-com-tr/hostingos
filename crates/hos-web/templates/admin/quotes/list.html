@@ -1,0 +1,43 @@
+{% extends "admin/layout.html" %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% import "components/ui.html" as ui %}
+{% import "admin/_macros.html" as ax %}
+{% block content %}
+{%- let filtered = !q.is_empty() || !status.is_empty() %}
+<div class="page-head">
+  <div><h1>{{ t("quotes.admin.title") }}</h1><p>{{ tn("quotes.admin.count", pager.total) }}</p></div>
+  {%- if can("quotes.manage") %}
+  <div class="page-head__actions"><a class="btn btn--primary" href="{{ url("/admin/quotes/new") }}">{{ icon("plus") }}{{ t("quotes.admin.new") }}</a></div>
+  {%- endif %}
+</div>
+<form class="filters" method="get" action="{{ url("/admin/quotes") }}" role="search">
+  <div class="field field--grow">{{ icon("search") }}<label class="visually-hidden" for="f-q">{{ t("admin.common.search") }}</label>
+    <input class="input" id="f-q" type="search" name="q" value="{{ q }}" placeholder="{{ t("quotes.admin.search_placeholder") }}"></div>
+  <div class="field"><label class="field__label" for="f-status">{{ t("admin.common.status") }}</label>
+    <select class="select" id="f-status" name="status" data-autosubmit><option value="">{{ t("admin.common.all") }}</option>
+    {%- for (v, l) in statuses %}<option value="{{ v }}"{{ sel(v, status) }}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="filters__actions"><button class="btn btn--soft" type="submit">{{ icon("filter") }}{{ t("admin.common.filter") }}</button></div>
+</form>
+{%- if rows.is_empty() %}
+{% call ui::empty("file-text", t("quotes.admin.empty_title"), t("quotes.admin.empty_text")) %}
+{%- if filtered %}<a class="btn btn--soft" href="{{ url("/admin/quotes") }}">{{ icon("x") }}{{ t("admin.shell.clear_all") }}</a>{% endif %}
+{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th scope="col">{{ t("quotes.fields.number") }}</th><th scope="col">{{ t("quotes.fields.subject") }}</th><th scope="col">{{ t("quotes.fields.recipient") }}</th><th scope="col">{{ t("quotes.fields.valid_until") }}</th><th scope="col" class="num">{{ t("admin.common.total") }}</th><th scope="col">{{ t("admin.common.status") }}</th></tr></thead>
+  <tbody>
+  {%- for r in rows %}
+  <tr>
+    <td data-label="{{ t("quotes.fields.number") }}"><a class="row-link mono" href="{{ url("/admin/quotes/" ~ r.quote.id) }}">{{ r.quote.number() }}</a></td>
+    <td data-label="{{ t("quotes.fields.subject") }}">{{ r.quote.subject }}</td>
+    <td data-label="{{ t("quotes.fields.recipient") }}">{{ r.recipient }}<span class="sub">{{ r.recipient_email }}</span></td>
+    <td data-label="{{ t("quotes.fields.valid_until") }}" class="nowrap">{{ d(r.quote.valid_until) }}</td>
+    <td data-label="{{ t("admin.common.total") }}" class="num">{{ m(r.quote.total, r.quote.currency) }}</td>
+    <td data-label="{{ t("admin.common.status") }}">{{ qbadge(r.quote.status) }}</td>
+  </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{% call ax::pager(pager) %}{% endcall %}
+{%- endif %}
+{% endblock %}

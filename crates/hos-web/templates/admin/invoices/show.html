@@ -1,0 +1,149 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+{%- let inv = detail.invoice.clone() %}
+<div class="page-head">
+  <div><h1>{{ title }} {{ sbadge(inv.status.as_str()) }}{% if overdue %} {{ badge(t("admin.status.overdue"), "danger") }}{% endif %}</h1>
+    <p><a href="{{ url("/admin/clients/" ~ client.id) }}">{{ client.display_name() }}</a> · {{ t("admin.invoices.col_issue") }} {{ d(inv.issue_date) }} · {{ t("admin.invoices.col_due") }} {{ d(inv.due_date) }}</p></div>
+  <div class="page-head__actions">
+    <a class="btn btn--ghost" href="{{ url("/admin/invoices/" ~ inv.id ~ "/print") }}">{{ icon("file-text") }}{{ t("admin.invoices.print") }}</a>
+    <a class="btn btn--ghost" href="{{ url("/admin/invoices/" ~ inv.id ~ "/pdf") }}">{{ icon("download") }}{{ t("einvoice.invoice_pdf.download") }}</a>
+    {%- if can("billing.manage") %}
+    {%- if inv.status.as_str() == "draft" %}
+    <form method="post" action="{{ url("/admin/invoices/" ~ inv.id ~ "/publish") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--primary" type="submit">{{ icon("send") }}{{ t("admin.invoices.publish") }}</button></form>
+    {%- endif %}
+    {%- if inv.status.as_str() == "unpaid" || inv.status.as_str() == "payment_pending" || inv.status.as_str() == "collections" %}
+    <form method="post" action="{{ url("/admin/invoices/" ~ inv.id ~ "/remind") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--soft" type="submit">{{ icon("bell") }}{{ t("admin.invoices.remind") }}</button></form>
+    <button type="button" class="btn btn--primary" data-dialog-open="dlg-pay">{{ icon("credit-card") }}{{ t("admin.invoices.add_payment") }}</button>
+    {%- endif %}
+    {%- if inv.status.as_str() == "draft" || inv.status.as_str() == "unpaid" %}
+    {%- if inv.amount_paid.is_zero() %}
+    <form method="post" action="{{ url("/admin/invoices/" ~ inv.id ~ "/cancel") }}" data-confirm="{{ t("admin.invoices.cancel_confirm") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--danger" type="submit">{{ icon("x") }}{{ t("admin.invoices.cancel") }}</button></form>
+    {%- else %}
+    <button type="button" class="btn btn--danger" data-dialog-open="dlg-cancel">{{ icon("x") }}{{ t("admin.invoices.cancel") }}</button>
+    {%- endif %}
+    {%- endif %}
+    {%- endif %}
+  </div>
+</div>
+
+<div class="admin-grid admin-grid--side">
+  <div class="stack-lg">
+    {% call ui::card(t("admin.invoices.items")) %}
+    <div class="table-wrap"><table class="table table--dense">
+      <thead><tr><th>{{ t("admin.common.description") }}</th><th class="num">{{ t("admin.orders.qty") }}</th><th class="num">{{ t("admin.invoices.unit_price") }}</th><th class="num">{{ t("admin.common.amount") }}</th>{% if editable && can("billing.manage") %}<th class="actions"></th>{% endif %}</tr></thead>
+      <tbody>
+      {%- for it in detail.items %}
+      <tr><td>{{ it.description }}{% if !it.taxable %} <span class="sub">{{ t("admin.invoices.not_taxable") }}</span>{% endif %}{% match it.period_start %}{% when Some(ps) %}<span class="sub">{{ d(ps) }} – {{ dopt(it.period_end) }}</span>{% when None %}{% endmatch %}</td>
+        <td class="num">{{ dec(it.quantity) }}</td><td class="num">{{ m(it.unit_price, inv.currency) }}</td><td class="num">{{ m(it.amount, inv.currency) }}</td>
+        {%- if editable && can("billing.manage") %}<td class="actions"><form method="post" action="{{ url("/admin/invoices/" ~ inv.id ~ "/items/" ~ it.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm btn--icon" type="submit" aria-label="{{ t("admin.common.delete") }}">{{ icon("x") }}</button></form></td>{% endif %}</tr>
+      {%- endfor %}
+      {%- if detail.items.is_empty() %}<tr><td colspan="5" class="muted">{{ t("admin.invoices.no_items") }}</td></tr>{% endif %}
+      </tbody>
+      <tfoot>
+        <tr><td colspan="3">{{ t("admin.invoices.subtotal") }}</td><td class="num">{{ m(inv.subtotal, inv.currency) }}</td>{% if editable && can("billing.manage") %}<td></td>{% endif %}</tr>
+        {%- if !inv.discount_total.is_zero() %}<tr><td colspan="3">{{ t("admin.common.discount") }}</td><td class="num">−{{ m(inv.discount_total, inv.currency) }}</td>{% if editable && can("billing.manage") %}<td></td>{% endif %}</tr>{% endif %}
+        {%- for tl in detail.tax_lines %}<tr><td colspan="3">{{ tl.name }} (%{{ dec(tl.rate) }})</td><td class="num">{{ m(tl.tax_amount, inv.currency) }}</td>{% if editable && can("billing.manage") %}<td></td>{% endif %}</tr>{% endfor %}
+        <tr><td colspan="3">{{ t("admin.common.total") }}</td><td class="num">{{ m(inv.total, inv.currency) }}</td>{% if editable && can("billing.manage") %}<td></td>{% endif %}</tr>
+        {%- if !inv.amount_paid.is_zero() %}<tr><td colspan="3">{{ t("admin.invoices.paid") }}</td><td class="num">−{{ m(inv.amount_paid, inv.currency) }}</td>{% if editable && can("billing.manage") %}<td></td>{% endif %}</tr>{% endif %}
+        {%- if !inv.credit_applied.is_zero() %}<tr><td colspan="3">{{ t("admin.invoices.credit_applied") }}</td><td class="num">−{{ m(inv.credit_applied, inv.currency) }}</td>{% if editable && can("billing.manage") %}<td></td>{% endif %}</tr>{% endif %}
+        <tr><td colspan="3">{{ t("admin.invoices.col_balance") }}</td><td class="num">{{ m(inv.balance, inv.currency) }}</td>{% if editable && can("billing.manage") %}<td></td>{% endif %}</tr>
+      </tfoot>
+    </table></div>
+    {%- if editable && can("billing.manage") %}
+    <form class="form-grid mt-4" method="post" action="{{ url("/admin/invoices/" ~ inv.id ~ "/items") }}">
+      {% call ui::csrf() %}{% endcall %}
+      <div class="field span-all"><label class="field__label" for="it-d">{{ t("admin.common.description") }}</label><input class="input" id="it-d" name="description" required></div>
+      <div class="field"><label class="field__label" for="it-q">{{ t("admin.orders.qty") }}</label><input class="input" id="it-q" name="quantity" value="1" inputmode="decimal"></div>
+      <div class="field"><label class="field__label" for="it-p">{{ t("admin.invoices.unit_price") }}</label><input class="input" id="it-p" name="unit_price" required inputmode="decimal" placeholder="0,00"></div>
+      <div class="field"><span class="field__label">&nbsp;</span>{% call ui::checkbox("taxable", t("admin.invoices.taxable"), true) %}{% endcall %}</div>
+      <div class="field"><span class="field__label">&nbsp;</span><button class="btn btn--soft" type="submit">{{ icon("plus") }}{{ t("admin.invoices.add_item") }}</button></div>
+    </form>
+    <p class="muted small mt-2">{{ t("admin.invoices.discount_hint") }}</p>
+    {%- endif %}
+    {% endcall %}
+
+    {% call ui::card(t("admin.invoices.transactions")) %}
+    {%- if txs.is_empty() %}<p class="muted">{{ t("admin.invoices.no_transactions") }}</p>{% else %}
+    <div class="table-wrap"><table class="table table--dense">
+      <thead><tr><th>{{ t("admin.common.date") }}</th><th>{{ t("admin.transactions.col_gateway") }}</th><th>{{ t("admin.transactions.col_kind") }}</th><th class="num">{{ t("admin.common.amount") }}</th><th>{{ t("admin.common.status") }}</th><th class="actions"></th></tr></thead>
+      <tbody>
+      {%- for v in txs %}
+      <tr><td>{{ datetime(v.tx.occurred_at) }}</td><td>{{ v.tx.gateway }}{% match v.tx.gateway_txn_id %}{% when Some(r) %}<span class="sub mono">{{ r }}</span>{% when None %}{% endmatch %}</td>
+        <td>{{ lbl("admin.transactions.kinds", v.tx.kind.as_str()) }}</td><td class="num">{{ m(v.tx.amount, v.tx.currency) }}</td><td>{{ sbadge(v.tx.status.as_str()) }}</td>
+        <td class="actions">{% if !v.refundable.is_zero() && can("billing.manage") %}<button type="button" class="btn btn--ghost btn--sm" data-dialog-open="dlg-refund-{{ v.tx.id }}">{{ t("admin.invoices.refund") }}</button>{% endif %}</td></tr>
+      {%- for rf in v.refunds %}
+      <tr><td></td><td colspan="2" class="muted small">↳ {{ t("admin.invoices.refund") }} · {{ datetime(rf.created_at) }}{% match rf.reason %}{% when Some(rs) %} · {{ rs }}{% when None %}{% endmatch %}</td><td class="num">−{{ m(rf.amount, rf.currency) }}</td><td>{{ sbadge(rf.status.as_str()) }}</td><td></td></tr>
+      {%- endfor %}
+      {%- endfor %}
+      </tbody>
+    </table></div>{% endif %}
+    {% endcall %}
+  </div>
+
+  <aside class="stack-lg">
+    {% call ui::card(t("admin.invoices.billed_to")) %}
+    <p><strong>{{ client.display_name() }}</strong><br><span class="muted">{{ client.email }}</span></p>
+    <p class="small muted">{{ o(client.address_line1) }} {{ o(client.city) }} {{ client.country_code }}<br>{{ o(client.tax_office) }} {{ o(client.tax_number) }}</p>
+    <dl class="kv mt-4"><dt>{{ t("admin.clients.stat_credit") }}</dt><dd>{{ m(credit, inv.currency) }}</dd><dt>{{ t("admin.invoices.reminders") }}</dt><dd>{{ inv.reminder_count }} · {{ dtopt(inv.last_reminder_at) }}</dd><dt>{{ t("admin.invoices.paid_at") }}</dt><dd>{{ dtopt(inv.paid_at) }}</dd></dl>
+    {% endcall %}
+    {%- if let Some(ep) = einvoice %}{% include "admin/einvoice/_panel.html" %}{% endif %}
+    {%- if can("billing.manage") %}
+    {% call ui::card(t("admin.common.notes")) %}
+    <form class="stack" method="post" action="{{ url("/admin/invoices/" ~ inv.id ~ "/meta") }}">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::textarea("notes", t("admin.invoices.client_notes"), inv.notes.clone().unwrap_or_default(), rows=3) %}{% endcall %}
+      {% call ui::textarea("admin_notes", t("admin.invoices.admin_notes"), inv.admin_notes.clone().unwrap_or_default(), rows=3) %}{% endcall %}
+      <div class="field"><label class="field__label" for="pg">{{ t("admin.invoices.gateway") }}</label>
+        <select class="select" id="pg" name="payment_integration_id"><option value="">—</option>{% for g in gateways %}<option value="{{ g.id }}"{% if inv.payment_integration_id == Some(g.id.clone()) %} selected{% endif %}>{{ g.name }}</option>{% endfor %}</select></div>
+      <button class="btn btn--soft" type="submit">{{ t("common.actions.save") }}</button>
+    </form>
+    {% endcall %}
+    {%- endif %}
+  </aside>
+</div>
+
+{%- if can("billing.manage") %}
+{%- if !inv.amount_paid.is_zero() %}
+{% call ui::modal("dlg-cancel", t("admin.invoices.cancel")) %}
+<form class="stack" method="post" action="{{ url("/admin/invoices/" ~ inv.id ~ "/cancel") }}">
+  {% call ui::csrf() %}{% endcall %}
+  <p>{{ tv("admin.invoices.cancel_paid_hint", "amount", m(inv.amount_paid, inv.currency)) }}</p>
+  {% call ui::checkbox("paid_to_credit", t("admin.invoices.paid_to_credit")) %}{% endcall %}
+  <div class="btn-row"><button class="btn btn--danger" type="submit">{{ t("admin.invoices.cancel") }}</button><button class="btn btn--ghost" type="button" data-dialog-close>{{ t("common.actions.cancel") }}</button></div>
+</form>
+{% endcall %}
+{%- endif %}
+{% call ui::modal("dlg-pay", t("admin.invoices.add_payment")) %}
+<form class="stack" method="post" action="{{ url("/admin/invoices/" ~ inv.id ~ "/payment") }}">
+  {% call ui::csrf() %}{% endcall %}
+  <div class="form-grid">
+    {% call ui::field("amount", t("admin.common.amount"), dec(inv.balance), required=true, inputmode="decimal") %}{% endcall %}
+    {% call ui::field("date", t("admin.common.date"), "", kind="date") %}{% endcall %}
+  </div>
+  <div class="field"><label class="field__label" for="pm">{{ t("admin.invoices.method") }}</label>
+    <select class="select" id="pm" name="method"><option value="bank_transfer">{{ t("admin.invoices.method_bank") }}</option><option value="cash">{{ t("admin.invoices.method_cash") }}</option><option value="manual">{{ t("admin.invoices.method_manual") }}</option></select></div>
+  <div class="field"><label class="field__label" for="pi">{{ t("admin.invoices.gateway") }}</label>
+    <select class="select" id="pi" name="integration_id"><option value="">—</option>{% for g in gateways %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}</select></div>
+  {% call ui::field("reference", t("admin.invoices.reference"), "", hint=t("admin.invoices.reference_hint")) %}{% endcall %}
+  {% call ui::field("note", t("admin.common.notes"), "") %}{% endcall %}
+  {%- if !credit.is_zero() %}{% call ui::checkbox("use_credit", tv("admin.invoices.use_credit", "amount", m(credit, inv.currency))) %}{% endcall %}{% endif %}
+  <div class="btn-row"><button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("admin.invoices.record_payment") }}</button><button class="btn btn--ghost" type="button" data-dialog-close>{{ t("common.actions.cancel") }}</button></div>
+</form>
+{% endcall %}
+{%- for v in txs %}
+{%- if !v.refundable.is_zero() %}
+{% call ui::modal("dlg-refund-" ~ v.tx.id, t("admin.invoices.refund")) %}
+<form class="stack" method="post" action="{{ url("/admin/invoices/" ~ inv.id ~ "/refund") }}" data-confirm="{{ t("admin.invoices.refund_confirm") }}">
+  {% call ui::csrf() %}{% endcall %}
+  <input type="hidden" name="transaction_id" value="{{ v.tx.id }}">
+  {% call ui::field("amount", t("admin.common.amount"), dec(v.refundable), required=true, inputmode="decimal", hint=tv("admin.invoices.refundable", "amount", m(v.refundable, v.tx.currency))) %}{% endcall %}
+  {% call ui::field("reason", t("admin.invoices.reason"), "") %}{% endcall %}
+  {% call ui::checkbox("to_credit", t("admin.invoices.to_credit")) %}{% endcall %}
+  <div class="btn-row"><button class="btn btn--danger" type="submit">{{ t("admin.invoices.refund") }}</button><button class="btn btn--ghost" type="button" data-dialog-close>{{ t("common.actions.cancel") }}</button></div>
+</form>
+{% endcall %}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{% endblock %}

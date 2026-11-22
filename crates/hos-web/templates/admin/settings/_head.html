@@ -1,0 +1,3 @@
+{#- Settings page head + tab bar (needs `tabs: Vec<NavItem>` and `active`). -#}
+<div class="page-head"><div><h1>{{ t("admin_settings.title") }}</h1><p>{{ t("admin_settings.lead") }}</p></div></div>
+{% call ui::tabs(tabs.as_slice(), active) %}{% endcall %}

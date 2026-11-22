@@ -1,0 +1,40 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+{% include "client/_account_head.html" %}
+<div class="grid grid--2">
+  <section class="card">
+    <header class="card__head"><div><h2>{{ t("client.contacts.title") }}</h2><p class="muted small">{{ t("client.contacts.lead") }}</p></div></header>
+    <div class="card__body">
+    {%- if contacts.is_empty() %}<p class="muted">{{ t("client.contacts.empty") }}</p>{% else %}
+      <ul class="row-list">
+      {%- for c in contacts %}
+        <li><span><strong>{{ c.first_name }} {{ c.last_name }}</strong><span class="muted small">{{ c.email }}{% if !c.email_preferences.is_empty() %} · {{ c.email_preferences.join(", ") }}{% endif %}</span></span>
+          <form method="post" action="{{ url("/client/account/contacts/") }}{{ c.id }}/delete" data-confirm="{{ t("client.contacts.delete_confirm") }}">{% call ui::csrf() %}{% endcall %}<button type="submit" class="btn btn--ghost btn--sm">{{ t("client.common.delete") }}</button></form></li>
+      {%- endfor %}
+      </ul>
+    {%- endif %}
+    </div>
+  </section>
+  <section class="card">
+    <header class="card__head"><h2>{{ t("client.contacts.add") }}</h2></header>
+    <form method="post" action="{{ url("/client/account/contacts") }}" novalidate>
+      <div class="card__body stack">
+        {% call ui::csrf() %}{% endcall %}
+        {% call ui::form_errors(errors) %}{% endcall %}
+        <div class="form-row">
+          {% call ui::field("first_name", t("cart.checkout.first_name"), form.first_name, error=errors.get("first_name"), required=true) %}{% endcall %}
+          {% call ui::field("last_name", t("cart.checkout.last_name"), form.last_name, error=errors.get("last_name"), required=true) %}{% endcall %}
+        </div>
+        {% call ui::field("email", t("cart.checkout.email"), form.email, kind="email", error=errors.get("email"), required=true) %}{% endcall %}
+        {% call ui::field("phone", t("cart.checkout.phone"), form.phone, kind="tel") %}{% endcall %}
+        {% call ui::field("company_name", t("cart.checkout.company"), form.company_name) %}{% endcall %}
+        <fieldset class="field"><legend class="field__label">{{ t("client.contacts.receives") }}</legend>
+          <div class="cluster">{% for (k, label) in kinds %}<label class="check"><input type="checkbox" name="pref" value="{{ k }}"> <span>{{ label }}</span></label>{% endfor %}</div>
+        </fieldset>
+      </div>
+      <div class="card__foot"><button type="submit" class="btn btn--primary">{{ t("client.contacts.add") }}</button></div>
+    </form>
+  </section>
+</div>
+{% endblock %}

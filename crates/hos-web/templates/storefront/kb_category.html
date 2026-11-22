@@ -1,0 +1,23 @@
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<section class="page-hero">
+  <div class="container page-hero__inner">
+    {% call ui::breadcrumbs(crumbs) %}{% endcall %}
+    <h1>{{ name }}</h1>
+    {%- if !description.is_empty() %}<p class="lead">{{ description }}</p>{% endif %}
+  </div>
+</section>
+<section class="section section--tight">
+  <div class="container container--narrow stack">
+    {%- if articles.is_empty() %}
+    {% call ui::empty("book", t("storefront.kb.empty_title"), t("storefront.kb.empty_text")) %}{% endcall %}
+    {%- else %}
+    <ul class="list-links">
+      {%- for a in articles %}<li><a href="{{ a.href }}">{{ icon("file-text") }}<span>{{ a.title }}<small>{{ a.excerpt }}</small></span></a></li>{% endfor %}
+    </ul>
+    {% call ui::pagination(pager) %}{% endcall %}
+    {%- endif %}
+  </div>
+</section>
+{% endblock %}

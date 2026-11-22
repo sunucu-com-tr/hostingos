@@ -1,0 +1,48 @@
+[package]
+name = "hos-core"
+description = "HostingOS core: domain types, errors, config, crypto, tenant context and all integration traits."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+# `sqlx` adds Postgres `Type`/`Encode`/`Decode` impls for ids, string enums and
+# `Currency`. On by default so `cargo test -p hos-core` covers it; the workspace
+# dependency entry disables default features so integration crates (which must
+# not touch the DB) don't compile sqlx. DB crates enable it explicitly.
+default = ["sqlx", "net"]
+sqlx = ["dep:sqlx"]
+# `net` adds the async/reqwest half of `hos_core::net` (DNS-checked resolution,
+# a policy-enforcing `reqwest` resolver, bounded body reads). The address
+# classification itself is always available. Integration crates enable it.
+net = ["dep:reqwest", "dep:tokio"]
+
+[dependencies]
+aes-gcm = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true }
+hex = { workspace = true }
+hmac = { workspace = true }
+http = { workspace = true }
+rand = { workspace = true }
+reqwest = { workspace = true, optional = true }
+rust_decimal = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true, optional = true }
+subtle = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, optional = true }
+url = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+rust_decimal_macros = { workspace = true }
+tokio = { workspace = true }
+wiremock = { workspace = true }

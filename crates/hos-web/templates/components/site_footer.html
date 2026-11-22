@@ -1,0 +1,62 @@
+{%- let fc = store() -%}
+<footer class="site-footer">
+  <div class="container site-footer__grid">
+    <div class="site-footer__about">
+      <a class="brand" href="{{ url("/") }}"><span class="brand__mark">{{ icon("forge") }}</span><span>{{ site_name }}</span></a>
+      {%- if !fc.tagline.is_empty() %}<p>{{ fc.tagline }}</p>{% endif %}
+      <address class="site-footer__contact">
+        {%- if !fc.company.legal_name.is_empty() %}<span>{{ fc.company.legal_name }}</span>{% endif %}
+        {%- if !fc.company.address.is_empty() %}<span>{{ fc.company.address }}</span>{% endif %}
+        {%- if !fc.company.email.is_empty() %}<a href="mailto:{{ fc.company.email }}">{{ fc.company.email }}</a>{% endif %}
+        {%- if !fc.company.phone.is_empty() %}<a href="{{ tel_href(fc.company.phone) }}">{{ fc.company.phone }}</a>{% endif %}
+      </address>
+    </div>
+    {%- if !fc.groups.is_empty() %}
+    <nav aria-labelledby="ft-products">
+      <h2 id="ft-products">{{ t("storefront.nav.products") }}</h2>
+      <ul>{% for g in fc.groups %}<li><a href="{{ g.href }}">{{ g.label }}</a></li>{% endfor %}</ul>
+    </nav>
+    {%- endif %}
+    <nav aria-labelledby="ft-resources">
+      <h2 id="ft-resources">{{ t("storefront.footer.resources") }}</h2>
+      <ul>
+        <li><a href="{{ url("/domains") }}">{{ t("storefront.nav.domains") }}</a></li>
+        <li><a href="{{ url("/whois") }}">{{ t("storefront.nav.whois") }}</a></li>
+        <li><a href="{{ url("/kb") }}">{{ t("storefront.nav.kb") }}</a></li>
+        <li><a href="{{ url("/blog") }}">{{ t("storefront.nav.blog") }}</a></li>
+        <li><a href="{{ url("/announcements") }}">{{ t("storefront.nav.announcements") }}</a></li>
+        {%- if fc.has_bundles %}<li><a href="{{ url("/bundles") }}">{{ t("bundles.menu") }}</a></li>{% endif %}
+        {%- if fc.has_downloads %}<li><a href="{{ url("/downloads") }}">{{ t("downloads.menu") }}</a></li>{% endif %}
+      </ul>
+    </nav>
+    <nav aria-labelledby="ft-company">
+      <h2 id="ft-company">{{ t("storefront.footer.company") }}</h2>
+      <ul>
+        {%- for p in fc.nav_pages %}<li><a href="{{ p.href }}">{{ p.label }}</a></li>{% endfor %}
+        {%- for p in fc.company_pages %}<li><a href="{{ p.href }}">{{ p.label }}</a></li>{% endfor %}
+        <li><a href="{{ url("/contact") }}">{{ t("storefront.nav.contact") }}</a></li>
+        <li><a href="{{ url("/auth/login") }}">{{ t("storefront.footer.client_area") }}</a></li>
+      </ul>
+    </nav>
+    {%- if !fc.legal_pages.is_empty() %}
+    <nav aria-labelledby="ft-legal">
+      <h2 id="ft-legal">{{ t("storefront.footer.legal") }}</h2>
+      <ul>{% for p in fc.legal_pages %}<li><a href="{{ p.href }}">{{ p.label }}</a></li>{% endfor %}</ul>
+    </nav>
+    {%- endif %}
+  </div>
+  <div class="container site-footer__legal">
+    <p>© {{ year() }} {% if fc.company.legal_name.is_empty() %}{{ site_name }}{% else %}{{ fc.company.legal_name }}{% endif %} · {{ t("storefront.footer.rights") }}</p>
+    {%- if !fc.company.tax_number.is_empty() %}
+    <p>{{ t("storefront.footer.tax") }}: {{ fc.company.tax_office }} / {{ fc.company.tax_number }}</p>
+    {%- endif %}
+    <p class="cluster site-footer__langs">
+      <a href="{{ switch_url("tr") }}" hreflang="tr" lang="tr"{% if lang == "tr" %} aria-current="true"{% endif %}>Türkçe</a>
+      <a href="{{ switch_url("en") }}" hreflang="en" lang="en"{% if lang == "en" %} aria-current="true"{% endif %}>English</a>
+      <a href="{{ url("/llms.txt") }}" type="text/plain">llms.txt</a>
+    </p>
+  </div>
+  {%- if tpl() == "cloud" || tpl() == "studio" || tpl() == "editorial" %}
+  <div class="container site-footer__wordmark" aria-hidden="true">{{ site_name }}</div>
+  {%- endif %}
+</footer>

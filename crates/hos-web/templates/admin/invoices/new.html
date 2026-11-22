@@ -1,0 +1,23 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t("admin.invoices.new_title") }}</h1><p>{{ t("admin.invoices.new_lead") }}</p></div></div>
+{% call ui::card() %}
+<form class="stack" method="post" action="{{ url("/admin/invoices") }}">
+  {% call ui::csrf() %}{% endcall %}
+  {%- match client %}
+  {%- when Some(c) %}
+  <input type="hidden" name="client_id" value="{{ c.id }}">
+  <p>{{ t("admin.orders.col_client") }}: <strong>{{ c.display_name() }}</strong> <span class="muted">{{ c.email }} · {{ c.currency }}</span></p>
+  {%- when None %}
+  {% call ui::field("client_email", t("admin.invoices.client_email"), "", kind="email", required=true, hint=t("admin.invoices.client_email_hint")) %}{% endcall %}
+  {%- endmatch %}
+  <div class="form-grid">
+    {% call ui::field("issue_date", t("admin.invoices.col_issue"), issue, kind="date", required=true) %}{% endcall %}
+    {% call ui::field("due_date", t("admin.invoices.col_due"), due, kind="date", required=true) %}{% endcall %}
+  </div>
+  {% call ui::textarea("notes", t("admin.invoices.client_notes"), "", rows=3) %}{% endcall %}
+  <div class="btn-row"><button class="btn btn--primary" type="submit">{{ icon("plus") }}{{ t("admin.invoices.create_draft") }}</button></div>
+</form>
+{% endcall %}
+{% endblock %}

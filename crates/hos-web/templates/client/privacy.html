@@ -1,0 +1,22 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+{% include "client/_account_head.html" %}
+<div class="grid grid--2">
+  <section class="card">
+    <header class="card__head"><div><h2>{{ t("client.privacy.export") }}</h2><p class="muted small">{{ t("client.privacy.export_lead") }}</p></div></header>
+    <div class="card__body"><a class="btn btn--soft" href="{{ url("/client/account/privacy/export") }}" download>{{ icon("download") }}{{ t("client.privacy.export_button") }}</a></div>
+  </section>
+  <section class="card card--danger">
+    <header class="card__head"><div><h2>{{ t("client.privacy.delete") }}</h2><p class="muted small">{{ t("client.privacy.delete_lead") }}</p></div></header>
+    <div class="card__body">
+      <form class="stack" method="post" action="{{ url("/client/account/privacy/delete") }}" data-confirm="{{ t("client.privacy.delete_confirm_dialog") }}">
+        {% call ui::csrf() %}{% endcall %}
+        {% call ui::textarea("reason", t("client.privacy.reason"), "", rows=3) %}{% endcall %}
+        <label class="check"><input type="checkbox" name="confirm" value="1" required> <span>{{ t("client.privacy.delete_confirm") }}</span></label>
+        <button type="submit" class="btn btn--danger">{{ t("client.privacy.delete_button") }}</button>
+      </form>
+    </div>
+  </section>
+</div>
+{% endblock %}

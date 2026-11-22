@@ -1,0 +1,130 @@
+{#- Product configuration; the summary re-quotes live (hx-get on change). -#}
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}">{% endblock %}
+{% block content %}
+<section class="section section--tight">
+  <div class="container stack-lg">
+    <nav class="breadcrumbs" aria-label="{{ t("common.a11y.breadcrumbs") }}"><ol>
+      <li><a href="{{ url("/cart") }}">{{ t("cart.title") }}</a></li>
+      <li><span aria-current="page">{{ name }}</span></li>
+    </ol></nav>
+    <div class="page-head">
+      <div><h1>{{ tv("cart.configure.title", "name", name) }}</h1>{% if !tagline.is_empty() %}<p class="muted">{{ tagline }}</p>{% endif %}</div>
+    </div>
+    {% call ui::form_errors(errors) %}{% endcall %}
+    <form class="cart-layout" id="configure" method="post" action="{{ url("/cart/configure/") }}{{ slug }}"
+      hx-get="{{ url("/cart/configure/") }}{{ slug }}/quote" hx-trigger="change" hx-target="#config-summary" hx-swap="outerHTML" hx-include="#configure">
+      {% call ui::csrf() %}{% endcall %}
+      <div class="stack">
+        <section class="card">
+          <header class="card__head"><h2>{{ t("cart.configure.cycle") }}</h2></header>
+          <div class="card__body">
+            <fieldset class="radio-cards">
+              <legend class="visually-hidden">{{ t("cart.configure.cycle") }}</legend>
+              {%- for (value, label, price) in cycles %}
+              <label class="radio-card">
+                <input type="radio" name="cycle" value="{{ value }}"{% if value == cycle_value() %} checked{% endif %}>
+                <span>{{ label }}</span>
+                <span class="radio-card__price">{{ price }}</span>
+              </label>
+              {%- endfor %}
+            </fieldset>
+          </div>
+        </section>
+        {%- if is_server %}
+        <section class="card">
+          <header class="card__head"><div><h2>{{ t("cart.configure.server") }}</h2><p class="muted small">{{ t("cart.configure.server_lead") }}</p></div></header>
+          <div class="card__body stack">
+            {% call ui::field("hostname", t("cart.configure.hostname"), input.hostname, error=errors.get("hostname"), hint=t("cart.configure.hostname_hint"), required=true, placeholder="vps1.ornek.com", autocomplete="off") %}{% endcall %}
+            <div class="field{% if errors.has("ssh_key") %} field--error{% endif %}">
+              <label class="field__label" for="f-ssh_key">{{ t("cart.configure.ssh_key") }}</label>
+              <textarea class="textarea mono" id="f-ssh_key" name="ssh_key" rows="3" placeholder="ssh-ed25519 AAAA… user@host"{% if errors.has("ssh_key") %} aria-invalid="true"{% endif %}>{{ input.ssh_key }}</textarea>
+              {%- if errors.has("ssh_key") %}<p class="field__error">{{ icon("alert-triangle") }}{{ errors.get("ssh_key") }}</p>{% else %}<p class="field__hint">{{ t("cart.configure.ssh_key_hint") }}</p>{% endif %}
+            </div>
+          </div>
+        </section>
+        {%- endif %}
+        {%- if !options.is_empty() %}
+        <section class="card">
+          <header class="card__head"><h2>{{ t("cart.configure.options") }}</h2></header>
+          <div class="card__body stack">
+            {%- for o in options %}
+            {%- if o.kind == "select" %}
+            <div class="field">
+              <label class="field__label" for="o-{{ o.id }}">{{ o.name }}</label>
+              <select class="select" id="o-{{ o.id }}" name="opt_{{ o.id }}">
+                {%- for (vid, label) in o.values %}<option value="{{ vid }}"{% if *vid == o.selected %} selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select>
+            </div>
+            {%- elif o.kind == "radio" %}
+            <fieldset class="field">
+              <legend class="field__label">{{ o.name }}</legend>
+              <div class="cluster">
+              {%- for (vid, label) in o.values %}
+                <label class="check"><input type="radio" name="opt_{{ o.id }}" value="{{ vid }}"{% if *vid == o.selected || (o.selected.is_empty() && loop.first) %} checked{% endif %}> <span>{{ label }}</span></label>
+              {%- endfor %}
+              </div>
+            </fieldset>
+            {%- elif o.kind == "check" %}
+            {%- for (vid, label) in o.values %}{% if loop.first %}
+            <label class="check"><input type="checkbox" name="opt_{{ o.id }}" value="{{ vid }}"{% if *vid == o.selected %} checked{% endif %}> <span>{{ o.name }}{% if *label != o.name %} — {{ label }}{% endif %}</span></label>
+            {%- endif %}{% endfor %}
+            {%- else %}
+            <div class="field">
+              <label class="field__label" for="o-{{ o.id }}">{{ o.name }}{% if !o.unit.is_empty() %} ({{ o.unit }}){% endif %}</label>
+              <input class="input input--narrow" id="o-{{ o.id }}" name="qty_{{ o.id }}" type="number" inputmode="numeric" min="{{ o.min }}"{% if o.max > 0 %} max="{{ o.max }}"{% endif %} value="{{ o.qty }}">
+            </div>
+            {%- endif %}
+            {%- endfor %}
+          </div>
+        </section>
+        {%- endif %}
+        {%- if !domain_modes.is_empty() %}
+        <section class="card">
+          <header class="card__head"><div><h2>{{ t("cart.configure.domain") }}</h2><p class="muted small">{{ t("cart.configure.domain_lead") }}</p></div></header>
+          <div class="card__body stack">
+            <fieldset>
+              <legend class="visually-hidden">{{ t("cart.configure.domain") }}</legend>
+              <div class="cluster">
+              {%- for (value, label) in domain_modes %}
+                <label class="check"><input type="radio" name="domain_mode" value="{{ value }}"{% if *value == input.domain_mode %} checked{% endif %}> <span>{{ label }}</span></label>
+              {%- endfor %}
+              </div>
+            </fieldset>
+            <div class="form-row">
+              {% call ui::field("domain", t("cart.configure.domain_name"), input.domain, error=errors.get("domain"), placeholder="ornek.com", autocomplete="off") %}{% endcall %}
+              {% call ui::field("epp", t("cart.domain.epp"), input.epp, error=errors.get("epp"), hint=t("cart.configure.epp_hint"), autocomplete="off") %}{% endcall %}
+            </div>
+          </div>
+        </section>
+        {%- endif %}
+        {%- if !addons.is_empty() %}
+        <section class="card">
+          <header class="card__head"><h2>{{ t("cart.configure.addons") }}</h2></header>
+          <div class="card__body stack-sm">
+            {%- for a in addons %}
+            <label class="addon-option">
+              <input type="checkbox" name="addon_{{ a.id }}" value="1"{% if a.checked %} checked{% endif %}>
+              <span><strong>{{ a.name }}</strong>{% if !a.description.is_empty() %}<span class="muted small">{{ a.description }}</span>{% endif %}</span>
+              <span class="nowrap">{{ a.price }}</span>
+            </label>
+            {%- endfor %}
+          </div>
+        </section>
+        {%- endif %}
+      </div>
+      <aside class="sticky">
+        <section class="card cart-summary" aria-labelledby="sum-title">
+          <header class="card__head"><h2 id="sum-title">{{ t("cart.summary.title") }}</h2></header>
+          <div class="card__body stack">
+            {% include "cart/_config_summary.html" %}
+            <button type="submit" class="btn btn--primary btn--block btn--lg">{{ icon("cart") }}{{ t("cart.configure.add") }}</button>
+            <p class="small muted">{{ t("cart.configure.note") }}</p>
+          </div>
+        </section>
+      </aside>
+    </form>
+  </div>
+</section>
+{% endblock %}

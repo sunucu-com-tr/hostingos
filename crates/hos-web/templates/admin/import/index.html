@@ -1,0 +1,48 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t("import.title") }}</h1><p>{{ t("import.lead") }}</p></div>
+  <div class="page-head__actions">
+    <a class="btn btn--primary" href="{{ url("/admin/tools/import/new") }}">{{ icon("plus") }}{{ t("import.new.button") }}</a>
+  </div>
+</div>
+{%- if !automation_active %}
+<div class="mb-4">{% call ui::alert("warning", t("import.cutover.paused_notice")) %}{% endcall %}</div>
+{%- endif %}
+{%- match cutover %}{% when Some((run, stats)) %}
+{% call ui::card(t("import.cutover.title"), t("import.cutover.lead")) %}
+<ul class="stack-sm">
+  <li><span class="{% if automation_active %}check-pass{% else %}check-warn{% endif %}">{% if automation_active %}{{ icon("check-circle") }}{% else %}{{ icon("alert-triangle") }}{% endif %}{% if automation_active %}{{ t("import.cutover.automation_on") }}{% else %}{{ t("import.cutover.automation_off") }}{% endif %}</span></li>
+  <li><span class="check-warn">{{ icon("clock") }}{{ tv2("import.cutover.grace", "count", stats.services_in_grace, "date", dopt(stats.grace_until)) }}</span></li>
+  <li><span class="{% if stats.open_invoices > 0 %}check-warn{% else %}check-pass{% endif %}">{{ icon("receipt") }}{{ tv("import.cutover.open_invoices", "count", stats.open_invoices) }}</span></li>
+  <li><span class="{% if stats.services_overdue > 0 %}check-warn{% else %}check-pass{% endif %}">{{ icon("server") }}{{ tv("import.cutover.overdue", "count", stats.services_overdue) }}</span></li>
+  <li><span class="{% if stats.services_to_terminate > 0 %}check-fail{% else %}check-pass{% endif %}">{{ icon("alert-triangle") }}{{ tv("import.cutover.terminate", "count", stats.services_to_terminate) }}</span></li>
+</ul>
+<p class="small muted mt-4">{{ tv("import.cutover.source", "source", run.label) }}</p>
+{%- if !automation_active %}
+<form method="post" action="{{ url("/admin/tools/import/automation") }}" class="mt-4" data-confirm="{{ t("import.cutover.resume_confirm") }}">{% call ui::csrf() %}{% endcall %}
+  <button class="btn btn--primary" type="submit">{{ icon("zap") }}{{ t("import.cutover.resume") }}</button>
+</form>
+{%- endif %}
+{% endcall %}
+{% when None %}{% endmatch %}
+<div class="mt-6">
+{%- if runs.is_empty() %}
+{% call ui::empty("database", t("import.empty_title"), t("import.empty_text")) %}
+<a class="btn btn--primary" href="{{ url("/admin/tools/import/new") }}">{{ icon("plus") }}{{ t("import.new.button") }}</a>
+{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--dense table--stack">
+  <thead><tr><th>{{ t("import.col.source") }}</th><th>{{ t("import.col.phase") }}</th><th>{{ t("admin.common.status") }}</th><th>{{ t("import.col.created") }}</th><th>{{ t("import.col.finished") }}</th></tr></thead>
+  <tbody>{% for r in runs %}<tr>
+    <td data-label="{{ t("import.col.source") }}"><a class="row-link" href="{{ url("/admin/tools/import/" ~ r.id) }}">{{ r.label }}</a><span class="sub">{{ lbl("import.kind", r.kind) }}</span></td>
+    <td data-label="{{ t("import.col.phase") }}">{{ lbl("import.phase", r.phase) }}</td>
+    <td data-label="{{ t("admin.common.status") }}">{{ badge(lbl("import.status", r.status), r.tone()) }}</td>
+    <td data-label="{{ t("import.col.created") }}">{{ datetime(r.created_at) }}</td>
+    <td data-label="{{ t("import.col.finished") }}">{{ dtopt(r.finished_at) }}</td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{%- endif %}
+</div>
+{% endblock %}

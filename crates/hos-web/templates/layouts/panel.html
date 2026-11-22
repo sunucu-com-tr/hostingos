@@ -1,0 +1,55 @@
+{#- Shared panel shell for /client, /admin and /platform: sidebar built from
+    `panel` (view::PanelChrome, each area's menu.rs) + topbar + content. -#}
+{% extends "layouts/base.html" %}
+{% import "components/ui.html" as ui %}
+{% block body %}
+<div class="panel-shell panel-shell--{% match panel %}{% when Some(p) %}{{ p.area }}{% when None %}none{% endmatch %}">
+  <aside class="sidebar" id="sidebar" aria-label="{{ t("common.a11y.sidebar") }}">
+    <a class="brand" href="{{ home_url() }}"><span class="brand__mark">{{ icon("forge") }}</span><span>{{ site_name }}</span></a>
+    {%- match panel %}{% when Some(p) %}
+    <p class="sidebar__area">{{ p.area_label }}</p>
+    <nav class="side-nav" aria-label="{{ p.area_label }}">
+      {%- for section in p.sections %}
+      <div>
+        {%- if !section.label.is_empty() %}<p class="side-nav__title">{{ section.label }}</p>{% endif %}
+        <ul>
+          {%- for item in section.items %}
+          <li><a href="{{ item.href }}"{% if item.active %} aria-current="page"{% endif %}>{{ icon(item.icon) }}<span>{{ item.label }}</span>{% if !item.badge.is_empty() %}<span class="side-nav__badge">{{ item.badge }}</span>{% endif %}</a></li>
+          {%- endfor %}
+        </ul>
+      </div>
+      {%- endfor %}
+    </nav>
+    {%- when None %}{% endmatch %}
+    <div class="sidebar__foot">
+      <div class="user-chip">
+        <span class="avatar" aria-hidden="true">{{ user_initials() }}</span>
+        <span class="user-chip__text"><strong>{{ user_name() }}</strong><span>{% match session %}{% when Some(s) %}{{ s.email() }}{% when None %}{% endmatch %}</span></span>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-backdrop" hidden></div>
+  <div class="panel-main">
+    <header class="topbar">
+      <button type="button" class="btn btn--ghost btn--icon sidebar-toggle" data-sidebar-toggle aria-controls="sidebar" aria-expanded="false" aria-label="{{ t("common.a11y.menu") }}">{{ icon("menu") }}</button>
+      {%- match panel %}{% when Some(p) %}{% call ui::breadcrumbs(p.crumbs.as_slice()) %}{% endcall %}{% when None %}{% endmatch %}
+      <div class="topbar__actions">
+        {%- block topbar %}{% endblock %}
+        {%- if tenant.is_some() && !path.starts_with("/platform") %}
+        <a class="btn btn--ghost btn--sm hide-sm" href="{{ url("/") }}">{{ icon("external-link") }}<span>{{ t("common.nav.storefront") }}</span></a>
+        {%- endif %}
+        {% call ui::lang_switch() %}{% endcall %}
+        {% call ui::theme_toggle() %}{% endcall %}
+        {%- if path.starts_with("/platform") %}
+        {% call ui::logout("/platform/logout") %}{% endcall %}
+        {%- else %}
+        {% call ui::logout("/auth/logout") %}{% endcall %}
+        {%- endif %}
+      </div>
+    </header>
+    <main id="main" class="panel-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endblock %}

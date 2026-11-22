@@ -1,0 +1,13 @@
+{#- Live configuration summary (htmx target #config-summary). -#}
+{% import "components/ui.html" as ui %}
+<div id="config-summary" class="stack" aria-live="polite">
+  {%- if !summary.error.is_empty() %}{% call ui::alert("warning", summary.error) %}{% endcall %}{% endif %}
+  {%- if !summary.lines.is_empty() %}
+  <ul class="summary-lines">
+    {%- for (label, amount, child) in summary.lines %}
+    <li{% if *child %} class="summary-lines__child"{% endif %}><span>{{ label }}</span><span>{{ amount }}</span></li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  {%- match summary.totals %}{% when Some(tt) %}{% include "cart/_totals.html" %}{% when None %}{% endmatch %}
+</div>

@@ -1,0 +1,76 @@
+{#- Checkout step 1/2: sign in or register (guests), billing details (clients). -#}
+{% extends "layouts/storefront.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}">{% endblock %}
+{% block content %}
+<section class="section section--tight">
+  <div class="container stack-lg">
+    <div class="page-head"><div><h1>{{ t("cart.checkout.title") }}</h1></div></div>
+    {% let labels = steps() %}{% call ui::steps(labels.as_slice(), step_no()) %}{% endcall %}
+    <div class="cart-layout">
+      <div class="stack">
+      {%- if step == "login" %}
+        <p class="muted">{{ t("cart.checkout.account_lead") }}</p>
+        <div class="grid grid--2">
+          <section class="card" aria-labelledby="co-login">
+            <header class="card__head"><h2 id="co-login">{{ t("cart.checkout.have_account") }}</h2></header>
+            <div class="card__body">
+              <form class="stack" method="post" action="{{ url("/auth/login") }}">
+                {% call ui::csrf() %}{% endcall %}
+                <input type="hidden" name="next" value="/checkout">
+                {% call ui::field("email", t("cart.checkout.email"), "", kind="email", required=true, autocomplete="email") %}{% endcall %}
+                {% call ui::field("password", t("cart.checkout.password"), "", kind="password", required=true, autocomplete="current-password") %}{% endcall %}
+                {% call ui::checkbox("remember", t("cart.checkout.remember")) %}{% endcall %}
+                <button type="submit" class="btn btn--primary btn--block">{{ t("cart.checkout.login") }}</button>
+                <a class="small" href="{{ url("/auth/forgot") }}">{{ t("cart.checkout.forgot") }}</a>
+              </form>
+            </div>
+          </section>
+          <section class="card" aria-labelledby="co-register">
+            <header class="card__head"><h2 id="co-register">{{ t("cart.checkout.new_customer") }}</h2></header>
+            <div class="card__body">
+              <form class="stack" method="post" action="{{ url("/auth/register") }}">
+                {% call ui::csrf() %}{% endcall %}
+                {% call ui::honeypot() %}{% endcall %}
+                <input type="hidden" name="next" value="/checkout">
+                <div class="form-row">
+                  {% call ui::field("first_name", t("cart.checkout.first_name"), "", required=true, autocomplete="given-name") %}{% endcall %}
+                  {% call ui::field("last_name", t("cart.checkout.last_name"), "", required=true, autocomplete="family-name") %}{% endcall %}
+                </div>
+                {% call ui::field("email", t("cart.checkout.email"), "", kind="email", required=true, autocomplete="email") %}{% endcall %}
+                {% call ui::field("password", t("cart.checkout.password"), "", kind="password", required=true, autocomplete="new-password", hint=t("cart.checkout.password_hint")) %}{% endcall %}
+                <label class="check"><input type="checkbox" name="terms" value="1" required> <span>{{ t("cart.checkout.accept_terms_register") }}{% if !terms_href.is_empty() %} <a href="{{ terms_href }}" target="_blank" rel="noopener">{{ t("cart.checkout.terms_link") }}</a>{% endif %}</span></label>
+                <button type="submit" class="btn btn--soft btn--block">{{ t("cart.checkout.register") }}</button>
+              </form>
+            </div>
+          </section>
+        </div>
+        {%- if !providers.is_empty() %}
+        <div class="card"><div class="card__body cluster">
+          <span class="muted small">{{ t("cart.checkout.or_social") }}</span>
+          {%- for p in providers %}<a class="btn btn--ghost" href="{{ p.href }}">{{ icon(p.kind) }}{{ p.label }}</a>{% endfor %}
+        </div></div>
+        {%- endif %}
+      {%- elif step == "staff" %}
+        {% call ui::alert("warning", t("cart.checkout.staff")) %}{% endcall %}
+      {%- else %}
+        <form class="card" method="post" action="{{ url("/checkout/details") }}" novalidate>
+          <header class="card__head"><div><h2>{{ t("cart.checkout.details_title") }}</h2><p class="muted small">{{ tv("cart.checkout.details_lead", "email", email) }}</p></div></header>
+          <div class="card__body stack">
+            {% call ui::csrf() %}{% endcall %}
+            {% call ui::form_errors(errors) %}{% endcall %}
+            {% include "client/_details_fields.html" %}
+            {%- if has_domains %}{% call ui::alert("info", t("cart.checkout.registrant_note")) %}{% endcall %}{% endif %}
+          </div>
+          <div class="card__foot between">
+            <a class="btn btn--ghost" href="{{ url("/cart") }}">{{ t("cart.checkout.back_to_cart") }}</a>
+            <button type="submit" class="btn btn--primary">{{ t("cart.checkout.continue") }}</button>
+          </div>
+        </form>
+      {%- endif %}
+      </div>
+      <aside class="sticky">{% include "cart/_mini_summary.html" %}</aside>
+    </div>
+  </div>
+</section>
+{% endblock %}

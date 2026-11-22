@@ -1,0 +1,15 @@
+{#- Department form fields (`form`, `errors`). -#}
+<div class="form-grid">
+  {% call ui::field("name", t("admin_support.departments.name_tr"), form.name, error=errors.get("name"), required=true) %}{% endcall %}
+  {% call ui::field("name_en", t("admin_support.departments.name_en"), form.name_en) %}{% endcall %}
+  {% call ui::field("slug", t("admin_content.editor.slug"), form.slug, error=errors.get("slug"), hint=t("admin_support.kb.cat_slug_hint")) %}{% endcall %}
+  {% call ui::field("email", t("admin_support.departments.email"), form.email, kind="email", error=errors.get("email"), hint=t("admin_support.departments.email_hint")) %}{% endcall %}
+  {% call ui::field("description", t("admin_support.departments.desc_tr"), form.description) %}{% endcall %}
+  {% call ui::field("description_en", t("admin_support.departments.desc_en"), form.description_en) %}{% endcall %}
+  {% call ui::field("sort_order", t("admin_content.editor.sort_order"), form.sort_order, error=errors.get("sort_order"), inputmode="numeric") %}{% endcall %}
+</div>
+<div class="checks">
+  {% call ui::checkbox("clients_only", t("admin_support.departments.clients_only"), form.clients_only) %}{% endcall %}
+  {% call ui::checkbox("auto_respond", t("admin_support.departments.auto_respond"), form.auto_respond) %}{% endcall %}
+  {% call ui::checkbox("is_hidden", t("admin_support.departments.hidden"), form.is_hidden) %}{% endcall %}
+</div>

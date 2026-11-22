@@ -1,0 +1,77 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}"><script src="{{ asset("js/admin_settings.js") }}" defer></script>{% endblock %}
+{% block content %}
+{% include "admin/settings/_head.html" %}
+<div class="settings-general">
+  <form method="post" action="{{ url("/admin/settings/general") }}" class="ax-form" novalidate>
+    {% call ui::csrf() %}{% endcall %}
+    <section class="form-section form-section--first">
+      <div class="form-section__intro"><h2>{{ t("admin_settings.general.company") }}</h2><p>{{ t("admin_settings.general.company_lead") }}</p></div>
+      <div class="form-section__body">
+        {% call ui::form_errors(errors) %}{% endcall %}
+        <div class="form-grid">
+          {% call ui::field("company_name", t("admin_settings.general.company_name"), company.company_name, error=errors.get("company_name"), required=true, hint=t("admin_settings.general.company_name_hint")) %}{% endcall %}
+          {% call ui::field("legal_name", t("admin_settings.general.legal_name"), company.legal_name, error=errors.get("legal_name")) %}{% endcall %}
+          {% call ui::field("tax_office", t("admin_settings.general.tax_office"), company.tax_office) %}{% endcall %}
+          {% call ui::field("tax_number", t("admin_settings.general.tax_number"), company.tax_number, error=errors.get("tax_number"), inputmode="numeric") %}{% endcall %}
+        </div>
+        {% call ui::field("line1", t("admin_settings.general.address"), company.line1) %}{% endcall %}
+        <div class="form-grid">
+          {% call ui::field("city", t("admin_settings.general.city"), company.city) %}{% endcall %}
+          {% call ui::field("state", t("admin_settings.general.state"), company.state) %}{% endcall %}
+          {% call ui::field("postal_code", t("admin_settings.general.postal_code"), company.postal_code) %}{% endcall %}
+          {% call ui::field("country_code", t("admin_settings.general.country_code"), company.country_code, error=errors.get("country_code"), placeholder="TR") %}{% endcall %}
+          {% call ui::field("contact_email", t("admin_settings.general.contact_email"), company.contact_email, kind="email", error=errors.get("contact_email")) %}{% endcall %}
+          {% call ui::field("contact_phone", t("admin_settings.general.contact_phone"), company.contact_phone, kind="tel") %}{% endcall %}
+          {% call ui::field("support_email", t("admin_settings.general.support_email"), company.support_email, kind="email", error=errors.get("support_email")) %}{% endcall %}
+        </div>
+        <p class="field__hint">{{ t("admin_settings.general.used_on") }}</p>
+      </div>
+    </section>
+    <div class="form-actions form-actions--sticky"><span class="form-actions__status">{{ t("admin.shell.unsaved") }}</span><button class="btn btn--ghost form-actions__reset" type="reset">{{ t("admin.shell.discard") }}</button><button class="btn btn--primary" type="submit">{{ icon("check") }}{{ t("common.actions.save") }}</button></div>
+  </form>
+
+  {#- Brand colours moved to Appearance (/admin/settings/appearance); the
+      legacy POST /admin/settings/general/brand still reports its errors here. -#}
+  <section class="form-section">
+    <div class="form-section__intro"><h2>{{ t("admin_settings.general.brand_moved_title") }}</h2><p>{{ t("admin_settings.general.brand_lead") }}</p></div>
+    <div class="form-section__body">
+      {% call ui::form_errors(brand_errors) %}{% endcall %}
+      {%- if !brand_errors.get("primary_color").is_empty() %}{% call ui::alert("error", brand_errors.get("primary_color")) %}{% endcall %}{% endif %}
+      {%- if !brand_errors.get("accent_color").is_empty() %}{% call ui::alert("error", brand_errors.get("accent_color")) %}{% endcall %}{% endif %}
+      {%- for w in warnings %}{% call ui::alert("warning", w) %}{% endcall %}{% endfor %}
+      <p>{{ t("admin_settings.general.brand_moved") }}</p>
+      <div><a class="btn btn--soft" href="{{ url("/admin/settings/appearance") }}">{{ icon("sliders") }}{{ t("admin_settings.general.brand_moved_link") }}{{ icon("arrow-right") }}</a></div>
+    </div>
+  </section>
+
+  <section class="form-section" id="images">
+    <div class="form-section__intro"><h2>{{ t("admin_settings.general.images") }}</h2><p>{{ t("admin_settings.general.images_lead") }}</p></div>
+    <div class="form-section__body asset-slots">
+    {%- for a in assets %}
+      <div class="asset-slot">
+        <div class="asset-slot__head">
+          <h3 class="h4">{{ a.label }}</h3>
+          {%- if !a.url.is_empty() %}
+          <form method="post" action="{{ url("/admin/settings/general/assets/" ~ a.kind ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">
+            {% call ui::csrf() %}{% endcall %}
+            <button class="btn btn--ghost btn--sm" type="submit">{{ icon("trash") }}{{ t("admin.common.delete") }}</button>
+          </form>
+          {%- endif %}
+        </div>
+        {%- if !a.url.is_empty() %}
+        <div class="asset-slot__preview asset-slot__preview--{{ a.kind }}"><img src="{{ a.url }}" alt="{{ a.label }}" class="logo-preview"></div>
+        {%- endif %}
+        <form method="post" action="{{ url("/admin/settings/general/assets/" ~ a.kind) }}" enctype="multipart/form-data" class="asset-slot__upload">
+          {% call ui::csrf() %}{% endcall %}
+          <input class="input" type="file" name="file" accept="{% if a.kind == "favicon" %}image/png,image/x-icon,.ico{% else %}image/png,image/jpeg,image/webp,image/gif{% endif %}" required aria-label="{{ a.label }}">
+          <button class="btn btn--soft" type="submit">{{ icon("download") }}{{ t("admin_settings.general.upload") }}</button>
+          <p class="field__hint">{{ a.hint }}</p>
+        </form>
+      </div>
+    {%- endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

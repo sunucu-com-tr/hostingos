@@ -1,0 +1,37 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head"><div><h1>{{ t("client.ssh_keys.title") }}</h1><p>{{ t("client.ssh_keys.lead") }}</p></div></div>
+<div class="vm-layout">
+  <section class="card">
+    <header class="card__head"><h2>{{ t("client.ssh_keys.saved") }}</h2></header>
+    <div class="card__body">
+    {%- if keys.is_empty() %}
+      {% call ui::empty("key", t("client.ssh_keys.empty"), t("client.ssh_keys.empty_text")) %}{% endcall %}
+    {%- else %}
+      <ul class="row-list">
+      {%- for k in keys %}
+        <li><span><strong>{{ k.name }}</strong><span class="muted small mono vm-fp">{{ k.fingerprint }}</span><span class="muted small">{{ datetime(k.created_at) }}</span></span>
+          <form method="post" action="{{ url("/client/account/ssh-keys/") }}{{ k.id }}/delete" data-confirm="{{ t("client.ssh_keys.delete_confirm") }}">{% call ui::csrf() %}{% endcall %}<button type="submit" class="btn btn--ghost btn--sm">{{ t("client.common.delete") }}</button></form></li>
+      {%- endfor %}
+      </ul>
+    {%- endif %}
+    </div>
+  </section>
+  <section class="card">
+    <header class="card__head"><h2>{{ t("client.ssh_keys.add") }}</h2></header>
+    <div class="card__body">
+      <form class="stack" method="post" action="{{ url("/client/account/ssh-keys") }}">
+        {% call ui::csrf() %}{% endcall %}
+        {% call ui::field("name", t("client.ssh_keys.name"), "", required=true, placeholder="laptop") %}{% endcall %}
+        <div class="field">
+          <label class="field__label" for="f-pub">{{ t("client.ssh_keys.public_key") }}</label>
+          <textarea class="textarea mono" id="f-pub" name="public_key" rows="4" required placeholder="ssh-ed25519 AAAA… user@host"></textarea>
+          <p class="field__hint">{{ t("client.ssh_keys.hint") }}</p>
+        </div>
+        <div><button type="submit" class="btn btn--primary">{{ icon("plus") }}{{ t("client.ssh_keys.add") }}</button></div>
+      </form>
+    </div>
+  </section>
+</div>
+{% endblock %}

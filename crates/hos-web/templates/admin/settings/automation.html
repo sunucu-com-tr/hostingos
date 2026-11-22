@@ -1,0 +1,49 @@
+{% extends "admin/layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block admin_head %}<link rel="stylesheet" href="{{ asset("css/admin_settings.css") }}">{% endblock %}
+{% block content %}
+{% include "admin/settings/_head.html" %}
+<p class="muted">{{ t("admin_settings.automation.lead") }}</p>
+<div class="table-wrap"><table class="table table--stack">
+  <thead><tr>
+    <th>{{ t("admin_settings.automation.task") }}</th>
+    <th>{{ t("admin_settings.automation.schedule") }}</th>
+    <th>{{ t("admin_settings.automation.last_run") }}</th>
+    <th>{{ t("admin_settings.automation.next_run") }}</th>
+    <th>{{ t("admin_settings.automation.result") }}</th>
+    <th class="actions"></th>
+  </tr></thead>
+  <tbody>
+  {%- for r in rows %}
+  <tr>
+    <td data-label="{{ t("admin_settings.automation.task") }}"><strong>{{ task_name(r.name) }}</strong>
+      {%- if !task_help(r.name).is_empty() %}<span class="sub">{{ task_help(r.name) }}</span>{% endif %}
+      <span class="sub mono small">{{ r.kind }}</span></td>
+    <td data-label="{{ t("admin_settings.automation.schedule") }}">
+      <form method="post" action="{{ url("/admin/settings/automation/" ~ r.id) }}" class="task-form">
+        {% call ui::csrf() %}{% endcall %}
+        <label class="visually-hidden" for="cron-{{ r.id }}">{{ t("admin_settings.automation.cron") }}</label>
+        <input class="input input--sm input--code" id="cron-{{ r.id }}" name="cron" value="{{ r.cron }}" spellcheck="false" autocomplete="off">
+        <label class="check small"><input type="checkbox" name="is_active" value="1"{% if r.is_active %} checked{% endif %}> <span>{{ t("admin.common.active") }}</span></label>
+        <button class="btn btn--soft btn--sm" type="submit">{{ t("common.actions.save") }}</button>
+      </form>
+      <span class="sub small">{{ r.timezone }}</span>
+    </td>
+    <td data-label="{{ t("admin_settings.automation.last_run") }}">{{ dtopt(r.last_run_at) }}</td>
+    <td data-label="{{ t("admin_settings.automation.next_run") }}">{% if r.is_active %}{{ dtopt(r.next_run_at) }}{% else %}<span class="muted">{{ t("admin.common.inactive") }}</span>{% endif %}</td>
+    <td data-label="{{ t("admin_settings.automation.result") }}">
+      {%- match r.last_status %}
+      {%- when Some(st) %}{% if st.as_str() == "ok" %}{{ badge(t("admin_settings.automation.ok"), "success") }}{% else %}{{ badge(t("admin_settings.automation.error"), "danger") }}{% endif %}
+      {%- when None %}<span class="muted">—</span>{% endmatch %}
+      {%- match r.last_error %}{% when Some(e) %}<span class="sub small">{{ e }}</span>{% when None %}{% endmatch %}
+    </td>
+    <td class="actions">
+      <form method="post" action="{{ url("/admin/settings/automation/" ~ r.id ~ "/run") }}">{% call ui::csrf() %}{% endcall %}
+        <button class="btn btn--soft btn--sm" type="submit">{{ icon("zap") }}{{ t("admin_settings.automation.run_now") }}</button></form>
+    </td>
+  </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+<p class="field__hint mt-4">{{ t("admin_settings.automation.cron_hint") }}</p>
+{% endblock %}

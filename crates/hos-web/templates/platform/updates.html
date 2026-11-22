@@ -1,0 +1,234 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ t("updates.title") }}</h1>
+    <p>{{ t("updates.lead") }}</p>
+  </div>
+  {%- if configured %}
+  <div class="btn-row">
+    <form method="post" action="/platform/updates/check">
+      {% call ui::csrf() %}{% endcall %}
+      <button class="btn btn--primary" type="submit">{{ icon("refresh") }}{{ t("updates.check.now") }}</button>
+    </form>
+  </div>
+  {%- endif %}
+</div>
+<div class="stack-lg">
+{% include "platform/_update_banner.html" %}
+
+{%- if maintenance %}
+<div class="alert alert--warning" role="status">{{ icon("alert-triangle") }}<div>
+  <p><strong>{{ t("updates.maintenance.on") }}</strong> {{ t("updates.maintenance.on_hint") }}</p>
+  {%- if active_run.is_none() %}
+  <details class="mt-2"><summary>{{ t("updates.maintenance.end") }}</summary>
+    <form class="stack mt-2" method="post" action="/platform/updates/maintenance/off">
+      {% call ui::csrf() %}{% endcall %}
+      {% call ui::field("password", t("updates.apply.password"), "", kind="password", required=true, autocomplete="current-password") %}{% endcall %}
+      {%- if totp %}{% call ui::field("code", t("updates.apply.code"), "", inputmode="numeric", autocomplete="one-time-code", required=true) %}{% endcall %}{% endif %}
+      <div><button class="btn btn--danger btn--sm" type="submit">{{ t("updates.maintenance.end") }}</button></div>
+    </form>
+  </details>
+  {%- endif %}
+</div></div>
+{%- endif %}
+
+{%- match active_run %}{% when Some(r) %}
+<div class="alert" role="status">{{ icon("activity") }}<div class="pf-update-banner__row">
+  <span>{{ tv2("updates.run.in_progress", "from", r.from_version, "to", r.to_version) }} · {{ run_status(r.status) }}</span>
+  <a class="btn btn--sm btn--primary" href="/platform/updates/runs/{{ r.id }}">{{ t("updates.run.follow") }}</a>
+</div></div>
+{%- when None %}{% endmatch %}
+
+<section class="stats" aria-label="{{ t("updates.overview") }}">
+  {% call ui::stat(t("updates.version"), version, short_commit(), "", "box") %}{% endcall %}
+  {% call ui::stat(t("updates.install.label"), install, target, "", "server") %}{% endcall %}
+  {% call ui::stat(t("updates.channel.label"), channel_label(channel), auto_hint(), "", "layers") %}{% endcall %}
+  {% call ui::stat(t("updates.check.last"), date_opt(last_check_at), check_hint(), check_tone(), "clock") %}{% endcall %}
+</section>
+
+{%- if !configured %}
+<div class="callout callout--info">
+  {{ icon("info") }}
+  <div class="stack-sm">
+  <p class="callout__title">{{ t("updates.source.off_title") }}</p>
+  <p>{{ t("updates.source.off_text") }}</p>
+  {%- if !source_error.is_empty() %}<p class="text-danger">{{ source_error }}</p>{% endif %}
+  {% call ui::code("updates-env", t("updates.source.env_label"), "HOS_UPDATE_REPO=owner/name\n# or\nHOS_UPDATE_MANIFEST_URL=https://updates.example.com/stable/hostingos-manifest.json") %}{% endcall %}
+  </div>
+</div>
+{%- endif %}
+
+{%- if !signing_ready %}
+<div class="callout callout--warning">
+  {{ icon("alert-triangle") }}
+  <div class="stack-sm">
+  <p class="callout__title">{{ t("updates.keys.none_title") }}</p>
+  <p>{{ t("updates.keys.none_text") }}</p>
+  </div>
+</div>
+{%- endif %}
+
+{%- if !last_check_error.is_empty() %}
+{% call ui::alert("error", tv("updates.check.error", "detail", last_check_error)) %}{% endcall %}
+{%- endif %}
+{%- if !problems.is_empty() %}
+<div class="alert alert--error" role="alert">{{ icon("alert-triangle") }}<div>
+  <p><strong>{{ t("updates.problems.title") }}</strong> {{ t("updates.problems.text") }}</p>
+  <ul class="mt-2">
+    {%- for p in problems %}
+    <li><code>{{ p.version }}</code> · {{ trust_label(p.trust) }}: <span class="small">{{ p.reason }}</span></li>
+    {%- endfor %}
+  </ul>
+</div></div>
+{%- endif %}
+
+{% call ui::card(t("updates.releases.title"), t("updates.releases.hint")) %}
+  {%- if releases.is_empty() %}
+  {% call ui::empty("check-circle", t("updates.releases.none"), empty_text()) %}{% endcall %}
+  {%- else %}
+  <div class="stack-lg">
+  {%- for r in releases %}
+  <article class="pf-release" id="release-{{ r.version }}">
+    <header class="pf-release__head">
+      <h3 class="mono">{{ r.version }}</h3>
+      <p class="cluster">
+        {%- if r.security %}{{ badge(t("updates.severity.security"), "danger") }}{% endif %}
+        {%- if r.verified %}{{ badge(t("updates.trust.verified"), "success") }}{% else %}{{ badge(t("updates.trust.unverified"), "warning") }}{% endif %}
+        {%- if r.migrations %}{{ badge(t("updates.release.migrations"), "info") }}{% endif %}
+        {%- if r.migrations %}{% if r.rollback_safe %}{{ badge(t("updates.release.rollback_safe"), "success") }}{% else %}{{ badge(t("updates.release.not_rollback_safe"), "warning") }}{% endif %}{% endif %}
+        <span class="muted small">{{ tv("updates.release.published", "date", date(r.published_at)) }}</span>
+        {%- if !r.release_url.is_empty() %}{% if r.verified %} <a class="small" href="{{ r.release_url }}" rel="noopener noreferrer">{{ t("updates.release.page") }}</a>{% else %} <span class="muted small">{{ t("updates.release.page") }}: <span class="mono">{{ r.release_url }}</span></span>{% endif %}{% endif %}
+      </p>
+    </header>
+    {%- if !r.notes_html.is_empty() %}<div class="prose pf-release__notes">{{ r.notes_html|safe }}</div>{% endif %}
+    {%- if !r.notes_text.is_empty() %}
+    <p class="muted small">{{ t("updates.release.untrusted_notes") }}</p>
+    <pre class="pf-release__notes pf-release__notes--plain">{{ r.notes_text }}</pre>
+    {%- endif %}
+    {%- if !r.blocked.is_empty() %}
+    {% call ui::alert("warning", r.blocked) %}{% endcall %}
+    {%- elif !r.verified %}
+    <p class="muted small">{{ t("updates.release.unverified_hint") }}</p>
+    {%- elif r.migrations && !r.rollback_safe %}
+    <p class="muted small">{{ t("updates.release.restore_hint") }}</p>
+    {%- endif %}
+
+    {%- if container %}
+    <div class="stack mt-4">
+      <p>{{ t("updates.container.text") }}</p>
+      {%- if !r.image.is_empty() %}<p>{{ t("updates.container.image") }} <code>{{ r.image }}</code></p>{% endif %}
+      {% call ui::code(compose_id(r.version), t("updates.container.commands"), compose_commands) %}{% endcall %}
+      {%- if !webhook_url.is_empty() && r.verified && r.blocked.is_empty() %}
+      <form class="stack" method="post" action="/platform/updates/deploy" data-confirm="{{ tv("updates.deploy.confirm", "version", r.version) }}">
+        {% call ui::csrf() %}{% endcall %}
+        <input type="hidden" name="version" value="{{ r.version }}">
+        <div class="form-grid">
+          {% call ui::field("password", t("updates.apply.password"), "", kind="password", required=true, autocomplete="current-password") %}{% endcall %}
+          {%- if totp %}{% call ui::field("code", t("updates.apply.code"), "", inputmode="numeric", autocomplete="one-time-code", required=true) %}{% endcall %}{% endif %}
+        </div>
+        <div><button class="btn btn--primary" type="submit">{{ icon("rocket") }}{{ t("updates.deploy.button") }}</button></div>
+      </form>
+      {%- elif webhook_url.is_empty() %}
+      <p class="muted small">{{ t("updates.deploy.no_webhook") }}</p>
+      {%- endif %}
+    </div>
+    {%- elif can_apply && r.verified && r.blocked.is_empty() && active_run.is_none() %}
+    <form class="stack mt-4" method="post" action="/platform/updates/apply" data-confirm="{{ tv("updates.apply.confirm", "version", r.version) }}">
+      {% call ui::csrf() %}{% endcall %}
+      <input type="hidden" name="version" value="{{ r.version }}">
+      <p class="small">{{ t("updates.apply.what") }}</p>
+      {%- if backup_plan == "manual" %}
+      <div class="alert alert--warning">{{ icon("alert-triangle") }}<div><p>{{ t("updates.backup.manual") }}</p>
+        {% call ui::checkbox("backup_confirmed", t("updates.backup.confirm")) %}{% endcall %}</div></div>
+      {%- else %}
+      <p class="muted small">{{ backup_text() }}</p>
+      {%- endif %}
+      <div class="form-grid">
+        {% call ui::field("password", t("updates.apply.password"), "", kind="password", required=true, autocomplete="current-password") %}{% endcall %}
+        {%- if totp %}{% call ui::field("code", t("updates.apply.code"), "", inputmode="numeric", autocomplete="one-time-code", required=true) %}{% endcall %}{% endif %}
+      </div>
+      {%- if !totp %}<p class="muted small">{{ t("updates.apply.no_2fa") }}</p>{% endif %}
+      <div><button class="btn btn--primary" type="submit">{{ icon("download") }}{{ tv("updates.apply.button", "version", r.version) }}</button></div>
+    </form>
+    {%- elif !container %}
+    <p class="muted small mt-4">{% if apply_blocker.is_empty() %}{{ t("updates.apply.unavailable") }}{% else %}{{ apply_blocker }}{% endif %} {{ t("updates.apply.manual") }}</p>
+    {%- endif %}
+  </article>
+  {%- endfor %}
+  </div>
+  {%- endif %}
+{% endcall %}
+
+<div class="grid grid--2">
+{% call ui::card(t("updates.install.title")) %}
+<dl class="dl">
+  <dt>{{ t("updates.version") }}</dt><dd><code>{{ version }}</code></dd>
+  <dt>{{ t("updates.commit") }}</dt><dd><code>{{ short_commit() }}</code></dd>
+  <dt>{{ t("updates.build_date") }}</dt><dd>{% if build_date.is_empty() %}<span class="muted">—</span>{% else %}{{ build_date }}{% endif %}</dd>
+  <dt>{{ t("updates.target") }}</dt><dd><code>{{ target }}</code> <span class="muted small">{{ profile }}</span></dd>
+  <dt>{{ t("updates.install.label") }}</dt><dd>{{ install }}<br><span class="muted small">{{ install_detail }}</span></dd>
+  <dt>{{ t("updates.source.label") }}</dt><dd>{% if configured %}{{ source }}{% else %}<span class="muted">{{ t("updates.source.off_short") }}</span>{% endif %}</dd>
+  <dt>{{ t("updates.keys.label") }}</dt><dd>{% if signing_ready %}{{ tv2("updates.keys.count", "builtin", keys_builtin, "endorsed", keys_endorsed) }}{% else %}<span class="text-danger">{{ t("updates.keys.none_short") }}</span>{% endif %}</dd>
+  <dt>{{ t("updates.backup.label") }}</dt><dd>{{ backup_label() }}</dd>
+  <dt>{{ t("updates.check.next") }}</dt><dd>{{ date_opt(next_check_at) }}</dd>
+</dl>
+<p class="muted small mt-4">{{ t("updates.privacy") }}</p>
+{% endcall %}
+
+{% call ui::card(t("updates.settings.title"), t("updates.settings.hint")) %}
+<form class="stack" method="post" action="/platform/updates/settings">
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::select("channel", t("updates.channel.label"), channels, channel.as_str(), hint=t("updates.channel.hint")) %}{% endcall %}
+  {% call ui::checkbox("auto_check", t("updates.settings.auto_check"), checked=auto_check) %}{% endcall %}
+  {% call ui::field("notify_email", t("updates.settings.notify_email"), notify_email, kind="email", hint=t("updates.settings.notify_email_hint"), autocomplete="email") %}{% endcall %}
+  <fieldset class="stack">
+    <legend class="field__label">{{ t("updates.settings.webhook") }}</legend>
+    <p class="muted small">{{ t("updates.settings.webhook_hint") }}</p>
+    {% call ui::field("webhook_url", t("updates.settings.webhook_url"), webhook_url, kind="url", placeholder="https://") %}{% endcall %}
+    {% call ui::select("webhook_method", t("updates.settings.webhook_method"), methods, webhook_method.as_str()) %}{% endcall %}
+    {% call ui::field("webhook_secret", t("updates.settings.webhook_secret"), "", kind="password", autocomplete="new-password", hint=secret_hint()) %}{% endcall %}
+    {%- if webhook_secret_set %}{% call ui::checkbox("clear_secret", t("updates.settings.clear_secret")) %}{% endcall %}{% endif %}
+    <p class="muted small">{{ t("updates.settings.secret_host") }}</p>
+  </fieldset>
+  <fieldset class="stack">
+    <legend class="field__label">{{ t("updates.settings.reauth") }}</legend>
+    <p class="muted small">{{ t("updates.settings.reauth_hint") }}</p>
+    {% call ui::field("password", t("updates.apply.password"), "", kind="password", autocomplete="current-password") %}{% endcall %}
+    {%- if totp %}{% call ui::field("code", t("updates.apply.code"), "", inputmode="numeric", autocomplete="one-time-code") %}{% endcall %}{% endif %}
+  </fieldset>
+  <div><button class="btn btn--primary" type="submit">{{ t("common.actions.save") }}</button></div>
+</form>
+{% endcall %}
+</div>
+
+{% call ui::card(t("updates.history.title")) %}
+  {%- if runs.is_empty() %}
+  <p class="muted">{{ t("updates.history.none") }}</p>
+  {%- else %}
+  <div class="table-wrap"><table class="table table--stack">
+    <thead><tr>
+      <th scope="col">{{ t("updates.history.when") }}</th>
+      <th scope="col">{{ t("updates.history.versions") }}</th>
+      <th scope="col">{{ t("updates.history.kind") }}</th>
+      <th scope="col">{{ t("updates.history.status") }}</th>
+      <th scope="col">{{ t("updates.history.by") }}</th>
+    </tr></thead>
+    <tbody>
+    {%- for r in runs %}
+      <tr>
+        <td data-label="{{ t("updates.history.when") }}"><a href="/platform/updates/runs/{{ r.id }}"><time datetime="{{ iso(r.created_at) }}">{{ datetime(r.created_at) }}</time></a></td>
+        <td data-label="{{ t("updates.history.versions") }}" class="mono">{{ r.from_version }} → {{ r.to_version }}</td>
+        <td data-label="{{ t("updates.history.kind") }}">{{ kind_label(r.kind) }}</td>
+        <td data-label="{{ t("updates.history.status") }}">{{ badge(run_status(r.status), run_tone(r.status)) }}</td>
+        <td data-label="{{ t("updates.history.by") }}">{{ r.requested_by }}{% if !r.node.is_empty() %} <span class="muted small">@{{ r.node }}</span>{% endif %}</td>
+      </tr>
+    {%- endfor %}
+    </tbody>
+  </table></div>
+  {%- endif %}
+{% endcall %}
+</div>
+{% endblock %}

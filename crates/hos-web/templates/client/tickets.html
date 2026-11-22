@@ -1,0 +1,35 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block page %}
+<div class="page-head">
+  <div><h1>{{ t("client.tickets.title") }}</h1><p>{{ t("client.tickets.lead") }}</p></div>
+  <div class="btn-row"><a class="btn btn--primary" href="{{ url("/client/tickets/new") }}">{{ icon("plus") }}{{ t("client.tickets.new") }}</a></div>
+</div>
+<nav class="tabs" aria-label="{{ t("client.tickets.title") }}">
+  <a href="{{ url("/client/tickets") }}"{% if show == "open" %} aria-current="page"{% endif %}>{{ t("client.tickets.show_open") }}</a>
+  <a href="{{ url("/client/tickets") }}?show=closed"{% if show == "closed" %} aria-current="page"{% endif %}>{{ t("client.tickets.show_closed") }}</a>
+  <a href="{{ url("/client/tickets") }}?show=all"{% if show == "all" %} aria-current="page"{% endif %}>{{ t("client.tickets.show_all") }}</a>
+</nav>
+<div class="card">
+{%- if rows.is_empty() %}
+  <div class="card__body">{% call ui::empty("life-buoy", t("client.tickets.empty"), t("client.tickets.empty_text")) %}<a class="btn btn--primary btn--sm" href="{{ url("/client/tickets/new") }}">{{ t("client.tickets.new") }}</a>{% endcall %}</div>
+{%- else %}
+  <div class="table-wrap">
+    <table class="table table--stack">
+      <thead><tr><th scope="col">{{ t("client.tickets.subject") }}</th><th scope="col">{{ t("client.tickets.department") }}</th><th scope="col">{{ t("client.tickets.last_reply") }}</th><th scope="col">{{ t("client.invoices.status") }}</th></tr></thead>
+      <tbody>
+      {%- for r in rows %}
+        <tr>
+          <td data-label="{{ t("client.tickets.subject") }}"><a href="{{ url("/client/tickets/") }}{{ r.ticket.id }}"><strong>{{ r.ticket.subject }}</strong></a><span class="muted small block">#{{ r.ticket.number }}</span></td>
+          <td data-label="{{ t("client.tickets.department") }}">{{ r.department_name }}</td>
+          <td data-label="{{ t("client.tickets.last_reply") }}">{{ datetime(r.ticket.last_reply_at) }}</td>
+          <td data-label="{{ t("client.invoices.status") }}">{{ st(r.ticket.status.as_str()) }}</td>
+        </tr>
+      {%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- endif %}
+</div>
+{% call ui::pagination(pager) %}{% endcall %}
+{% endblock %}

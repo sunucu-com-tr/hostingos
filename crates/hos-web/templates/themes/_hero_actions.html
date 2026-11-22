@@ -1,0 +1,6 @@
+{#- Hero buttons (`hero_links`: the home page's hero block or defaults). -#}
+{%- if !hero_links.is_empty() %}
+<div class="btn-row hero__actions">
+  {%- for l in hero_links %}<a class="btn btn--lg{% if loop.first %} btn--primary{% endif %}" href="{{ l.href }}">{{ l.label }}{% if loop.first %}{{ icon("arrow-right") }}{% endif %}</a>{% endfor %}
+</div>
+{%- endif %}

@@ -1,0 +1,69 @@
+{#- Classic template: technical-editorial split hero. Message, domain search
+    and actions on the left; on the right the real TLD price list (or the
+    product groups) as a spec sheet laid over a line-art server rack
+    (decorative SVG, tokens only). Included by storefront/home.html. -#}
+<section class="hero hero--classic">
+  <div class="container hero__inner">
+    <div class="hero__main">
+      {%- if !posts.is_empty() %}
+      {%- let latest = posts[0].clone() %}
+      <a class="pill-link" href="{{ latest.href }}"><span class="badge badge--brand">{{ t("storefront.home.new") }}</span><span>{{ latest.title }}</span>{{ icon("arrow-right") }}</a>
+      {%- endif %}
+      <h1>{{ hero_title }}</h1>
+      <p class="hero__lead">{{ hero_lead }}</p>
+      <div class="hero__search">{% call cat::domain_search("") %}{% endcall %}</div>
+      {% include "themes/_hero_actions.html" %}
+    </div>
+    <div class="hero__visual">
+      <svg class="hero-art hero-art--rack" viewBox="0 0 440 400" width="440" height="400" aria-hidden="true" focusable="false">
+        <defs>
+          <pattern id="art-dots" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.2" class="art-dot"/></pattern>
+        </defs>
+        <rect x="0" y="0" width="440" height="400" fill="url(#art-dots)"/>
+        <rect x="70" y="36" width="300" height="328" rx="16" class="art-frame"/>
+        <g class="art-units">
+          <rect x="92" y="60" width="256" height="54" rx="9" class="art-unit"/>
+          <rect x="92" y="126" width="256" height="54" rx="9" class="art-unit"/>
+          <rect x="92" y="192" width="256" height="54" rx="9" class="art-unit"/>
+          <rect x="92" y="258" width="256" height="54" rx="9" class="art-unit"/>
+        </g>
+        <g class="art-leds">
+          <circle cx="116" cy="87" r="5" class="art-led"/><circle cx="116" cy="153" r="5" class="art-led art-led--accent"/>
+          <circle cx="116" cy="219" r="5" class="art-led"/><circle cx="116" cy="285" r="5" class="art-led"/>
+        </g>
+        <g class="art-vents">
+          <path d="M140 80h96M140 94h64M140 146h110M140 160h52M140 212h84M140 226h70M140 278h102M140 292h48"/>
+          <path d="M296 80v14M306 80v14M316 80v14M326 80v14M296 146v14M306 146v14M316 146v14M326 146v14M296 212v14M306 212v14M316 212v14M326 212v14M296 278v14M306 278v14M316 278v14M326 278v14"/>
+        </g>
+        <path class="art-wire" d="M370 120c40 0 46 40 46 80s-6 80-46 80"/>
+        <circle cx="416" cy="200" r="7" class="art-node"/>
+        <path class="art-wire" d="M70 330c-34 0-50-18-50-46V96"/>
+        <circle cx="20" cy="92" r="7" class="art-node art-node--accent"/>
+      </svg>
+      {%- if !tlds.is_empty() %}
+      <aside class="hero__panel spec-panel" aria-labelledby="tld-panel-title">
+        <div class="spec-panel__head"><h2 class="label" id="tld-panel-title">{{ t("storefront.home.tld_prices") }}</h2><span>{{ t("storefront.domains.col_register") }}</span></div>
+        <table class="spec-panel__table">
+          <tbody>
+            {%- for c in tlds %}
+            <tr><th scope="row">.{{ c.tld }}</th><td>{% match c.price %}{% when Some(p) %}{{ money(p) }}<small>{{ t("common.per.annual") }}</small>{% when None %}—{% endmatch %}</td></tr>
+            {%- endfor %}
+          </tbody>
+        </table>
+        <div class="spec-panel__foot"><span>{{ num(facts.tlds) }} · {{ t("storefront.home.fact_tlds") }}</span><a href="{{ url("/domains") }}">{{ t("storefront.nav.domains") }}{{ icon("arrow-right") }}</a></div>
+      </aside>
+      {%- elif !groups.is_empty() %}
+      <aside class="hero__panel spec-panel" aria-labelledby="catalog-panel-title">
+        <div class="spec-panel__head"><h2 class="label" id="catalog-panel-title">{{ t("storefront.home.groups_eyebrow") }}</h2><span>{{ tn("storefront.catalog.plans", facts.plans) }}</span></div>
+        <table class="spec-panel__table">
+          <tbody>
+            {%- for g in groups %}
+            <tr><th scope="row"><a class="spec-panel__row-link" href="{{ g.href }}">{{ g.name }}</a></th><td>{% match g.from %}{% when Some(f) %}{{ money(f) }}<small>{{ t("common.per.monthly") }}</small>{% when None %}{{ tn("storefront.catalog.plans", g.count) }}{% endmatch %}</td></tr>
+            {%- endfor %}
+          </tbody>
+        </table>
+      </aside>
+      {%- endif %}
+    </div>
+  </div>
+</section>

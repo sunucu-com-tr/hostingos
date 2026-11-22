@@ -1,0 +1,43 @@
+[package]
+name = "hos-import"
+description = "HostingOS data import: WHMCS (database or API) → HostingOS, resumable, idempotent, silent, with rollback."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+hos-core = { workspace = true, features = ["sqlx", "net"] }
+hos-db = { workspace = true }
+hos-auth = { workspace = true }
+hos-billing = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true }
+ego-tree = { workspace = true }
+hex = { workspace = true }
+ipnet = { workspace = true }
+md-5 = { workspace = true }
+mysql_async = { workspace = true }
+reqwest = { workspace = true }
+rust_decimal = { workspace = true }
+scraper = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha1 = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+bcrypt = { workspace = true }
+dotenvy = { workspace = true }
+rust_decimal_macros = { workspace = true }
+wiremock = { workspace = true }

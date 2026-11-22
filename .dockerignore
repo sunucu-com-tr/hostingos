@@ -1,0 +1,9 @@
+target
+.git
+.env
+.env.*
+!.env.example
+**/.DS_Store
+*.log
+# Release files; the image build uses docker-dist/ (release.yml).
+dist

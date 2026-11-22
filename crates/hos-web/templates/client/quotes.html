@@ -1,0 +1,24 @@
+{% extends "client/_layout.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}<link rel="stylesheet" href="{{ asset("css/client.css") }}"><link rel="stylesheet" href="{{ asset("css/biz.css") }}">{% endblock %}
+{% block page %}
+<div class="page-head"><div><h1>{{ ctx.title }}</h1><p>{{ t("quotes.client.lead") }}</p></div></div>
+{%- if rows.is_empty() %}
+{% call ui::empty("file-text", t("quotes.client.empty_title"), t("quotes.client.empty_text")) %}{% endcall %}
+{%- else %}
+<div class="table-wrap"><table class="table table--stack">
+  <thead><tr><th scope="col">{{ t("quotes.fields.number") }}</th><th scope="col">{{ t("quotes.fields.subject") }}</th><th scope="col">{{ t("quotes.fields.valid_until") }}</th><th scope="col" class="num">{{ t("quotes.fields.total") }}</th><th scope="col">{{ t("quotes.fields.status") }}</th></tr></thead>
+  <tbody>
+  {%- for r in rows %}
+  <tr>
+    <td data-label="{{ t("quotes.fields.number") }}"><a class="mono" href="{{ url("/client/quotes/" ~ r.id) }}">{{ r.number() }}</a></td>
+    <td data-label="{{ t("quotes.fields.subject") }}">{{ r.subject }}</td>
+    <td data-label="{{ t("quotes.fields.valid_until") }}" class="nowrap">{{ d(r.valid_until) }}</td>
+    <td data-label="{{ t("quotes.fields.total") }}" class="num mono">{{ m(r.total, r.currency) }}</td>
+    <td data-label="{{ t("quotes.fields.status") }}">{{ qbadge(r.status) }}</td>
+  </tr>
+  {%- endfor %}
+  </tbody>
+</table></div>
+{%- endif %}
+{% endblock %}

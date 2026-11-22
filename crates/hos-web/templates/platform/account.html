@@ -1,0 +1,50 @@
+{% extends "layouts/panel.html" %}
+{% import "components/ui.html" as ui %}
+{% block head %}{% include "platform/_head.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ t("platform.account.title") }}</h1>
+    <p>{{ admin.name }} · {{ admin.email }}</p>
+  </div>
+</div>
+<div class="stack-lg">
+{%- if !codes.is_empty() %}
+{% call ui::card(t("auth.two_factor.step_codes"), t("platform.account.codes_lead")) %}
+{% call ui::code("recovery-codes", t("platform.account.codes_label"), codes_text) %}{% endcall %}
+{% endcall %}
+{%- endif %}
+{% call ui::card(t("platform.account.two_factor"), t("platform.account.two_factor_lead")) %}
+{% call ui::form_errors(errors) %}{% endcall %}
+{%- if enabled %}
+{% call ui::alert("success", tn("auth.two_factor.recovery_left", recovery_left)) %}{% endcall %}
+<form class="form mt-4" method="post" action="/platform/account/2fa/disable" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  <div class="form-row">
+    {% call ui::field("password", t("auth.two_factor.confirm_password"), "", kind="password", error=errors.get("password"), required=true, autocomplete="current-password") %}{% endcall %}
+    {% call ui::field("code", t("auth.two_factor.code"), "", required=true, autocomplete="one-time-code", inputmode="numeric") %}{% endcall %}
+  </div>
+  <button type="submit" class="btn btn--danger">{{ t("auth.two_factor.disable") }}</button>
+</form>
+{%- else %}
+{% call ui::alert("warning", t("platform.account.two_factor_off")) %}{% endcall %}
+<ol class="steps mt-4">
+  <li aria-current="step">{{ t("auth.two_factor.step_scan") }}</li>
+  <li>{{ t("auth.two_factor.step_confirm") }}</li>
+  <li>{{ t("auth.two_factor.step_codes") }}</li>
+</ol>
+<div class="qr">{{ qr|safe }}</div>
+<details>
+  <summary class="small">{{ t("auth.two_factor.manual") }}</summary>
+  <p class="mt-2"><code class="mono" id="totp-secret">{{ secret }}</code>
+  <button type="button" class="btn btn--ghost btn--sm" data-copy="#totp-secret" data-copied="{{ t("common.actions.copied") }}">{{ icon("copy") }}{{ t("common.actions.copy") }}</button></p>
+</details>
+<form class="form mt-4" method="post" action="/platform/account/2fa" novalidate>
+  {% call ui::csrf() %}{% endcall %}
+  {% call ui::field("code", t("auth.two_factor.code"), "", error=errors.get("code"), required=true, autocomplete="one-time-code", inputmode="numeric") %}{% endcall %}
+  <button type="submit" class="btn btn--primary">{{ t("auth.two_factor.enable") }}</button>
+</form>
+{%- endif %}
+{% endcall %}
+</div>
+{% endblock %}
