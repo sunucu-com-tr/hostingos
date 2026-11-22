@@ -5,10 +5,23 @@
 How to run a public HostingOS demo (demo mode: [../DEMO.md](../DEMO.md))
 on one hostname. Two shapes:
 
-* **A — Coolify, Dockerfile build, separate PostgreSQL** (recommended; the
-  shape the public demo uses).
+* **A — Coolify, separate PostgreSQL** (recommended; the shape the public
+  demo uses). The application either runs the published image (nothing is
+  compiled on the server; recommended) or is built from the Dockerfile.
 * **B — `docker-compose.demo.yml`**: app and its own PostgreSQL in one
   stack, on Coolify or any Docker host.
+
+To look at the demo on your own computer instead, no server is needed:
+see "Quick start" in the [README](../../README.md#try-it-on-your-computer)
+(`docker-compose.quickstart.yml` with `HOS_DEMO_MODE=1`).
+
+**The published image.** `ghcr.io/sunucu-com-tr/hostingos:edge` is built
+by CI from the `main` branch after all tests pass; it follows `main` and
+is not a signed release (signed, versioned releases are not published
+yet). `ghcr.io/sunucu-com-tr/hostingos:sha-<7-digit commit>` is one fixed
+build. Both are available after the first image has been published.
+Building the Dockerfile instead compiles HostingOS on the server, which
+takes a long time and needs a lot of memory on a small server.
 
 `demo.example.invalid` stands for your demo hostname throughout.
 
@@ -72,27 +85,36 @@ Do not use `HOS_DEMO_ALLOW_EXISTING_DATA=1` to get around it: that keeps
 the other data next to a public demo, and a company that already owns the
 demo hostname as its domain makes the reset fail.
 
-## A — Coolify, Dockerfile build, separate PostgreSQL
+## A — Coolify, separate PostgreSQL
 
-Coolify facts below are from the Coolify documentation (Dockerfile build
-pack, Health checks, Deployment commands, Basic authentication).
+Coolify facts below are from the Coolify documentation (Docker Image
+applications, Dockerfile build pack, Health checks, Deployment commands,
+Basic authentication).
 
 1. **PostgreSQL.** Create a PostgreSQL 16 resource (or reuse an empty
    one) and copy its internal connection URL. No backups are needed: the
    demo holds no data worth keeping.
-2. **Application.** New resource → your Git repository → **Build pack:
-   Dockerfile**, **Base Directory** `/`, **Dockerfile Location**
-   `/Dockerfile`. Leave **Docker Build Stage Target** empty (the last
-   stage builds from source).
-3. **Network.** **Ports Exposes** `8080`. **Domains**
+2. **Application**, one of:
+   * **From the published image (recommended).** **+ New** → **Docker
+     Image** → **Image Name** `ghcr.io/sunucu-com-tr/hostingos:edge`
+     (Coolify moves a pasted tag into its own field; a `sha-…` tag or a
+     digest pins one build) → **Save**. Nothing is cloned or compiled; each
+     deployment pulls the image.
+   * **Built from the Dockerfile.** New resource → your Git repository →
+     **Build pack: Dockerfile**, **Base Directory** `/`, **Dockerfile
+     Location** `/Dockerfile`. Leave **Docker Build Stage Target** empty
+     (the last stage builds from source).
+3. **Network.** **Ports Exposes** `8080` (a Docker Image application
+   starts with `80`: replace it). **Domains**
    `https://demo.example.invalid`.
 4. **Environment variables.** As in the table above (`DATABASE_URL` = the
-   internal URL from step 1). Set each one's **Build time** to **Not
-   available during build**: the image build needs none of them, Coolify
-   turns build-time variables into injected `ARG` instructions (so changing
-   a value can throw away the cached dependency build), and build arguments
-   can show up in image metadata. Under **Advanced → Build arguments**
-   choose **Managed manually in Dockerfile**, and keep the build cache on.
+   internal URL from step 1). With the Dockerfile build, set each one's
+   **Build time** to **Not available during build**: the image build needs
+   none of them, Coolify turns build-time variables into injected `ARG`
+   instructions (so changing a value can throw away the cached dependency
+   build), and build arguments can show up in image metadata. Under
+   **Advanced → Build arguments** choose **Managed manually in
+   Dockerfile**, and keep the build cache on.
 5. **Health check.** Leave Coolify's **Healthcheck** page *disabled*:
    Coolify then uses the image's `HEALTHCHECK`, which runs
    `/usr/local/bin/hostingos healthcheck` (plain HTTP `GET /healthz` on
@@ -137,10 +159,20 @@ once; the running server picks it up within 30 seconds and starts a new
 interval. A **Scheduled Task** with the same command and **Execute Now**
 works too, and so does **Restart** (every start resets).
 
-**Updating.** Redeploy. The new container applies pending migrations and
-resets the demo before it listens. While it does, a previous container that
-is still running keeps serving: a database ahead of its release is logged
-once and served (migrations are additive), not refused.
+**Updating.** Redeploy. With the published image, Coolify pulls the tag
+again, so a redeploy of `edge` brings the newest build of `main` (a
+**Restart** pulls the saved image reference again too); with a `sha-…` tag,
+change the tag first. With the Dockerfile build, a redeploy builds the new
+commit. The new container applies pending migrations and resets the demo
+before it listens. While it does, a previous container that is still
+running keeps serving: a database ahead of its release is logged once and
+served (migrations are additive), not refused.
+
+**Moving an existing demo from the Dockerfile build to the image.** Create
+the Docker Image application as in step 2 with the same environment
+variables and health check, move the domain over to it, deploy, and delete
+the old application once the new one answers. The database stays as it is
+(the demo resets it anyway).
 
 ## Removing HTTP basic auth
 
@@ -232,9 +264,9 @@ front of these; the defaults need no change for the demo.
 ## B — docker-compose.demo.yml
 
 The stack: `postgres` (PostgreSQL 16, named volume, not published) and
-`app` (built from the Dockerfile, demo mode, read-only root filesystem,
-no capabilities, CPU / memory limits, health check `hostingos healthcheck
---path /readyz`).
+`app` (built from the Dockerfile unless `HOS_DEMO_IMAGE` names an image,
+demo mode, read-only root filesystem, no capabilities, CPU / memory
+limits, health check `hostingos healthcheck --path /readyz`).
 
 **On Coolify:** New resource → Git repository → **Build pack: Docker
 Compose**, **Base Directory** `/`, **Docker Compose Location**
@@ -246,6 +278,9 @@ Cloudflare. Give the `app` service the domain
 the end of the domain). Basic auth for a Compose application is done with
 labels in the Compose file; remove them when the demo is live. Reset:
 **Terminal** of the `app` container, `/usr/local/bin/hostingos demo-reset`.
+
+To run the published image on Coolify without a build, use shape A with a
+Docker Image application.
 
 **On a Docker host with its own reverse proxy:**
 
@@ -260,6 +295,18 @@ docker compose -f docker-compose.demo.yml --env-file .env.demo exec app \
 docker compose -f docker-compose.demo.yml --env-file .env.demo down --volumes
                                                  # remove everything
 ```
+
+With the published image instead of the build, put
+`HOS_DEMO_IMAGE=ghcr.io/sunucu-com-tr/hostingos:edge` into `.env.demo` and
+start with `--pull always --no-build` in place of `--build`; a failed pull
+then stops with an error instead of building:
+
+```sh
+docker compose -f docker-compose.demo.yml -f docker-compose.demo.ports.yml \
+  --env-file .env.demo up -d --pull always --no-build --wait
+```
+
+The same command updates the demo to the newest image.
 
 ## Monitoring and logs
 

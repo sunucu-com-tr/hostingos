@@ -17,6 +17,10 @@
 # time (also the build date shown in /platform), remapped source paths,
 # tarballs with sorted entries, fixed mtime/owner and `gzip -n`.
 #
+# Image tags: this workflow alone writes version tags (X.Y.Z, X.Y) and
+# `latest`. ci.yml publishes the same image name from main as `edge` and
+# `sha-<7-digit commit>`, which never collide with these.
+#
 # Third-party actions are pinned to full commit SHAs (comment = release).
 
 name: Release

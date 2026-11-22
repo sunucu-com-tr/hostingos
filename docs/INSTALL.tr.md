@@ -18,10 +18,18 @@ iş kuyruğu, zamanlayıcı ve yönetim komutları tek bir binary'dedir.
 (İngilizce) anlatılır; isteğe bağlı, ileri düzey bir kullanım olan çoklu
 firma modu da oradadır.
 
+Önce sunucu, DNS ve TLS olmadan kendi bilgisayarınızda bakmak isterseniz
+[README](../README.tr.md#bilgisayarinizda-deneyin) içindeki hızlı
+başlangıcı kullanın (`docker-compose.quickstart.yml`).
+
 > **Durum.** HostingOS'un henüz etiketlenmiş bir sürümü yok; bu yüzden
-> yayımlanmış bir Docker imajı ya da imzalı sürüm arşivi de yok. İlk sürüm
-> çıkana kadar iki yolda da HostingOS kaynak koddan derlenir (Compose bunu
-> sizin yerinize yapar).
+> imzalı sürüm arşivleri ve sürüm numaralı imajlar da yok. Compose (A
+> yolu) hazır `ghcr.io/sunucu-com-tr/hostingos:edge` imajını çalıştırır;
+> bu imajı CI, bütün testler geçtikten sonra `main` dalından derler.
+> `main` dalını izler ve imzalı bir sürüm değildir. İmaj, ilk imaj
+> yayımlandıktan sonra kullanılabilir; o zamana kadar onu kaynak koddan
+> derleyin (bölüm 5). B yolunda binary, ilk imzalı sürüme kadar kaynak
+> koddan derlenir.
 
 ## İçindekiler
 
@@ -54,9 +62,10 @@ firma modu da oradadır.
 - DNS'ini yönettiğiniz bir alan adı. Caddy'nin sertifika alabilmesi için
   80 ve 443 portlarına internetten erişilebilmeli.
 - Gizli anahtarları üretmek için `openssl`.
-- A için: Docker Engine ve Compose eklentisi. İmajı derlemek HostingOS'u
-  derlemek demektir; biraz zaman alır ve Rust derleyicisine yetecek kadar
-  bellek ister.
+- A için: Docker Engine ve Compose eklentisi. Compose yayımlanmış imajı
+  indirir. İmajı bunun yerine kendiniz derlemek HostingOS'u derlemek
+  demektir; biraz zaman alır ve Rust derleyicisine yetecek kadar bellek
+  ister.
 - B için: systemd, bir reverse proxy (örneklerde Caddy 2) ve ya
   `minisign` (imzalı bir sürümü `install.sh` ile kurmak için) ya da Rust ve
   bir C derleyicisi (kaynaktan derlemek için). Yerinde güncellemelerden
@@ -136,7 +145,9 @@ açılmaz. Ayrıntılar:
 web sunucusu, iş kuyruğu ve zamanlayıcı) ve `caddy` (80 ve 443 portlarında
 TLS; ayarları `docs/deploy/Caddyfile`). Konteynerler salt okunur kök dosya
 sistemiyle, hiçbir yetki (capability) olmadan ve `no-new-privileges` ile
-çalışır; uygulama uid 10001 ile çalışır.
+çalışır; uygulama uid 10001 ile çalışır. `migrate` ve `app` yayımlanmış
+imajı çalıştırır (aşağıda "İmaj ve etiketler"); dosya hiçbir zaman imaj
+derlemez.
 
 ```sh
 git clone https://github.com/sunucu-com-tr/hostingos.git hostingos
@@ -161,10 +172,10 @@ Ardından `.env.production` dosyasını düzenleyin:
 | `HOS_UPDATE_REPO` | `sunucu-com-tr/hostingos` | yeni sürümlerin aranacağı yer (isteğe bağlı; boşken denetim kapalıdır) |
 | `HOS_MODE` | `single` | şablonda zaten var: tek hosting firması. Olduğu gibi bırakın; `HOS_BASE_DOMAIN` yorum satırı olarak kalır |
 
-Her şeyi başlatın:
+Her şeyi başlatın (ilk açılışta imajlar indirilir):
 
 ```sh
-docker compose --env-file .env.production up -d --build
+docker compose --env-file .env.production up -d
 docker compose --env-file .env.production ps
 docker compose --env-file .env.production logs -f app
 ```
@@ -183,9 +194,34 @@ komutu şöyle çalıştırılır:
 docker compose --env-file .env.production run --rm app <komut> [seçenekler]
 ```
 
-**Yayımlanmış imajlar.** Sürümler yayımlandıktan sonra ortam dosyasına
-`HOS_IMAGE=ghcr.io/sunucu-com-tr/hostingos` ve `HOS_TAG` (bir sürüm numarası ya da
-`latest`) yazıp `--build` yerine `docker compose … pull` kullanabilirsiniz.
+**İmaj ve etiketler.** Hangi imajın çalışacağını ortam dosyasındaki
+`HOS_IMAGE` ve `HOS_TAG` belirler; varsayılan değerlerle imaj
+`ghcr.io/sunucu-com-tr/hostingos:edge` olur.
+
+| Etiket | Ne olduğu |
+|---|---|
+| `edge` | `main` dalının en yeni derlemesi. CI, `main`'e yapılan her push'ta, bütün testler ve uçtan uca test geçtikten sonra derleyip yayımlar. `main` ile birlikte ilerler ve **imzalı bir sürüm değildir** |
+| `sha-<commit>` | Aynı derleme, commit'inin ilk yedi karakteriyle (örneğin `sha-0123abc`); hiç değişmez. O derlemede kalmak için `HOS_TAG`'e bunu yazın |
+| `X.Y.Z`, `X.Y`, `latest` | İmzalı ve numaralı sürümler. **Henüz hiçbiri yayımlanmadı** |
+
+Compose imajı yalnızca sunucuda henüz yoksa indirir; daha yeni bir `edge`
+`docker compose --env-file .env.production pull` ile gelir
+([Sürüm yükseltme](#surum-yukseltme)). İndirme başarısız olursa yerine
+hiçbir şey derlenmez; açılış, imaj deposunun (registry) verdiği hatayla
+durur.
+
+**Kaynak koddan derleme.** Kodu değiştirdiyseniz ya da yayımlanmış imajı
+kullanmak istemiyorsanız `docker-compose.build.yml` dosyasını ekleyin; bu
+dosya imajı kendi kopyanızdan `hostingos:local` adıyla derler ve onu
+hiçbir yerden indirmeye çalışmaz. Dosyanın o kurulumdaki her komuta
+eklenmesi gerekir; en kolayı bunu kabuk için bir kez ayarlamaktır:
+
+```sh
+export COMPOSE_FILE=docker-compose.yml:docker-compose.build.yml
+# isteğe bağlı: sunucu sayfasında görünen commit ve derleme tarihi
+export HOS_BUILD_COMMIT="$(git rev-parse HEAD)" SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+docker compose --env-file .env.production up -d --build
+```
 
 **Önde başka bir proxy ya da CDN.** Caddy tek proxy olarak ayarlıdır
 (`HOS_TRUST_PROXY=true`, bir atlama; istemci adresini yalnızca Caddy'nin
@@ -523,7 +559,8 @@ asla açmayın.
 | `HOS_IMPORT_DB_PASSWORD`, `HOS_IMPORT_CC_HASH`, `HOS_IMPORT_API_SECRET`, `HOS_IMPORT_API_ACCESS_KEY` | `hostingos import whmcs` için gizli bilgiler ([IMPORT-WHMCS.md](IMPORT-WHMCS.md)) |
 
 **Yalnızca Compose dosyası:** `POSTGRES_PASSWORD`, `ACME_EMAIL`,
-`HOS_IMAGE`, `HOS_TAG`.
+`HOS_IMAGE` (varsayılan `ghcr.io/sunucu-com-tr/hostingos`), `HOS_TAG`
+(varsayılan `edge`; bölüm 5).
 
 <a id="yedekleme"></a>
 
@@ -564,13 +601,24 @@ kontrol edin.
 Migration'lar yalnızca ileri gider ve yeni sürüm istek almadan önce
 uygulanır.
 
-- **Kaynaktan derlenen Compose:** `git pull`, ardından
+- **Yayımlanmış imajla Compose** (varsayılan): bir `sha-…` derlemesine
+  sabitlediyseniz `HOS_TAG`'i değiştirin, sonra
+
+  ```sh
+  docker compose --env-file .env.production pull
+  docker compose --env-file .env.production up -d
+  ```
+
+  `up`, imajı değişen konteynerleri yeniden oluşturur: önce tek seferlik
+  `migrate` servisi yeni sürümün migration'larını uygular, `app` ancak o
+  başarıyla bittikten sonra başlar. Bir migration başarısız olursa yeni
+  `app` başlatılmaz; nedenini `docker compose … logs migrate` gösterir.
+  Konteyner kendini hiçbir zaman değiştirmez. İmzalı sürümler (çıktıkları
+  zaman) güncelleme sayfasında da duyurulacak ve oradan bir deploy
+  webhook'u tetiklenebilecek; `edge` derlemeleri orada duyurulmaz.
+- **Kaynaktan derlenen Compose:** `git pull`, ardından bölüm 5'teki gibi
+  `COMPOSE_FILE` ayarlıyken
   `docker compose --env-file .env.production up -d --build`.
-- **Yayımlanmış imajla Compose:** sürümü sabitlediyseniz `HOS_TAG`'i
-  değiştirin, sonra `docker compose --env-file .env.production pull` ve
-  `docker compose --env-file .env.production up -d`. Konteyner kendini
-  hiçbir zaman değiştirmez; HostingOS yeni sürümleri gösterir ve bir deploy
-  webhook'unu tetikleyebilir.
 - **Binary:** `HOS_UPDATE_REPO`'yu ayarlayın, sonra yeni sürümü firma
   sahibi olarak yönetim panelinde Sunucu → Güncellemeler sayfasından
   (`/admin/server/updates`) kurun. Sayfa parolanızı (iki adımlı doğrulama
@@ -592,6 +640,7 @@ Henüz bir imza anahtarı oluşturulmadı; bu yol ilk imzalı sürümle birlikte
 | Belirti | Neden ve çözüm |
 |---|---|
 | `missing required environment variable …` / `invalid environment variable HOS_SECRET_KEY` | Değişken boş ya da anahtar çözüldüğünde 32 bayt etmiyor; `openssl rand -base64 32` ile üretin |
+| `ghcr.io/sunucu-com-tr/hostingos` indirilirken `denied`, `unauthorized` ya da `not found` hatası | İmaj henüz yayımlanmadı, henüz herkese açık değil ya da `HOS_TAG` var olmayan bir etiketi gösteriyor. Etiketi kontrol edin ya da imajı kaynak koddan derleyin (bölüm 5) |
 | `invalid HOS_OUTBOUND_POLICY value` | Yalnızca `private` ve `public` kabul edilir |
 | Her sayfa `503` veriyor, logda "no hosting company has been set up" yazıyor | `hostingos setup` komutunu çalıştırın (bölüm 9); yeniden başlatmak gerekmez |
 | Sunucu açılmıyor: "this database holds … hosting companies" | Veritabanında birden fazla firma var (örneğin bir denemeden kalma); `DATABASE_URL`'i firmanızın veritabanına yönlendirin |

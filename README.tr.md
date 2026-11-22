@@ -152,14 +152,120 @@ hesapları, formu tek tıkla dolduran bir düğmeyle birlikte gösterir):
   dosyalar yüklenebilir.
 
 Demo modunun nasıl çalıştığı: [docs/DEMO.md](docs/DEMO.md) (İngilizce);
-kendi demonuzu kurmak için:
+aynı demoyu kendi bilgisayarınızda çalıştırmak için:
+[Hızlı başlangıç](#bilgisayarinizda-deneyin); herkese açık bir demo
+sunucusu kurmak için:
 [docs/deploy/DEMO-DEPLOY.tr.md](docs/deploy/DEMO-DEPLOY.tr.md).
 
-## Hızlı başlangıç (Docker Compose)
+## Hızlı başlangıç
+
+<a id="bilgisayarinizda-deneyin"></a>
+
+### Kendi bilgisayarınızda deneyin
+
+Bu adımlar HostingOS'u ve PostgreSQL 16'yı hazır imajdan çalıştırır;
+kurulum yalnızca sizin bilgisayarınızdan erişilebilen
+`http://localhost:8080` adresinde açılır. Hiçbir şey derlenmez, depo da
+klonlanmaz. Gerekenler: Compose eklentisiyle birlikte Docker, `curl` ve
+`openssl`.
+
+> **İmaj hakkında.** Aşağıdaki komutlar
+> `ghcr.io/sunucu-com-tr/hostingos:edge` imajını kullanır. Bu imajı
+> projenin CI'ı, bütün testler geçtiğinde `main` dalından kendiliğinden
+> derler. `edge`, `main` dalını izler ve **imzalı bir sürüm değildir**;
+> imzalı ve numaralı sürümler henüz yayımlanmadı. Komutlar, ilk imaj
+> yayımlandıktan sonra çalışır; o zamana kadar
+> [kaynak koddan derleyin](#kaynaktan-derleme).
+
+```sh
+mkdir hostingos-trial && cd hostingos-trial
+
+# Compose dosyası, compose.yaml adıyla:
+curl -fsSL -o compose.yaml \
+  https://raw.githubusercontent.com/sunucu-com-tr/hostingos/main/docker-compose.quickstart.yml
+
+# Hemen yanındaki .env dosyasına iki gizli değer (bu dosyayı saklayın:
+# veritabanı parolasını ve saklanan kimlik bilgilerini şifreleyen anahtarı içerir):
+printf 'POSTGRES_PASSWORD=%s\nHOS_SECRET_KEY=%s\n' \
+  "$(openssl rand -hex 32)" "$(openssl rand -base64 32)" > .env
+
+# PostgreSQL'i ve HostingOS'u indirip başlatın; ikisi de sağlıklı olunca komut biter:
+docker compose up -d --wait
+
+# Firmanızı ve sahip hesabını oluşturun (parola bir kez ekrana yazılır):
+docker compose run --rm app setup --email siz@example.com --company "Örnek Hosting"
+```
+
+`docker compose up -d --wait` ilk çalıştırmada imajları indirir ve iki
+konteyner de sağlıklı (healthy) olduğunda şuna benzer satırlarla biter:
+
+```text
+ ✔ Container hostingos-trial-postgres-1  Healthy
+ ✔ Container hostingos-trial-app-1       Healthy
+```
+
+`setup` veritabanı migration'larını uygular, firmayı oluşturur ve şu
+satırlarla biter:
+
+```text
+company created: Örnek Hosting
+admin panel: http://localhost:8080/admin
+owner login: siz@example.com
+password:    <üretilen parola>   (shown once; change it after signing in)
+```
+
+`http://localhost:8080/auth/login` adresinden bu e-posta adresi ve
+parolayla giriş yapın. Yönetim paneli `/admin`, mağaza `/`, müşteri paneli
+`/client` altındadır. `setup` çalıştırılana kadar her sayfa
+`503 Service Unavailable` yanıtı verir. Bir e-posta entegrasyonu kurana
+kadar hiçbir e-posta gönderilmez, yalnızca loga yazılır
+(`docker compose logs app`). 8080 portu doluysa `.env` dosyasına
+`HOS_PORT=8090` satırını ekleyip `docker compose up -d --wait` komutunu
+yeniden çalıştırın.
+
+**Demo verileriyle denemek isterseniz.** Aynı dizinde tek bir komut, 8081
+portunda ve kendi veritabanıyla ikinci, ayrı bir kurulumu demo modunda
+başlatır: örnek verilerle dolu bir mağaza, `admin@demo.test` /
+`demo-admin` (yönetim paneli) ve `musteri@demo.test` / `demo-client`
+(müşteri paneli) demo hesapları, mock ödeme, sunucu ve alan adı
+sağlayıcıları; bütün veriler 30 dakikada bir sıfırlanır
+([docs/DEMO.md](docs/DEMO.md), İngilizce):
+
+```sh
+HOS_DEMO_MODE=1 HOS_PORT=8081 docker compose -p hostingos-demo up -d --wait
+```
+
+Ardından `http://localhost:8081/auth/login` adresini açın; giriş
+sayfasında her demo hesabı için bir düğme vardır.
+
+**Güncelleme** (en yeni `edge` imajına geçmek için):
+
+```sh
+docker compose pull && docker compose up -d
+```
+
+Yeni konteyner, portunu açmadan önce bekleyen veritabanı migration'larını
+uygular; verileriniz Docker biriminde (volume) kalır. Demoyu da
+güncellemek için `pull` komutundan sonra demonun `up` komutunu yeniden
+çalıştırın.
+
+**Durdurma ve kaldırma:**
+
+```sh
+docker compose down                              # konteynerleri durdurup kaldırır, veriler kalır
+docker compose down --volumes                    # ... veritabanını da siler
+docker compose -p hostingos-demo down --volumes  # başlattıysanız demoyu da
+docker image rm ghcr.io/sunucu-com-tr/hostingos:edge postgres:16-alpine   # indirilen imajlar
+```
+
+Son olarak `hostingos-trial` dizinini silin.
+
+### Sunucuya kurulum
 
 Bu adımlar tek bir Linux sunucuda canlı kullanıma uygun bir kurulum
-yapar: PostgreSQL 16, HostingOS ve TLS sertifikalarını kendisi alan Caddy.
-systemd altında binary kurulumu da dahil eksiksiz rehber:
+yapar: PostgreSQL 16, HostingOS (aynı hazır imaj) ve TLS sertifikalarını
+kendisi alan Caddy. Yedekleme, güncelleme ve systemd altında binary
+kurulumunu da anlatan eksiksiz rehber:
 [docs/INSTALL.tr.md](docs/INSTALL.tr.md).
 
 Gerekenler: Docker Engine ve Compose eklentisi kurulu, 80 ve 443 portları
@@ -189,20 +295,24 @@ entegrasyon bilgilerini ve iki adımlı doğrulama anahtarlarını şifreler; o
 olmadan bir veritabanı yedeğinin değeri sınırlıdır.
 
 ```sh
-# İmajı derleyip PostgreSQL'i, migration'ları, HostingOS'u ve Caddy'yi başlatın:
-docker compose --env-file .env.production up -d --build
+# İmajı indirip PostgreSQL'i, migration'ları, HostingOS'u ve Caddy'yi başlatın:
+docker compose --env-file .env.production up -d
 
 # Firmanızı ve sahip hesabını oluşturun (parola bir kez ekrana yazılır):
 docker compose --env-file .env.production run --rm app setup \
   --email siz@example.com --company "Örnek Hosting"
 ```
 
-İlk derleme HostingOS'u kaynak koddan derlediği için biraz sürer.
-Veritabanı migration'ları uygulama başlamadan önce kendiliğinden çalışır
-(tek seferlik `migrate` servisi). `setup` çalıştırılana kadar her sayfa
-`503 Service Unavailable` yanıtı verir. `setup` ayrıca `--locale tr|en`,
-`--currency` (varsayılanlar `tr` ve `TRY`) ve `--password` seçeneklerini
-alır; parola verilmezse kendisi üretir.
+`.env.production` içindeki `HOS_IMAGE` / `HOS_TAG` başka bir imaj
+belirtmedikçe `docker-compose.yml` `ghcr.io/sunucu-com-tr/hostingos:edge`
+imajını çalıştırır; tek bir derlemede kalmak için `HOS_TAG` değerini o
+derlemenin commit etiketi yapın (`sha-` ve commit'in ilk yedi karakteri).
+Bu dosya hiçbir şey derlemez. Veritabanı migration'ları uygulama
+başlamadan önce kendiliğinden çalışır (tek seferlik `migrate` servisi).
+`setup` çalıştırılana kadar her sayfa `503 Service Unavailable` yanıtı
+verir. `setup` ayrıca `--locale tr|en`, `--currency` (varsayılanlar `tr` ve
+`TRY`) ve `--password` seçeneklerini alır; parola verilmezse kendisi
+üretir.
 
 Ardından `https://www.example.com/auth/login` adresinden giriş yapın;
 yönetim paneli `/admin` altındadır. Hesabınız için iki adımlı doğrulamayı
@@ -210,11 +320,28 @@ açın, Entegrasyonlar altında ödeme altyapılarınızı, sunucularınızı,
 registrar'ınızı ve e-posta sağlayıcınızı, ardından ürünlerinizi ekleyin.
 E-posta entegrasyonu kurulana kadar e-postalar yalnızca loga yazılır.
 
-DNS ve TLS ile uğraşmadan önce bakmak isterseniz kendi bilgisayarınızda
-demo yığınını başlatın (`docker-compose.demo.yml`, bkz.
-[docs/deploy/DEMO-DEPLOY.tr.md](docs/deploy/DEMO-DEPLOY.tr.md)). Demo
-modunda çalışır: herkese açık hesaplar, mock entegrasyonlar, düzenli
-sıfırlama.
+<a id="kaynaktan-derleme"></a>
+
+### Kaynak koddan derleme
+
+Kodu değiştirdiyseniz ya da yayımlanmış imajı kullanmak istemiyorsanız,
+imajı ek `docker-compose.build.yml` dosyasıyla kendi kopyanızdan derleyin.
+İlk derleme HostingOS'u baştan derlediği için biraz sürer ve Rust
+derleyicisine yetecek kadar bellek ister.
+
+```sh
+# Yukarıdaki klonda; bu kabukta çalıştıracağınız her docker compose komutu için geçerlidir:
+export COMPOSE_FILE=docker-compose.yml:docker-compose.build.yml
+docker compose --env-file .env.production up -d --build
+```
+
+Bu yolla derlenen imajın adı `hostingos:local`'dır; Compose onu hiçbir
+zaman bir yerden indirmeye çalışmaz. Bilgisayarınızdaki deneme kurulumu
+için aynı imajı bir klonda `docker build -t hostingos:local .` komutuyla
+derleyin ve deneme dizinindeki `.env` dosyasına `HOS_IMAGE=hostingos` ve
+`HOS_TAG=local` satırlarını ekleyin. `cargo` ile derlenen tek binary
+kurulumu [docs/INSTALL.tr.md](docs/INSTALL.tr.md#kurulum-systemd)
+dosyasında anlatılır.
 
 ## Yapılandırma
 
@@ -236,30 +363,38 @@ HostingOS ortam değişkenleriyle yapılandırılır. Önemli olanlar:
 | `HOS_TLS_ASK_SECRET` | Caddy ile | Caddy'nin sertifika kontrolü için paylaşılan anahtar |
 | `HOS_UPDATE_REPO` | hayır | İmzalı sürümlerin aranacağı GitHub deposu (`sahip/ad`); verilmedikçe güncelleme denetimi kapalıdır |
 
-Compose dosyası ayrıca `POSTGRES_PASSWORD` ve `ACME_EMAIL` değerlerini
-okur. Bütün değişkenler:
+Compose dosyası ayrıca `POSTGRES_PASSWORD` ve `ACME_EMAIL` değerlerini,
+isteğe bağlı olarak da `HOS_IMAGE` ve `HOS_TAG` değerlerini okur. Bütün
+değişkenler:
 [docs/INSTALL.tr.md](docs/INSTALL.tr.md#ortam-degiskenleri).
 
 ## Sürüm yükseltme
 
 Önce veritabanının yedeğini alın (bkz.
 [docs/INSTALL.tr.md](docs/INSTALL.tr.md#yedekleme)). Migration'lar yalnızca
-ileri gider; yeni sürüm bunları başlamadan önce uygular.
+ileri gider; yeni sürüm bunları istek karşılamaya başlamadan önce uygular.
 
+- **Yayımlanmış imajla Docker Compose** (varsayılan):
+  `docker compose --env-file .env.production pull`, ardından
+  `docker compose --env-file .env.production up -d`. Tek seferlik
+  `migrate` servisi, yeni uygulama başlamadan önce bekleyen migration'ları
+  uygular. `edge`, `main` dalındaki her değişiklikle ilerler; bir `sha-…`
+  etiketine sabitlediyseniz önce `HOS_TAG`'i değiştirin.
 - **Kaynaktan derlenen Docker Compose:** `git pull`, ardından
+  [Kaynak koddan derleme](#kaynaktan-derleme) bölümündeki gibi
+  `COMPOSE_FILE` ayarlıyken
   `docker compose --env-file .env.production up -d --build`.
-- **Yayımlanmış imajla Docker Compose:** ortam dosyasına `HOS_IMAGE` ve
-  `HOS_TAG` yazın, sonra `docker compose --env-file .env.production pull`
-  ve `up -d`.
 - **systemd altında binary:** yeni sürümü yönetim panelinde Sunucu →
   Güncellemeler sayfasından (`/admin/server/updates`) kurun (yedek, bakım
   modu, migration'lar, sağlık kontrolü ve gerekirse otomatik geri alma
   kendiliğinden yapılır) ya da `hostingos update apply` komutunu
   kullanın.
 
-Ayrıntılar: [docs/UPDATES.md](docs/UPDATES.md) (İngilizce). Yayımlanmış
-imajlar ve imzalı sürümler henüz yok; ilk sürüme kadar kaynak koddan
-derleyin.
+Ayrıntılar: [docs/UPDATES.md](docs/UPDATES.md) (İngilizce). İmzalı ve
+numaralı sürümler henüz yok: yayımlanan imaj `edge`'dir (ve her commit
+için bir `sha-…` etiketi); `main` dalından derlenir, imzalı değildir.
+İlk imzalı sürüme kadar yönetim panelindeki güncelleme sayfasının
+önerebileceği bir sürüm de yoktur.
 
 ## Güvenlik
 
@@ -271,11 +406,12 @@ bildirin.
 
 ## Bilinen sınırlamalar
 
-- **Erken sürüm.** Sürüm 0.1.0, henüz etiketlenmiş bir sürüm yok. Docker
-  imajı, sürüm yayımlama hattı ve kendi kendini güncelleme yolu yeni ve
-  henüz gerçek bir sürüm yayımında denenmedi. Sürüm imzalama anahtarı da
-  henüz yok; bu yüzden ilk imzalı sürüme kadar tek tıkla güncelleme hiçbir
-  şey kuramaz.
+- **Erken sürüm.** Sürüm 0.1.0, henüz etiketlenmiş bir sürüm yok.
+  Yayımlanmış imajlar yalnızca `main` dalının imzasız `edge`
+  derlemeleridir. Sürüm yayımlama hattı ve kendi kendini güncelleme yolu
+  yeni ve henüz gerçek bir sürüm yayımında denenmedi. Sürüm imzalama
+  anahtarı da henüz yok; bu yüzden ilk imzalı sürüme kadar tek tıkla
+  güncelleme hiçbir şey kuramaz.
 - **Entegrasyonlar gerçek hesaplarla denenmedi.** Ödeme altyapıları,
   sanallaştırma platformları, hosting panelleri, registrar'lar, e-Fatura
   entegratörleri ve Mailgun inbound route yalnızca sağlayıcıların
@@ -296,8 +432,8 @@ bildirin.
 
 ## Yol haritası
 
-Sıradaki adımlar, belirli bir sıra olmadan: imzalı ilk sürüm ve yayımlanmış
-imajlar; her entegrasyonun sağlayıcının test ya da canlı ortamında
+Sıradaki adımlar, belirli bir sıra olmadan: imzalı ve numaralı ilk sürüm;
+her entegrasyonun sağlayıcının test ya da canlı ortamında
 denenmesi; gerçek veriyle deneme amaçlı bir WHMCS aktarımı; web süreçleri
 arasında paylaşılan bir hız sınırlayıcı; katkıcı lisans sözleşmesi (CLA).
 

@@ -5,10 +5,25 @@
 Tek bir alan adında herkese açık bir HostingOS demosu çalıştırma (demo
 modu: [../DEMO.md](../DEMO.md)). İki biçim:
 
-* **A — Coolify, Dockerfile ile derleme, ayrı PostgreSQL** (önerilen;
-  herkese açık demonun kullandığı biçim).
+* **A — Coolify, ayrı PostgreSQL** (önerilen; herkese açık demonun
+  kullandığı biçim). Uygulama ya yayımlanmış imajı çalıştırır (sunucuda
+  hiçbir şey derlenmez; önerilen) ya da Dockerfile'dan derlenir.
 * **B — `docker-compose.demo.yml`**: uygulama ve kendi PostgreSQL'i tek
   yığında; Coolify'da ya da herhangi bir Docker sunucusunda.
+
+Demoya kendi bilgisayarınızda bakmak için sunucu gerekmez:
+[README](../../README.tr.md#bilgisayarinizda-deneyin) içindeki "Hızlı
+başlangıç" bölümüne bakın (`HOS_DEMO_MODE=1` ile
+`docker-compose.quickstart.yml`).
+
+**Yayımlanmış imaj.** `ghcr.io/sunucu-com-tr/hostingos:edge` imajını CI,
+bütün testler geçtikten sonra `main` dalından derler; `main` dalını izler
+ve imzalı bir sürüm değildir (imzalı ve numaralı sürümler henüz
+yayımlanmadı). `ghcr.io/sunucu-com-tr/hostingos:sha-<commit'in ilk yedi
+karakteri>` ise tek ve sabit bir derlemedir. İkisi de ilk imaj
+yayımlandıktan sonra kullanılabilir. Bunun yerine Dockerfile'ı derlemek,
+HostingOS'u sunucunun üzerinde derlemek demektir; küçük bir sunucuda çok
+uzun sürer ve çok bellek ister.
 
 Metin boyunca `demo.example.invalid` sizin demo alan adınızın yerine geçer.
 
@@ -71,28 +86,36 @@ veritabanı. Bunu `HOS_DEMO_ALLOW_EXISTING_DATA=1` ile aşmayın: diğer
 veriler herkese açık bir demonun yanında kalır ve demo alan adını kendi
 alan adı olarak zaten kullanan bir firma sıfırlamayı başarısız kılar.
 
-## A — Coolify, Dockerfile ile derleme, ayrı PostgreSQL
+## A — Coolify, ayrı PostgreSQL
 
-Aşağıdaki Coolify bilgileri Coolify belgelerinden alınmıştır (Dockerfile
-build pack, Health checks, Deployment commands, Basic authentication).
+Aşağıdaki Coolify bilgileri Coolify belgelerinden alınmıştır (Docker
+Image uygulamaları, Dockerfile build pack, Health checks, Deployment
+commands, Basic authentication).
 
 1. **PostgreSQL.** Bir PostgreSQL 16 kaynağı oluşturun (ya da boş bir
    tanesini kullanın) ve iç bağlantı adresini kopyalayın. Yedek gerekmez:
    demoda saklanmaya değer veri yoktur.
-2. **Uygulama.** Yeni kaynak → Git deponuz → **Build pack: Dockerfile**,
-   **Base Directory** `/`, **Dockerfile Location** `/Dockerfile`.
-   **Docker Build Stage Target** boş kalsın (son aşama kaynaktan derler).
-3. **Ağ.** **Ports Exposes** `8080`. **Domains**
-   `https://demo.example.invalid`.
+2. **Uygulama**, şu iki yoldan biriyle:
+   * **Yayımlanmış imajdan (önerilen).** **+ New** → **Docker Image** →
+     **Image Name** `ghcr.io/sunucu-com-tr/hostingos:edge` (yapıştırılan
+     etiketi Coolify kendi alanına taşır; bir `sha-…` etiketi ya da digest
+     tek bir derlemeye sabitler) → **Save**. Hiçbir şey klonlanmaz ya da
+     derlenmez; imaj her deploy'da yeniden indirilir.
+   * **Dockerfile'dan derleyerek.** Yeni kaynak → Git deponuz → **Build
+     pack: Dockerfile**, **Base Directory** `/`, **Dockerfile Location**
+     `/Dockerfile`. **Docker Build Stage Target** boş kalsın (son aşama
+     kaynaktan derler).
+3. **Ağ.** **Ports Exposes** `8080` (Docker Image uygulamaları `80` ile
+   başlar; bunu değiştirin). **Domains** `https://demo.example.invalid`.
 4. **Ortam değişkenleri.** Yukarıdaki tablodaki gibi (`DATABASE_URL` = 1.
-   adımdaki iç adres). Her birinin **Build time** ayarını **Not
-   available during build** yapın: imaj derlemesi bunların hiçbirine
-   ihtiyaç duymaz, Coolify derleme sırasında kullanılabilen değişkenleri
-   Dockerfile'a eklediği `ARG` satırlarına çevirir (bir değeri değiştirmek
-   önbellekteki bağımlılık derlemesini boşa çıkarabilir) ve derleme
-   argümanları imaj üst verisinde görünebilir. **Advanced → Build
-   arguments** altında **Managed manually in Dockerfile** seçin ve derleme
-   önbelleğini açık tutun.
+   adımdaki iç adres). Dockerfile ile derlerken her birinin **Build time**
+   ayarını **Not available during build** yapın: imaj derlemesi bunların
+   hiçbirine ihtiyaç duymaz, Coolify derleme sırasında kullanılabilen
+   değişkenleri Dockerfile'a eklediği `ARG` satırlarına çevirir (bir
+   değeri değiştirmek önbellekteki bağımlılık derlemesini boşa
+   çıkarabilir) ve derleme argümanları imaj üst verisinde görünebilir.
+   **Advanced → Build arguments** altında **Managed manually in
+   Dockerfile** seçin ve derleme önbelleğini açık tutun.
 5. **Sağlık denetimi.** Coolify'ın **Healthcheck** sayfasını *kapalı*
    bırakın: Coolify o zaman imajdaki `HEALTHCHECK`'i kullanır; bu da
    `/usr/local/bin/hostingos healthcheck` komutunu çalıştırır (kapsayıcının
@@ -139,11 +162,22 @@ Ziyaretçilerin girdiği her şeyi siler ve örnek verileri hemen geri yükler;
 Aynı komutla bir **Scheduled Task** ve **Execute Now** da olur, **Restart**
 da (her açılış sıfırlar).
 
-**Güncelleme.** Yeniden deploy edin. Yeni kapsayıcı dinlemeye başlamadan
-önce bekleyen migration'ları uygular ve demoyu sıfırlar. Bu sırada hâlâ
-çalışan önceki kapsayıcı hizmet vermeyi sürdürür: kendi sürümünden ileride
-olan bir veritabanını reddetmez, bir kez loglar ve hizmet verir
-(migration'lar yalnızca ekleme yapar).
+**Güncelleme.** Yeniden deploy edin. Yayımlanmış imajla Coolify etiketi
+yeniden indirir; yani `edge` ile yapılan her yeniden deploy `main`
+dalının en yeni derlemesini getirir (**Restart** da kayıtlı imaj
+referansını yeniden indirir). `sha-…` etiketi kullanıyorsanız önce
+etiketi değiştirin. Dockerfile ile derlemede yeniden deploy yeni commit'i
+derler. Yeni kapsayıcı dinlemeye başlamadan önce bekleyen migration'ları
+uygular ve demoyu sıfırlar. Bu sırada hâlâ çalışan önceki kapsayıcı
+hizmet vermeyi sürdürür: kendi sürümünden ileride olan bir veritabanını
+reddetmez, bir kez loglar ve hizmet verir (migration'lar yalnızca ekleme
+yapar).
+
+**Var olan bir demoyu Dockerfile derlemesinden imaja taşıma.** 2. adımdaki
+gibi aynı ortam değişkenleri ve sağlık denetimiyle bir Docker Image
+uygulaması oluşturun, alan adını ona taşıyın, deploy edin ve yenisi yanıt
+verince eski uygulamayı silin. Veritabanı olduğu gibi kalır (demo onu
+zaten sıfırlar).
 
 ## HTTP basic auth'u kaldırma
 
@@ -238,9 +272,9 @@ değişmesi gerekmez.
 ## B — docker-compose.demo.yml
 
 Yığın: `postgres` (PostgreSQL 16, adlandırılmış birim, dışarıya açık
-değil) ve `app` (Dockerfile'dan derlenir, demo modu, salt okunur kök dosya
-sistemi, yetkisiz, CPU / bellek sınırlı, sağlık denetimi `hostingos
-healthcheck --path /readyz`).
+değil) ve `app` (`HOS_DEMO_IMAGE` bir imaj belirtmedikçe Dockerfile'dan
+derlenir, demo modu, salt okunur kök dosya sistemi, yetkisiz, CPU / bellek
+sınırlı, sağlık denetimi `hostingos healthcheck --path /readyz`).
 
 **Coolify'da:** Yeni kaynak → Git deposu → **Build pack: Docker Compose**,
 **Base Directory** `/`, **Docker Compose Location**
@@ -252,6 +286,9 @@ verin (Compose servislerinde port alan adının sonuna yazılır). Compose
 uygulamalarında basic auth, Compose dosyasındaki etiketlerle yapılır; demo
 yayına girince bunları kaldırın. Sıfırlama: `app` kapsayıcısının
 **Terminal**'inde `/usr/local/bin/hostingos demo-reset`.
+
+Yayımlanmış imajı Coolify'da derleme yapmadan çalıştırmak için A
+biçimini bir Docker Image uygulamasıyla kullanın.
 
 **Kendi ters vekili olan bir Docker sunucusunda:**
 
@@ -266,6 +303,18 @@ docker compose -f docker-compose.demo.yml --env-file .env.demo exec app \
 docker compose -f docker-compose.demo.yml --env-file .env.demo down --volumes
                                                  # her şeyi kaldırma
 ```
+
+Derleme yerine yayımlanmış imajı kullanmak için `.env.demo` dosyasına
+`HOS_DEMO_IMAGE=ghcr.io/sunucu-com-tr/hostingos:edge` yazın ve `--build`
+yerine `--pull always --no-build` ile başlatın; böylece indirme başarısız
+olursa derlemeye geçilmez, komut hatayla durur:
+
+```sh
+docker compose -f docker-compose.demo.yml -f docker-compose.demo.ports.yml \
+  --env-file .env.demo up -d --pull always --no-build --wait
+```
+
+Aynı komut demoyu en yeni imaja da günceller.
 
 ## İzleme ve loglar
 

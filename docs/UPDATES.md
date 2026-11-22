@@ -172,6 +172,11 @@ update page shows the new image tag and the commands:
 docker compose pull && docker compose up -d   # the one-shot `migrate` service runs first
 ```
 
+The `edge` and `sha-…` images built from `main`
+([RELEASING.md](RELEASING.md) §8) are not releases: they carry no signed
+manifest, so the update page never announces them. An installation on
+`edge` updates with the same two commands, whenever its operator decides.
+
 Where the platform starts the new container first and runs commands only
 afterwards (Coolify's post-deployment command, for example), set
 `HOS_MIGRATE_ON_START=1` (or use `hostingos serve --migrate`): the container

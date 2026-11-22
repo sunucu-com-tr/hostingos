@@ -1,0 +1,95 @@
+# HostingOS — try it on your own computer: the published image and
+# PostgreSQL 16, on http://localhost:8080. Nothing is built and no git clone
+# is needed. For a local trial only (plain HTTP, no reverse proxy, no
+# backups); a production installation is described in docs/INSTALL.md.
+#
+# In an empty directory (README.md, "Quick start"):
+#
+#   curl -fsSL -o compose.yaml \
+#     https://raw.githubusercontent.com/sunucu-com-tr/hostingos/main/docker-compose.quickstart.yml
+#   printf 'POSTGRES_PASSWORD=%s\nHOS_SECRET_KEY=%s\n' \
+#     "$(openssl rand -hex 32)" "$(openssl rand -base64 32)" > .env
+#   docker compose up -d --wait
+#   docker compose run --rm app setup --email you@example.com --company "Example Hosting"
+#
+# `setup` creates your company and its owner account and prints the
+# password once; sign in at http://localhost:8080/auth/login.
+#
+# Demo data instead (demo mode: published logins, mock integrations, reset
+# every 30 minutes), as a second project with its own database, on port 8081:
+#
+#   HOS_DEMO_MODE=1 HOS_PORT=8081 docker compose -p hostingos-demo up -d --wait
+#
+# Update: `docker compose pull && docker compose up -d` (the app applies
+# pending database migrations before it opens its port).
+# Stop: `docker compose stop`. Remove containers and data:
+# `docker compose down --volumes` (`-p hostingos-demo` for the demo).
+#
+# Image: ghcr.io/sunucu-com-tr/hostingos:edge, built from the main branch
+# after CI passes; not a signed release. HOS_IMAGE / HOS_TAG in .env choose
+# another one (e.g. HOS_TAG=sha-<7-digit commit> for one fixed build).
+
+name: hostingos-trial
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hostingos
+      POSTGRES_USER: hostingos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (openssl rand -hex 32)}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Not published: only the app reaches it, over the compose network.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hostingos -d hostingos"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    image: ${HOS_IMAGE:-ghcr.io/sunucu-com-tr/hostingos}:${HOS_TAG:-edge}
+    # Web server, job worker and scheduler in one process. Pending
+    # migrations are applied before the port opens (HOS_MIGRATE_ON_START),
+    # so starting a newer image is all an update needs.
+    command: ["serve"]
+    environment:
+      DATABASE_URL: postgres://hostingos:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (openssl rand -hex 32)}@postgres:5432/hostingos
+      DATABASE_URL_DIRECT: postgres://hostingos:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (openssl rand -hex 32)}@postgres:5432/hostingos
+      HOS_SECRET_KEY: ${HOS_SECRET_KEY:?set HOS_SECRET_KEY in .env (openssl rand -base64 32)}
+      HOS_BASE_URL: ${HOS_BASE_URL:-http://localhost:${HOS_PORT:-8080}}
+      HOS_MIGRATE_ON_START: "1"
+      # Empty: a normal installation. 1: public demo mode (docs/DEMO.md);
+      # use it only with a database of its own (`-p hostingos-demo`): demo
+      # mode refuses to start on a database that holds your company.
+      HOS_DEMO_MODE: ${HOS_DEMO_MODE:-}
+      HOS_LOG_FORMAT: ${HOS_LOG_FORMAT:-text}
+      RUST_LOG: ${RUST_LOG:-info,sqlx=warn}
+    # Loopback only: reachable from this computer, not from the network.
+    ports:
+      - "127.0.0.1:${HOS_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 60s
+    # Runs as uid 10001 (Dockerfile) and writes nothing to its filesystem.
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # The binary probes itself; /readyz also checks the database and its
+    # migrations. The first start migrates (and in demo mode seeds) first.
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/hostingos", "healthcheck", "--path", "/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+
+volumes:
+  pgdata:

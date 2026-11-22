@@ -17,9 +17,17 @@ binary. Scaling and a separate worker process are covered in
 [DEPLOYMENT.md](DEPLOYMENT.md), which also describes multi-company
 operation, an optional advanced mode.
 
+To look around on your own computer first, without a server, DNS or TLS,
+use the quick start in the [README](../README.md#try-it-on-your-computer)
+(`docker-compose.quickstart.yml`).
+
 > **Status.** HostingOS has not had a tagged release yet, so there are no
-> published images or signed release archives. Until the first release,
-> both ways build HostingOS from source (Compose does this for you).
+> signed release archives or versioned images. Compose (way A) runs the
+> prebuilt image `ghcr.io/sunucu-com-tr/hostingos:edge`, which CI builds
+> from the `main` branch after all tests pass: it follows `main` and is not
+> a signed release. It is available after the first image has been
+> published; until then, build it from source (section 5). Way B builds
+> the binary from source until the first signed release.
 
 ## Contents
 
@@ -48,7 +56,8 @@ operation, an optional advanced mode.
 - A domain whose DNS you control, and ports 80 and 443 reachable from the
   internet if Caddy is to obtain certificates.
 - `openssl` to generate secrets.
-- For A: Docker Engine with the Compose plugin. Building the image compiles
+- For A: Docker Engine with the Compose plugin. Compose downloads the
+  published image. Building the image yourself instead compiles
   HostingOS, which takes a while and needs enough memory for the Rust
   compiler.
 - For B: systemd, a reverse proxy (the examples use Caddy 2), and either
@@ -116,7 +125,8 @@ policy. Any other value stops `hostingos` at start-up. More detail:
 server, job worker and scheduler) and `caddy` (TLS on ports 80 and 443,
 configured by `docs/deploy/Caddyfile`). The containers run with a
 read-only root filesystem, no capabilities and `no-new-privileges`; the
-application runs as uid 10001.
+application runs as uid 10001. `migrate` and `app` run the published image
+(see "Image and tags" below); the file never builds one.
 
 ```sh
 git clone https://github.com/sunucu-com-tr/hostingos.git hostingos
@@ -141,10 +151,10 @@ Then edit `.env.production`:
 | `HOS_UPDATE_REPO` | `sunucu-com-tr/hostingos` | where to look for new releases (optional; checks are off while empty) |
 | `HOS_MODE` | `single` | already set in the template: one hosting company. Leave it; `HOS_BASE_DOMAIN` stays commented out |
 
-Start everything:
+Start everything (the first start downloads the images):
 
 ```sh
-docker compose --env-file .env.production up -d --build
+docker compose --env-file .env.production up -d
 docker compose --env-file .env.production ps
 docker compose --env-file .env.production logs -f app
 ```
@@ -163,10 +173,32 @@ in this setup every `hostingos …` command is run as
 docker compose --env-file .env.production run --rm app <command> [options]
 ```
 
-**Published images.** Once releases are published, set
-`HOS_IMAGE=ghcr.io/sunucu-com-tr/hostingos` and `HOS_TAG` (a version, or
-`latest`) in the env file and use `docker compose … pull` instead of
-`--build`.
+**Image and tags.** `HOS_IMAGE` and `HOS_TAG` in the env file choose the
+image; the defaults give `ghcr.io/sunucu-com-tr/hostingos:edge`.
+
+| Tag | What it is |
+|---|---|
+| `edge` | The newest build of the `main` branch. CI builds and publishes it on every push to `main` once all tests and the end-to-end test have passed. It moves with `main` and is **not a signed release** |
+| `sha-<commit>` | The same build under the first seven characters of its commit, for example `sha-0123abc`; never moves. Set `HOS_TAG` to one to stay on that build |
+| `X.Y.Z`, `X.Y`, `latest` | Signed, versioned releases. **None has been published yet** |
+
+Compose pulls the image only when it is not on the host yet; a newer
+`edge` arrives with `docker compose --env-file .env.production pull`
+([Upgrading](#upgrading)). If the pull fails, nothing is built in its
+place: the start stops with the registry's error.
+
+**Building from source.** For changed code, or to avoid the published
+image, add `docker-compose.build.yml`, which builds the image from your
+checkout as `hostingos:local` and never pulls it. It has to be part of
+every command of that installation; the simplest way is to set it for the
+shell:
+
+```sh
+export COMPOSE_FILE=docker-compose.yml:docker-compose.build.yml
+# optional: commit and build date for the server page
+export HOS_BUILD_COMMIT="$(git rev-parse HEAD)" SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+docker compose --env-file .env.production up -d --build
+```
 
 **Another proxy or a CDN in front.** Caddy is set up as the only proxy
 (`HOS_TRUST_PROXY=true`, one hop; set `HOS_TRUSTED_PROXIES` to the Compose
@@ -480,8 +512,9 @@ production.
 | `HOS_NEW_PASSWORD` | Password for an account created on the command line; without it a random password is printed |
 | `HOS_IMPORT_DB_PASSWORD`, `HOS_IMPORT_CC_HASH`, `HOS_IMPORT_API_SECRET`, `HOS_IMPORT_API_ACCESS_KEY` | Secrets for `hostingos import whmcs` ([IMPORT-WHMCS.md](IMPORT-WHMCS.md)) |
 
-**Compose file only:** `POSTGRES_PASSWORD`, `ACME_EMAIL`, `HOS_IMAGE`,
-`HOS_TAG`.
+**Compose file only:** `POSTGRES_PASSWORD`, `ACME_EMAIL`, `HOS_IMAGE`
+(default `ghcr.io/sunucu-com-tr/hostingos`), `HOS_TAG` (default `edge`;
+section 5).
 
 ## Backups
 
@@ -515,13 +548,24 @@ HostingOS with the same `HOS_SECRET_KEY` and check `/readyz`.
 Read [CHANGELOG.md](../CHANGELOG.md) and take a backup first. Migrations
 only move forward and are applied before the new version serves requests.
 
+- **Compose with the published image** (the default): change `HOS_TAG` if
+  you pinned a `sha-…` build, then
+
+  ```sh
+  docker compose --env-file .env.production pull
+  docker compose --env-file .env.production up -d
+  ```
+
+  `up` recreates the containers whose image changed: the one-shot
+  `migrate` service applies the new version's migrations first, and `app`
+  starts only after it has finished successfully. If a migration fails,
+  `app` is not started and `docker compose … logs migrate` shows why. A
+  container never replaces itself. Signed releases (once they exist) will
+  also be announced on the update page, which can call a deploy webhook;
+  `edge` builds are not announced there.
 - **Compose, built from source:** `git pull`, then
-  `docker compose --env-file .env.production up -d --build`.
-- **Compose with published images:** change `HOS_TAG` if you pinned a
-  version, then `docker compose --env-file .env.production pull` and
-  `docker compose --env-file .env.production up -d`. A container never
-  replaces itself; HostingOS shows new versions and can call a deploy
-  webhook.
+  `docker compose --env-file .env.production up -d --build` with
+  `COMPOSE_FILE` set as in section 5.
 - **Bare binary:** set `HOS_UPDATE_REPO`, then install the new release
   as the owner in the admin panel under Server → Updates
   (`/admin/server/updates`), which asks for your password again (and the
@@ -541,6 +585,7 @@ release on. Details: [UPDATES.md](UPDATES.md).
 | Symptom | Cause and fix |
 |---|---|
 | `missing required environment variable …` / `invalid environment variable HOS_SECRET_KEY` | The variable is empty or the key does not decode to 32 bytes; generate it with `openssl rand -base64 32` |
+| Pulling `ghcr.io/sunucu-com-tr/hostingos` fails with `denied`, `unauthorized` or `not found` | The image has not been published yet, or is not public yet, or `HOS_TAG` names a tag that does not exist. Check the tag, or build from source (section 5) |
 | `invalid HOS_OUTBOUND_POLICY value` | Only `private` and `public` are accepted |
 | Every page answers `503` and the log says "no hosting company has been set up" | Run `hostingos setup` (section 9); no restart is needed |
 | The server refuses to start: "this database holds … hosting companies" | The database contains more than one company (for example after a test); point `DATABASE_URL` at your company's database |

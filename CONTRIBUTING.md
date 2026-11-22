@@ -87,7 +87,9 @@ cargo test --workspace
   directly under `tests/`.
 - CI runs the same commands against a fresh PostgreSQL, plus `cargo audit`,
   `cargo deny` (licence policy in `deny.toml`) and an end-to-end start of
-  the demo image (`docker-compose.demo.yml`).
+  the demo image (`docker-compose.demo.yml`). After a merge to `main`, once
+  all of that has passed, it publishes the `edge` image
+  (docs/RELEASING.md, §8).
 
 ## Conventions
 

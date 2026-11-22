@@ -34,7 +34,9 @@ update or a rollback); the supervisor must restart on it (systemd:
 Install options:
 
 * **Docker Compose** (below) or any container platform (Coolify, Kubernetes):
-  the image `ghcr.io/<owner>/hostingos:<version>` or a local build.
+  the published image `ghcr.io/sunucu-com-tr/hostingos` — `edge` (the
+  newest build of `main`, not a signed release) or `sha-<commit>` (one
+  fixed build) until signed `X.Y.Z` releases exist — or a local build.
 * **Bare binary under systemd**: `docs/deploy/install.sh` verifies the signed
   release archive and creates `/opt/hostingos/{releases/<version>,current,state}`;
   `docs/deploy/hostingos.service` is the hardened unit. Only this layout can
@@ -92,19 +94,50 @@ Never commit a filled-in env file; `docs/deploy/env.example` is the template.
 
 ```sh
 cp docs/deploy/env.example .env.production       # fill in the secrets
-docker compose --env-file .env.production up -d --build
+docker compose --env-file .env.production up -d
 docker compose --env-file .env.production run --rm app setup --email owner@example.com
 ```
 
 `setup` creates the company and its owner account once and prints the
 password; sign in at `<HOS_BASE_URL>/auth/login`.
 
-The repository's `.dockerignore` keeps `.env*`, `.git` and `target/` out of
-the build context (the Dockerfile copies only `Cargo.*`, `crates/`, `static/`
-and `locales/`, so nothing else reaches an image layer either way). Pass
-`--build-arg HOS_BUILD_COMMIT=$(git rev-parse HEAD) --build-arg
-SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)` to show the commit and build
-date on the server page. The image runs as uid 10001, listens on 8080 and has
+**Image.** The compose file never builds: it runs `HOS_IMAGE:HOS_TAG`,
+default `ghcr.io/sunucu-com-tr/hostingos:edge`, and pulls it when it is
+missing on the host (a failed pull stops the start; nothing is built in
+its place). Tags:
+
+| Tag | Published by | Content |
+|---|---|---|
+| `edge` | `.github/workflows/ci.yml`, every push to `main` after lint, tests, the dependency audit and the end-to-end demo test have passed | the newest build of `main`; moves; not a signed release |
+| `sha-<7-digit commit>` | the same run | the same build; never moves |
+| `X.Y.Z`, `X.Y`, `latest` | `.github/workflows/release.yml`, `v*` tags ([RELEASING.md](RELEASING.md)) | signed releases; none published yet |
+
+CI builds the `edge` / `sha-…` image from the Dockerfile (`runtime` stage)
+for linux/amd64 and linux/arm64, each on a native runner, with OCI labels
+(source, revision, licence) and a GitHub build provenance attestation.
+After the first image has been published, `docker buildx imagetools
+inspect ghcr.io/sunucu-com-tr/hostingos:edge` lists its platforms and
+`gh attestation verify oci://ghcr.io/sunucu-com-tr/hostingos:edge --repo
+sunucu-com-tr/hostingos` checks the attestation.
+
+`docker-compose.quickstart.yml` is a smaller variant for a local trial
+(app and PostgreSQL on `http://localhost:8080`, no Caddy, migrations on
+start; README "Quick start").
+
+**Building locally.** `docker-compose.build.yml` builds the image from the
+checkout as `hostingos:local` (`pull_policy: build`, never pulled); add it
+to every command, e.g. with
+`export COMPOSE_FILE=docker-compose.yml:docker-compose.build.yml`, then
+`docker compose --env-file .env.production up -d --build`. The
+repository's `.dockerignore` keeps `.env*`, `.git` and `target/` out of
+the build context (the Dockerfile copies only `Cargo.*`, `crates/`,
+`static/` and `locales/`, so nothing else reaches an image layer either
+way). Set `HOS_BUILD_COMMIT=$(git rev-parse HEAD)` and
+`SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)` in the shell (or pass them
+as `--build-arg` to `docker build`) to show the commit and build date on
+the server page.
+
+The image runs as uid 10001, listens on 8080 and has
 `/healthz` (liveness) and `/readyz` (database reachable and migrated). Its `HEALTHCHECK`
 is `hostingos healthcheck`: the binary sends a plain HTTP GET to `/healthz`
 on `HOS_BIND` and exits 0 or 1 (`--path /readyz` checks the database too) —
@@ -112,8 +145,7 @@ no curl, no shell, nothing written, so it works for the non-root user on a
 read-only root filesystem. The compose file runs it with a read-only root
 filesystem, no capabilities and `no-new-privileges`.
 
-Published images: set `HOS_IMAGE=ghcr.io/<owner>/hostingos` and `HOS_TAG`
-(a version or `latest`) in the env file. Updating:
+Updating (pin a build with `HOS_TAG=sha-…`, or stay on `edge`):
 
 ```sh
 docker compose --env-file .env.production pull

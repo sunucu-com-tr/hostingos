@@ -1,22 +1,30 @@
 # HostingOS — single-server deployment example: PostgreSQL 16, the app (web +
 # embedded job worker / scheduler) and Caddy with automatic TLS for the
-# hosting company's address (HOS_BASE_URL).
+# hosting company's address (HOS_BASE_URL). Guide: docs/INSTALL.md.
 #
 #   cp docs/deploy/env.example .env.production   # fill in the secrets
-#   docker compose --env-file .env.production up -d --build
+#   docker compose --env-file .env.production up -d
 #   docker compose --env-file .env.production run --rm app setup --email owner@example.com
 #
 # `setup` creates the company and its owner account once (the password is
 # printed); sign in at HOS_BASE_URL/auth/login. Multi-company operation
 # (HOS_MODE=multi) is described in docs/DEPLOYMENT.md.
 #
-# Published release images instead of a local build: set HOS_IMAGE (e.g.
-# ghcr.io/<owner>/hostingos) and HOS_TAG (a version, or `latest`) in the env
-# file. Updating (docs/UPDATES.md): change HOS_TAG if pinned, then
+# Image: this file never builds. It runs HOS_IMAGE:HOS_TAG, by default
+# ghcr.io/sunucu-com-tr/hostingos:edge (built from the main branch after CI
+# passes; not a signed release, docs/RELEASING.md), and pulls it when it is
+# not on the host yet. HOS_TAG=sha-<7-digit commit> pins one build.
+#
+# Built from this checkout instead (changed code): add docker-compose.build.yml
+# to every command, e.g.
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml \
+#     --env-file .env.production up -d --build
+#
+# Updating (docs/UPDATES.md): change HOS_TAG if pinned, then
 #   docker compose --env-file .env.production pull
 #   docker compose --env-file .env.production up -d
-# (`migrate` runs before the new app starts). From source: `git pull` and
-# `docker compose --env-file .env.production up -d --build`.
+# (`migrate` applies pending migrations before the new app starts). From
+# source: `git pull`, then the build command above.
 #
 # See docs/DEPLOYMENT.md (scaling, backups, separate worker, Neon → own PostgreSQL).
 
@@ -86,8 +94,7 @@ services:
 
   # One-shot: applies pending migrations, then exits (also on every update).
   migrate:
-    image: ${HOS_IMAGE:-hostingos}:${HOS_TAG:-latest}
-    build: .
+    image: ${HOS_IMAGE:-ghcr.io/sunucu-com-tr/hostingos}:${HOS_TAG:-edge}
     command: ["migrate"]
     environment: *app-env
     <<: *app-hardening
@@ -97,8 +104,7 @@ services:
     restart: "no"
 
   app:
-    image: ${HOS_IMAGE:-hostingos}:${HOS_TAG:-latest}
-    build: .
+    image: ${HOS_IMAGE:-ghcr.io/sunucu-com-tr/hostingos}:${HOS_TAG:-edge}
     # `serve` = web + job worker + cron scheduler + custom-domain checks.
     # With several web replicas use `serve --no-worker` here and the
     # `worker` service below (profile "split").
@@ -122,8 +128,7 @@ services:
   # Optional dedicated background runtime: `docker compose --profile split up -d`
   # (then run `app` with `serve --no-worker`).
   worker:
-    image: ${HOS_IMAGE:-hostingos}:${HOS_TAG:-latest}
-    build: .
+    image: ${HOS_IMAGE:-ghcr.io/sunucu-com-tr/hostingos}:${HOS_TAG:-edge}
     command: ["worker"]
     environment: *app-env
     <<: *app-hardening

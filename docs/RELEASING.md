@@ -39,6 +39,10 @@ The build:
 The release is created **last**, so updaters never see a manifest whose
 image does not exist yet.
 
+Separately from releases, every push to `main` publishes the unsigned
+`edge` image (§8). Release tags (`X.Y.Z`, `X.Y`, `latest`) and the `edge` /
+`sha-…` tags never overlap, and only this workflow writes the former.
+
 ## 2. One-time setup (owner)
 
 These steps need the owner's accounts. Nothing here can be done from the
@@ -76,9 +80,18 @@ code.
 
 5. **Protect the tags.** Add a ruleset that lets only maintainers create
    `v*` tags, and require reviews on `main`.
-6. **Optionally publish the image.** After the first release, make the
-   `hostingos` package public under the repository's Packages, so
-   installations can pull it without a login.
+6. **Make the image public.** The `hostingos` container package is created
+   by the first image push, which is the first `edge` build from `main`
+   (§8), not the first release. Then, as an organisation owner: the
+   organisation's **Packages** tab → `hostingos` → **Package settings** →
+   **Danger Zone** → **Change visibility** → **Public**, so that anyone can
+   pull it without a login (this cannot be undone). If **Public** is not
+   offered, allow public packages under the organisation's **Settings** →
+   **Packages** → **Package Creation** first. Check that the package page
+   names this repository: the image's `org.opencontainers.image.source`
+   label links them on the first push, and the package then inherits the
+   repository's access permissions (unless the organisation has turned
+   that inheritance off), which is what lets `release.yml` push to it later.
 7. **Point installations at the repository.** Set `HOS_UPDATE_REPO=<owner>/<repo>`
    in their environment (docs/UPDATES.md), then restart.
 
@@ -209,8 +222,8 @@ reinstall (`docs/deploy/install.sh`).
 
 ## 7. Not verified yet
 
-The workflows were written without running on GitHub. The first tagged
-release should be watched for:
+The release workflow was written without running on GitHub. The first
+tagged release should be watched for:
 
 - the musl build of `aws-lc-sys` and `ring` with `musl-gcc` and the kernel
   header include path set up in the workflow;
@@ -218,3 +231,60 @@ release should be watched for:
 - the `cargo-cyclonedx` output path (`crates/hos-web/*.cdx.json`);
 - minisign on the runner producing pre-hashed signatures (the script checks
   this and fails otherwise).
+
+The first `edge` run (§8) should be watched for the Docker build on the
+`ubuntu-24.04-arm` runner, the package's visibility (§2, step 6) and the
+"Same image as the end-to-end test" notice of the amd64 image job.
+
+## 8. Images from `main` (`edge`)
+
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) publishes
+`ghcr.io/<owner>/hostingos` (the same image name as releases) for every
+push to `main`:
+
+| Tag | Meaning |
+|---|---|
+| `edge` | the newest build of `main`; moves with every push |
+| `sha-<7-digit commit>` | that one build; never moves |
+
+How it is gated and built:
+
+- The `image` jobs need every other job of the same run (`lint`, `test`,
+  `demo`, `audit`) to pass for that commit, and run only for `push` events
+  on `main` of `sunucu-com-tr/hostingos`: never for pull requests,
+  schedules, manual runs or forks. Only these jobs get `packages: write`.
+- One job per architecture on a native runner (`ubuntu-24.04` for
+  linux/amd64, `ubuntu-24.04-arm` for linux/arm64; no emulation) builds
+  the Dockerfile's default `runtime` stage with `HOS_BUILD_COMMIT` = the
+  commit and `SOURCE_DATE_EPOCH` = its commit time, the OCI labels title,
+  description, licences (`AGPL-3.0-only`), source and revision, BuildKit
+  provenance (`mode=max`) and an SBOM, and pushes it by digest only. A
+  smoke test then pulls that digest and checks `hostingos version --json`
+  (commit, build date, target).
+- The amd64 build is the image the `demo` job tested: same inputs, layers
+  from the GitHub Actions cache the `demo` job wrote moments earlier
+  (scope `hostingos-linux-amd64`), so nothing is compiled twice. The job
+  compares the image configuration digests and prints a notice when they
+  match, a warning when the image had to be rebuilt. The arm64 build has
+  its own cache (`hostingos-linux-arm64`); while `Cargo.lock` is unchanged
+  only the HostingOS crates are compiled again.
+- `image-tags` joins both digests into one multi-arch index with
+  `docker buildx imagetools create`, adds the description, source, licence
+  and revision as index annotations (GHCR shows a multi-arch image's
+  description from there), tags it `sha-…` and, if the commit is still the
+  tip of `main`, `edge` (re-running an old run never moves `edge` back),
+  then attaches a GitHub build provenance attestation (`actions/attest`,
+  pushed to the registry).
+
+Verify a build:
+
+```sh
+docker buildx imagetools inspect ghcr.io/<owner>/hostingos:edge
+gh attestation verify oci://ghcr.io/<owner>/hostingos:edge --repo <owner>/<repo>
+docker run --rm ghcr.io/<owner>/hostingos:edge version --json
+```
+
+`edge` is not a release: it has no minisign signature, no update manifest
+and no GitHub Release, and the update page never offers it. Container
+installations on `edge` update with `docker compose pull` and
+`docker compose up -d`.

@@ -1,4 +1,8 @@
-# CI: formatting, lints, tests against PostgreSQL, dependency audit.
+# CI: formatting, lints, tests against PostgreSQL, dependency audit, an
+# end-to-end run of the demo image; on every push to main, once all of that
+# has passed, the container image ghcr.io/<owner>/hostingos:edge (and
+# :sha-<7-digit commit>), built from main and not a signed release. Version
+# tags and `latest` belong to release.yml only.
 #
 # Third-party actions are pinned to full commit SHAs (the comment names the
 # release the SHA was resolved from). Update them deliberately, e.g. with
@@ -28,6 +32,15 @@ env:
   # rust-toolchain.toml says `stable`; CI pins the exact release (keep in
   # sync with the Dockerfile's RUST_VERSION).
   RUSTUP_TOOLCHAIN: "1.100.0"
+  # OCI labels of the image. The demo job and the image job use the same
+  # labels and build arguments, so the image job's amd64 build is the image
+  # the end-to-end test ran, taken from the build cache (see `image`).
+  IMAGE_LABELS: |
+    org.opencontainers.image.title=HostingOS
+    org.opencontainers.image.description=Open-source software that runs a hosting company: storefront, client area and admin panel with billing, provisioning, domains and support tickets.
+    org.opencontainers.image.licenses=AGPL-3.0-only
+    org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+    org.opencontainers.image.revision=${{ github.sha }}
 
 jobs:
   lint:
@@ -98,20 +111,61 @@ jobs:
 
   demo:
     name: demo image end to end
-    # Builds the image from the Dockerfile and runs docker-compose.demo.yml
-    # (app in demo mode + PostgreSQL) the way a demo server does: start,
-    # wait for the health checks, load the home page, log in with a demo
-    # account, tear down.
+    # Builds the image from the Dockerfile (linux/amd64) and runs
+    # docker-compose.demo.yml (app in demo mode + PostgreSQL) with it the way
+    # a demo server does: start, wait for the health checks, load the home
+    # page, log in with a demo account, tear down. On main the build's layers
+    # go to the GitHub Actions cache, where the `image` job finds them.
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     permissions:
       contents: read
+    outputs:
+      # Image configuration digest of the tested image (compared by `image`).
+      config-digest: ${{ steps.built.outputs.config-digest }}
     env:
       COMPOSE: docker compose -f docker-compose.demo.yml -f docker-compose.demo.ports.yml --env-file .env.demo
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Build date
+        id: meta
+        # Commit time, the reproducible build date (never the wall clock).
+        run: echo "epoch=$(git log -1 --format=%ct)" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build the image
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          # Into the local Docker engine under the name the demo compose file
+          # uses; compose below starts it without building.
+          load: true
+          tags: hostingos-demo:local
+          provenance: false
+          sbom: false
+          build-args: |
+            HOS_BUILD_COMMIT=${{ github.sha }}
+            SOURCE_DATE_EPOCH=${{ steps.meta.outputs.epoch }}
+          labels: ${{ env.IMAGE_LABELS }}
+          cache-from: type=gha,scope=hostingos-linux-amd64
+          # Only main writes the cache; pull requests read it. A failed cache
+          # export does not fail the job.
+          cache-to: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && 'type=gha,mode=max,scope=hostingos-linux-amd64,ignore-error=true' || '' }}
+      - name: Build metadata in the image
+        id: built
+        env:
+          METADATA: ${{ steps.build.outputs.metadata }}
+        run: |
+          set -euo pipefail
+          docker run --rm hostingos-demo:local version --json | tee "$RUNNER_TEMP/version.json"
+          # The commit and build date reached the binary (HOS_BUILD_COMMIT,
+          # SOURCE_DATE_EPOCH build arguments).
+          jq -e --arg c "$GITHUB_SHA" '.commit == $c and .build_date != null' "$RUNNER_TEMP/version.json"
+          echo "config-digest=$(jq -r '."containerimage.config.digest" // empty' <<<"$METADATA")" >> "$GITHUB_OUTPUT"
       - name: Demo environment (throw-away secrets)
         run: |
           pg="$(openssl rand -hex 32)"; key="$(openssl rand -base64 32)"
@@ -122,10 +176,10 @@ jobs:
             echo "HOS_BASE_URL=http://localhost:8080"
             echo "HOS_TRUST_PROXY=false"
             echo "HOS_LOG_FORMAT=text"
-            echo "HOS_BUILD_COMMIT=$GITHUB_SHA"
           } > .env.demo
-      - name: Build and start
-        run: $COMPOSE up -d --build --wait --wait-timeout 900
+      - name: Start
+        # --no-build: run exactly the image built above.
+        run: $COMPOSE up -d --no-build --wait --wait-timeout 900
       - name: Home page, demo login, admin panel
         run: |
           set -euo pipefail
@@ -211,3 +265,186 @@ jobs:
         # (deny.toml). Advisories are covered by `cargo audit` above.
         if: hashFiles('deny.toml') != ''
         run: cargo deny --locked check licenses bans sources
+
+  image:
+    name: image ${{ matrix.platform }}
+    # Publishes the image of a push to main, only after every other job of
+    # this run has passed for that commit; never for pull requests, schedules,
+    # manual runs or forks. One native runner per architecture (no QEMU), each
+    # pushes its image by digest only; `image-tags` names the result.
+    #
+    # amd64: the same build as the demo job (same Dockerfile, context, build
+    # arguments and labels), so its layers come from the cache the demo job
+    # has just written instead of being compiled again; the "Same image as
+    # the end-to-end test" step reports whether that held. arm64: compiled
+    # here, with its own cache (dependencies are reused while Cargo.lock is
+    # unchanged).
+    needs: [lint, test, demo, audit]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'sunucu-com-tr/hostingos'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write # push the per-architecture images by digest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: linux/amd64
+            arch: amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            arch: arm64
+            # Native arm64 runner (standard runner for public repositories).
+            runner: ubuntu-24.04-arm
+    env:
+      ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Names
+        id: meta
+        # Same image name as release.yml: ghcr.io/<owner, lower case>/hostingos.
+        run: |
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/hostingos" >> "$GITHUB_ENV"
+          echo "epoch=$(git log -1 --format=%ct)" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            HOS_BUILD_COMMIT=${{ github.sha }}
+            SOURCE_DATE_EPOCH=${{ steps.meta.outputs.epoch }}
+          labels: ${{ env.IMAGE_LABELS }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=true
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=hostingos-linux-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=hostingos-linux-${{ matrix.arch }},ignore-error=true
+      - name: Smoke test of the pushed image
+        # Pulls the digest just pushed and runs it on its own architecture.
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "::error::no image digest"; exit 1; }
+          docker run --rm "$IMAGE@$DIGEST" version --json | tee "$RUNNER_TEMP/version.json"
+          case "$ARCH" in amd64) triple=x86_64 ;; arm64) triple=aarch64 ;; esac
+          jq -e --arg c "$GITHUB_SHA" --arg t "$triple" \
+            '.commit == $c and .build_date != null and (.target | startswith($t + "-"))' "$RUNNER_TEMP/version.json"
+      - name: Same image as the end-to-end test
+        if: matrix.arch == 'amd64'
+        env:
+          TESTED: ${{ needs.demo.outputs.config-digest }}
+          METADATA: ${{ steps.build.outputs.metadata }}
+        run: |
+          built="$(jq -r '."containerimage.config.digest" // empty' <<<"$METADATA")"
+          if [ -n "$built" ] && [ "$built" = "$TESTED" ]; then
+            echo "::notice::amd64 image = the image the end-to-end test ran (configuration $built: same layers, taken from the build cache)"
+          else
+            echo "::warning::amd64 image configuration ${built:-unknown} differs from the tested image's (${TESTED:-unknown}): it was rebuilt from the same commit instead of coming from the cache"
+          fi
+      - name: Record the digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          echo "$DIGEST" > "$RUNNER_TEMP/digests/$ARCH"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: image-digest-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/${{ matrix.arch }}
+          if-no-files-found: error
+          retention-days: 1
+
+  image-tags:
+    name: image tags (edge, sha-…)
+    # Combines the two architectures into one multi-arch image and tags it
+    # `sha-<7-digit commit>` and, while this commit is still the tip of
+    # main, `edge` (a re-run of an older run never moves `edge` back).
+    # Attests its build provenance (GitHub artifact attestation, pushed to
+    # the registry next to the image).
+    needs: image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'sunucu-com-tr/hostingos'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read # ask the API which commit main is at
+      packages: write # push the multi-arch index and the attestation
+      id-token: write # Sigstore certificate for the attestation
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: image-digest-*
+          path: ${{ runner.temp }}/digests
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Tag the multi-arch image
+        id: tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DESCRIPTION: "Open-source software that runs a hosting company: storefront, client area and admin panel with billing, provisioning, domains and support tickets."
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/hostingos"
+          sources=()
+          for arch in amd64 arm64; do
+            digest="$(cat "$RUNNER_TEMP/digests/$arch")"
+            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "::error::no $arch digest"; exit 1; }
+            sources+=("$image@$digest")
+          done
+          tags=(--tag "$image:sha-${GITHUB_SHA::7}")
+          head="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)" || head=""
+          edge=false
+          if [ "$head" = "$GITHUB_SHA" ]; then
+            tags+=(--tag "$image:edge")
+            edge=true
+          else
+            echo "::warning::main is at ${head:-an unknown commit} now, not $GITHUB_SHA: edge left as it is"
+          fi
+          # Index annotations: GHCR shows a multi-arch image's description
+          # from here; the labels are in each image's configuration.
+          docker buildx imagetools create "${tags[@]}" \
+            --annotation "index:org.opencontainers.image.title=HostingOS" \
+            --annotation "index:org.opencontainers.image.description=$DESCRIPTION" \
+            --annotation "index:org.opencontainers.image.licenses=AGPL-3.0-only" \
+            --annotation "index:org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --annotation "index:org.opencontainers.image.revision=$GITHUB_SHA" \
+            "${sources[@]}"
+          docker buildx imagetools inspect "$image:sha-${GITHUB_SHA::7}"
+          digest="$(docker buildx imagetools inspect "$image:sha-${GITHUB_SHA::7}" --format '{{json .Manifest}}' | jq -r .digest)"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "::error::no index digest"; exit 1; }
+          {
+            echo "image=$image"
+            echo "digest=$digest"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "### Image"
+            echo
+            echo "\`$image:sha-${GITHUB_SHA::7}\` (\`$digest\`)"
+            if [ "$edge" = true ]; then echo "and \`$image:edge\`"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Attest the image
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.tags.outputs.image }}
+          subject-digest: ${{ steps.tags.outputs.digest }}
+          push-to-registry: true
+          # No artifact-metadata storage record (would need one more permission).
+          create-storage-record: false

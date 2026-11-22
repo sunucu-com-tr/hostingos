@@ -69,6 +69,13 @@ following.
   - an SBOM, checksums and minisign signatures;
   - a multi-arch container image with provenance;
   - a GitHub Release carrying the signed update manifest.
+- Prebuilt container image from `main`: CI publishes
+  `ghcr.io/sunucu-com-tr/hostingos:edge` and `:sha-<commit>` after all
+  tests and the end-to-end demo test pass (not signed releases).
+  `docker-compose.quickstart.yml` runs it with PostgreSQL on
+  `http://localhost:8080` for a trial without building, optionally in demo
+  mode; `docker-compose.yml` now runs the published image and never builds,
+  `docker-compose.build.yml` builds from a checkout instead.
 - Deployment: Dockerfile, Docker Compose with Caddy and automatic TLS, a
   systemd unit and an install script that verifies signatures.
   `hostingos healthcheck` is the container health check (no curl or shell

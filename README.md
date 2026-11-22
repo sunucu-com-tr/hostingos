@@ -136,15 +136,112 @@ them with a button that fills in the form):
   shared logins, real integrations and webhooks, the WHMCS import and
   writes through the REST API. Uploads are limited to images.
 
-How demo mode works: [docs/DEMO.md](docs/DEMO.md); running your own:
+How demo mode works: [docs/DEMO.md](docs/DEMO.md); the same demo on your
+own computer: [Quick start](#try-it-on-your-computer); a public demo server:
 [docs/deploy/DEMO-DEPLOY.md](docs/deploy/DEMO-DEPLOY.md).
 
-## Quick start (Docker Compose)
+## Quick start
+
+### Try it on your computer
+
+This runs HostingOS and PostgreSQL 16 from the prebuilt image on
+`http://localhost:8080`, reachable from your computer only. Nothing is
+compiled and the repository is not cloned. You need Docker with the
+Compose plugin, `curl` and `openssl`.
+
+> **About the image.** The commands below use
+> `ghcr.io/sunucu-com-tr/hostingos:edge`, which the project's CI builds
+> from the `main` branch each time all tests pass. `edge` follows `main`
+> and is **not a signed release**; signed, versioned releases are not
+> published yet. The commands work after the first image has been
+> published; until then, [build from source](#build-from-source).
+
+```sh
+mkdir hostingos-trial && cd hostingos-trial
+
+# The Compose file, saved as compose.yaml:
+curl -fsSL -o compose.yaml \
+  https://raw.githubusercontent.com/sunucu-com-tr/hostingos/main/docker-compose.quickstart.yml
+
+# Two secrets in .env next to it (keep this file: it holds the database
+# password and the key that encrypts stored credentials):
+printf 'POSTGRES_PASSWORD=%s\nHOS_SECRET_KEY=%s\n' \
+  "$(openssl rand -hex 32)" "$(openssl rand -base64 32)" > .env
+
+# Download and start PostgreSQL and HostingOS; returns once both are healthy:
+docker compose up -d --wait
+
+# Create your company and its owner account (prints the password once):
+docker compose run --rm app setup --email you@example.com --company "Example Hosting"
+```
+
+`docker compose up -d --wait` downloads the images on the first run and
+finishes when both containers report healthy, with lines like these:
+
+```text
+ ✔ Container hostingos-trial-postgres-1  Healthy
+ ✔ Container hostingos-trial-app-1       Healthy
+```
+
+`setup` applies the database migrations, creates the company and ends with:
+
+```text
+company created: Example Hosting
+admin panel: http://localhost:8080/admin
+owner login: you@example.com
+password:    <generated password>   (shown once; change it after signing in)
+```
+
+Sign in at `http://localhost:8080/auth/login` with that e-mail address and
+password. The admin panel is at `/admin`, the storefront at `/`, the client
+area at `/client`. Until `setup` has run, every page answers
+`503 Service Unavailable`. No e-mail is sent until you set up a mail
+integration; until then mail only appears in the log
+(`docker compose logs app`). Port 8080 taken? Put `HOS_PORT=8090` in `.env`
+and run `docker compose up -d --wait` again.
+
+**Try the demo data instead.** In the same directory, one command starts a
+second, separate installation in demo mode on port 8081, with its own
+database: a populated shop, the demo logins `admin@demo.test` /
+`demo-admin` (admin panel) and `musteri@demo.test` / `demo-client` (client
+area), mock payment, server and domain providers, and a reset of all data
+every 30 minutes ([docs/DEMO.md](docs/DEMO.md)):
+
+```sh
+HOS_DEMO_MODE=1 HOS_PORT=8081 docker compose -p hostingos-demo up -d --wait
+```
+
+Then open `http://localhost:8081/auth/login`; the login page has a button
+for each demo account.
+
+**Update** to the newest `edge` image:
+
+```sh
+docker compose pull && docker compose up -d
+```
+
+The new container applies pending database migrations before it opens its
+port; your data stays in its volume. For the demo, run its `up` command
+again after the pull.
+
+**Stop and remove:**
+
+```sh
+docker compose down                              # stop and remove the containers, keep the data
+docker compose down --volumes                    # ... and delete the database too
+docker compose -p hostingos-demo down --volumes  # the demo, if you started it
+docker image rm ghcr.io/sunucu-com-tr/hostingos:edge postgres:16-alpine   # the downloaded images
+```
+
+Then delete the `hostingos-trial` directory.
+
+### Install on a server
 
 This sets up a production-style installation on one Linux server:
-PostgreSQL 16, HostingOS and Caddy, which obtains TLS certificates
-automatically. The full guide, including a bare-binary install under
-systemd, is [docs/INSTALL.md](docs/INSTALL.md).
+PostgreSQL 16, HostingOS (the same prebuilt image) and Caddy, which
+obtains TLS certificates automatically. The full guide, which also covers
+backups, updates and a bare-binary install under systemd, is
+[docs/INSTALL.md](docs/INSTALL.md).
 
 You need a server with Docker Engine and the Compose plugin, ports 80 and
 443 open, and a domain whose DNS points at the server (the example uses
@@ -172,17 +269,20 @@ credentials and two-factor secrets, and a database backup is of limited use
 without it.
 
 ```sh
-# Build the image and start PostgreSQL, the migrations, HostingOS and Caddy:
-docker compose --env-file .env.production up -d --build
+# Download the image and start PostgreSQL, the migrations, HostingOS and Caddy:
+docker compose --env-file .env.production up -d
 
 # Create your company and its owner account (prints the password once):
 docker compose --env-file .env.production run --rm app setup \
   --email you@example.com --company "Example Hosting"
 ```
 
-The first build compiles HostingOS from source and takes a while. Database
-migrations run automatically (the one-shot `migrate` service) before the
-application starts. Until `setup` has run, every page answers
+`docker-compose.yml` runs `ghcr.io/sunucu-com-tr/hostingos:edge` unless
+`HOS_IMAGE` / `HOS_TAG` in `.env.production` name another image; to stay on
+one build, set `HOS_TAG` to its commit tag (`sha-` and the first seven
+characters of the commit). It never builds anything. Database migrations
+run automatically (the one-shot `migrate` service) before the application
+starts. Until `setup` has run, every page answers
 `503 Service Unavailable`. `setup` also takes `--locale tr|en` and
 `--currency` (defaults `tr` and `TRY`) and `--password`; without a
 password it generates one.
@@ -193,10 +293,24 @@ payment gateways, servers, registrar and mail provider under
 Integrations, then your products. Until a mail integration is set up,
 e-mails are only written to the log.
 
-To look around without DNS or TLS, start the demo stack on your own
-machine instead (`docker-compose.demo.yml`, see
-[docs/deploy/DEMO-DEPLOY.md](docs/deploy/DEMO-DEPLOY.md)). It runs in demo
-mode: published logins, mock integrations, periodic reset.
+### Build from source
+
+If you changed the code, or prefer not to run the published image, build
+the image from your checkout with the additional file
+`docker-compose.build.yml`. The first build compiles HostingOS and takes a
+while; it needs enough memory for the Rust compiler.
+
+```sh
+# In the clone from above; applies to every docker compose command in this shell:
+export COMPOSE_FILE=docker-compose.yml:docker-compose.build.yml
+docker compose --env-file .env.production up -d --build
+```
+
+The image built this way is called `hostingos:local`; Compose never pulls
+it. For the trial on your computer, build the same image in a clone with
+`docker build -t hostingos:local .` and add `HOS_IMAGE=hostingos` and
+`HOS_TAG=local` to the trial's `.env`. A bare binary built with `cargo` is
+described in [docs/INSTALL.md](docs/INSTALL.md#6-b-bare-binary-under-systemd).
 
 ## Configuration
 
@@ -218,28 +332,35 @@ HostingOS is configured with environment variables. The important ones:
 | `HOS_TLS_ASK_SECRET` | with Caddy | Shared secret for Caddy's certificate check |
 | `HOS_UPDATE_REPO` | no | GitHub `owner/name` to check for signed releases; update checks are off until it is set |
 
-The Compose file additionally reads `POSTGRES_PASSWORD` and `ACME_EMAIL`.
-Every variable: [docs/INSTALL.md](docs/INSTALL.md#environment-variables)
-and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#environment).
+The Compose file additionally reads `POSTGRES_PASSWORD` and `ACME_EMAIL`,
+and optionally `HOS_IMAGE` and `HOS_TAG`. Every variable:
+[docs/INSTALL.md](docs/INSTALL.md#environment-variables) and
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#environment).
 
 ## Upgrading
 
 Back up the database first (see [docs/INSTALL.md](docs/INSTALL.md#backups)).
 Migrations only move forward; the new version applies them before it
-starts.
+serves requests.
 
+- **Docker Compose with the published image** (the default):
+  `docker compose --env-file .env.production pull`, then
+  `docker compose --env-file .env.production up -d`. The one-shot `migrate`
+  service applies pending migrations before the new application starts.
+  `edge` moves with every change on `main`; with a pinned `sha-…` tag,
+  change `HOS_TAG` first.
 - **Docker Compose, built from source:** `git pull`, then
-  `docker compose --env-file .env.production up -d --build`.
-- **Docker Compose with published images:** set `HOS_IMAGE` and `HOS_TAG`
-  in the env file, then `docker compose --env-file .env.production pull`
-  and `up -d`.
+  `docker compose --env-file .env.production up -d --build` with
+  `COMPOSE_FILE` set as in [Build from source](#build-from-source).
 - **Bare binary under systemd:** install the new release in the admin
   panel under Server → Updates (`/admin/server/updates`; backup,
   maintenance mode, migrations, health check and automatic rollback) or
   with `hostingos update apply`.
 
-Details: [docs/UPDATES.md](docs/UPDATES.md). Published images and signed
-releases do not exist yet; until the first release, build from source.
+Details: [docs/UPDATES.md](docs/UPDATES.md). Signed, versioned releases do
+not exist yet: the published image is `edge` (and one `sha-…` tag per
+commit), built from `main` and not signed, and the update page in the
+admin panel has no release to offer until the first signed release.
 
 ## Security
 
@@ -248,10 +369,11 @@ Please report vulnerabilities privately as described in
 
 ## Known limitations
 
-- **Early release.** Version 0.1.0, no tagged release yet. The Docker
-  image, the release pipeline and the self-update path are new and have not
-  been through a real release; no release signing key exists yet, so
-  one-click updates cannot install anything until the first signed release.
+- **Early release.** Version 0.1.0, no tagged release yet. The only
+  published images are the unsigned `edge` builds of `main`. The release
+  pipeline and the self-update path are new and have not been through a
+  real release; no release signing key exists yet, so one-click updates
+  cannot install anything until the first signed release.
 - **Integrations are untested against live accounts.** Payment gateways,
   hypervisors, hosting panels, registrars, e-invoice providers and the
   Mailgun inbound route have been tested against the providers'
@@ -271,8 +393,8 @@ Please report vulnerabilities privately as described in
 
 ## Roadmap
 
-Next steps, in no fixed order: the first signed release with published
-images; checking each integration against the providers' sandbox or live
+Next steps, in no fixed order: the first signed, versioned release;
+checking each integration against the providers' sandbox or live
 systems; a trial WHMCS import on real data; a rate limiter shared between
 web instances; the contributor licence agreement.
 

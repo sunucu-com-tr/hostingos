@@ -14,9 +14,15 @@
 #   docker compose -f docker-compose.demo.yml -f docker-compose.demo.ports.yml \
 #     --env-file .env.demo up -d --build
 #
-# Image: built from this repository's Dockerfile by default. To run a
-# published image instead, set HOS_DEMO_IMAGE (e.g. ghcr.io/OWNER/hostingos:0.1.0)
-# and run `docker compose … pull` before `up` (without --build).
+# Image: built from this repository's Dockerfile by default (CI's end-to-end
+# test runs the image it built under the default name). The published image
+# instead, with no build on the server: set
+# HOS_DEMO_IMAGE=ghcr.io/sunucu-com-tr/hostingos:edge in .env.demo and start
+# with `--pull always --no-build` in place of `--build`, so a failed pull
+# stops with an error instead of quietly building:
+#
+#   docker compose -f docker-compose.demo.yml --env-file .env.demo \
+#     up -d --pull always --no-build --wait
 #
 # The demo database holds nothing but the demo, which is deleted and
 # re-created every HOS_DEMO_RESET_MINUTES (default 30): no backups needed.
