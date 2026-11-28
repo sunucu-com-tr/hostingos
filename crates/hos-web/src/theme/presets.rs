@@ -178,6 +178,18 @@ pub const PRESETS: &[Preset] = &[
         accent: "#b4532a",
         share_style: hos_seo::og::Style::Paper,
     },
+    Preset {
+        key: "atlas",
+        css: Some("css/themes/atlas.css"),
+        thumbnail: "img/themes/atlas.webp",
+        body_font: "manrope",
+        heading_font: "manrope",
+        radius: Radius::Sharp,
+        mode: Mode::Light,
+        brand: "#0b6bd3",
+        accent: "#0fa3b1",
+        share_style: hos_seo::og::Style::Rack,
+    },
 ];
 
 /// The default template (Classic).

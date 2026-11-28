@@ -1,0 +1,18 @@
+{#- Atlas template: a thin utility bar above the sticky header with the
+    phone line, the support address and the service status page. On phones
+    only the phone and the status link stay (the rest is in the footer). -#}
+{%- let uc = store().company.clone() %}
+<div class="utility-bar">
+  <div class="container utility-bar__inner">
+    <p class="utility-bar__contact">
+      {%- if !uc.phone.is_empty() %}<a href="{{ tel_href(uc.phone) }}">{{ icon("phone") }}<span>{{ uc.phone }}</span></a>{% endif %}
+      {%- if !uc.support_email.is_empty() %}<a class="utility-bar__wide" href="mailto:{{ uc.support_email }}">{{ icon("mail") }}<span>{{ uc.support_email }}</span></a>{% elif !uc.email.is_empty() %}<a class="utility-bar__wide" href="mailto:{{ uc.email }}">{{ icon("mail") }}<span>{{ uc.email }}</span></a>{% endif %}
+    </p>
+    <nav class="utility-bar__links" aria-label="{{ t("storefront.footer.resources") }}">
+      <a class="utility-bar__status" href="{{ url("/status") }}"{% if is_current("/status") %} aria-current="page"{% endif %}>{{ icon("activity") }}<span>{{ t("netstatus.public.title") }}</span></a>
+      <a class="utility-bar__wide" href="{{ url("/kb") }}">{{ t("storefront.nav.kb") }}</a>
+      <a class="utility-bar__wide" href="{{ url("/announcements") }}">{{ t("storefront.nav.announcements") }}</a>
+      <a class="utility-bar__wide" href="{{ url("/auth/login") }}">{{ t("storefront.footer.client_area") }}</a>
+    </nav>
+  </div>
+</div>

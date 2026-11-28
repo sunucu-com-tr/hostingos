@@ -152,12 +152,20 @@ async fn group_create(
     ))
 }
 
-/// A value with its per-cycle prices (default currency).
+/// The prices of a value in one currency: `(cycle, price, setup)` per
+/// recurring cycle (empty strings: not priced).
+pub struct CurrencyPrices {
+    pub currency: String,
+    pub cells: Vec<(String, String, String)>,
+}
+
+/// A value with its per-cycle prices in every active currency (default
+/// currency first).
 pub struct ValueView {
     pub id: ConfigOptionValueId,
     pub label: String,
     pub value: String,
-    pub prices: Vec<(String, String, String)>,
+    pub rows: Vec<CurrencyPrices>,
 }
 
 /// An option with its values.
@@ -175,11 +183,24 @@ struct GroupPage {
     ctx: PageCtx,
     group: ConfigGroupRow,
     options: Vec<OptionView>,
-    currency: Currency,
+    currencies: Vec<String>,
     cycles: Vec<(String, String)>,
     types: Vec<(String, String)>,
 }
 crate::page!(GroupPage);
+
+/// The currencies option values are priced in: the active ones, default
+/// first (the default even when it is not marked active).
+async fn price_currencies(state: &AppState, tenant: &Tenant) -> AppResult<Vec<Currency>> {
+    let mut out: Vec<Currency> = catalog::list_currencies(&state.pool, tenant.id, true)
+        .await?
+        .into_iter()
+        .map(|c| c.code)
+        .filter(|c| *c != tenant.default_currency)
+        .collect();
+    out.insert(0, tenant.default_currency);
+    Ok(out)
+}
 
 async fn load_group(state: &AppState, tenant: &Tenant, gid: Uuid) -> AppResult<ConfigGroupRow> {
     let gid = ConfigOptionGroupId::from(gid);
@@ -206,9 +227,9 @@ async fn group_show(
     mut ctx: PageCtx,
 ) -> AppResult<Response> {
     let group = load_group(&state, &tenant, gid).await?;
-    let currency = tenant.default_currency;
+    let currencies = price_currencies(&state, &tenant).await?;
     let flat = group_values(&state, &tenant, group.id).await?;
-    let prices = arepo::group_value_prices(&state.pool, tenant.id, group.id, currency).await?;
+    let prices = arepo::group_value_prices(&state.pool, tenant.id, group.id).await?;
     let mut options: Vec<OptionView> = Vec::new();
     for r in flat {
         if options.last().is_none_or(|o| o.id != r.option_id) {
@@ -225,19 +246,25 @@ async fn group_show(
                 id: vid,
                 label: r.label.clone().unwrap_or_default(),
                 value: r.value.clone().unwrap_or_default(),
-                prices: RECURRING
+                rows: currencies
                     .iter()
-                    .map(|c| {
-                        let p = prices
+                    .map(|cur| CurrencyPrices {
+                        currency: cur.as_str().to_owned(),
+                        cells: RECURRING
                             .iter()
-                            .find(|p| p.value_id == vid && p.billing_cycle == *c);
-                        (
-                            c.as_str().to_owned(),
-                            p.map(|p| p.price.normalize().to_string())
-                                .unwrap_or_default(),
-                            p.map(|p| p.setup_fee.normalize().to_string())
-                                .unwrap_or_default(),
-                        )
+                            .map(|c| {
+                                let p = prices.iter().find(|p| {
+                                    p.value_id == vid && p.currency == *cur && p.billing_cycle == *c
+                                });
+                                (
+                                    c.as_str().to_owned(),
+                                    p.map(|p| p.price.normalize().to_string())
+                                        .unwrap_or_default(),
+                                    p.map(|p| p.setup_fee.normalize().to_string())
+                                        .unwrap_or_default(),
+                                )
+                            })
+                            .collect(),
                     })
                     .collect(),
             });
@@ -267,7 +294,7 @@ async fn group_show(
         ctx,
         group,
         options,
-        currency,
+        currencies: currencies.iter().map(|c| c.as_str().to_owned()).collect(),
         cycles,
         types,
     })
@@ -364,26 +391,42 @@ async fn option_delete(
     ))
 }
 
-/// Price + setup fee per recurring cycle (`None`: not offered).
-type CyclePrices = Vec<(BillingCycle, Option<(Decimal, Decimal)>)>;
+/// Price points to write: price + setup fee, `None` = not priced (cleared).
+type ValuePrices = Vec<(Currency, BillingCycle, Option<(Decimal, Decimal)>)>;
 
-/// Reads `price_<cycle>` / `setup_<cycle>`; `Err` on an invalid amount.
-#[allow(clippy::result_unit_err)]
-fn read_cycle_prices(f: &FormData) -> Result<CyclePrices, ()> {
+/// Reads `price_<CUR>_<cycle>` / `setup_<CUR>_<cycle>` for every currency
+/// in `currencies` (as the product pricing form); the un-prefixed
+/// `price_<cycle>` / `setup_<cycle>` of older forms count for the default
+/// currency. An absent field leaves the stored price alone, an empty one
+/// clears it; `Err` on an invalid amount.
+fn read_value_prices(
+    f: &FormData,
+    currencies: &[Currency],
+    default: Currency,
+) -> Result<ValuePrices, ()> {
     let mut out = Vec::new();
-    for c in RECURRING {
-        let price = f.decimal(&format!("price_{}", c.as_str()))?;
-        let setup = f.decimal(&format!("setup_{}", c.as_str()))?;
-        match price {
-            Some(p) if p >= Decimal::ZERO => {
-                let s = setup.unwrap_or_default();
-                if s < Decimal::ZERO {
-                    return Err(());
-                }
-                out.push((c, Some((p, s))));
+    for cur in currencies {
+        for c in RECURRING {
+            let mut pk = format!("price_{cur}_{}", c.as_str());
+            let mut sk = format!("setup_{cur}_{}", c.as_str());
+            if *cur == default && !f.has(&pk) {
+                pk = format!("price_{}", c.as_str());
+                sk = format!("setup_{}", c.as_str());
             }
-            Some(_) => return Err(()),
-            None => out.push((c, None)),
+            if !f.has(&pk) {
+                continue;
+            }
+            match f.decimal(&pk)? {
+                Some(p) if p >= Decimal::ZERO => {
+                    let s = f.decimal(&sk)?.unwrap_or_default();
+                    if s < Decimal::ZERO {
+                        return Err(());
+                    }
+                    out.push((*cur, c, Some((p, s))));
+                }
+                Some(_) => return Err(()),
+                None => out.push((*cur, c, None)),
+            }
         }
     }
     Ok(out)
@@ -393,37 +436,40 @@ async fn store_value_prices(
     state: &AppState,
     tenant: &Tenant,
     vid: ConfigOptionValueId,
-    prices: &CyclePrices,
+    prices: &ValuePrices,
 ) -> AppResult<()> {
     let mut tx = state.pool.begin().await?;
-    for (cycle, p) in prices {
+    for (cur, cycle, p) in prices {
         match p {
             Some((price, setup)) => {
                 catalog::set_config_option_price(
-                    &mut *tx,
-                    tenant.id,
-                    vid,
-                    tenant.default_currency,
-                    *cycle,
-                    *price,
-                    *setup,
+                    &mut *tx, tenant.id, vid, *cur, *cycle, *price, *setup,
                 )
                 .await?;
             }
             None => {
-                arepo::delete_config_value_price(
-                    &mut *tx,
-                    tenant.id,
-                    vid,
-                    tenant.default_currency,
-                    *cycle,
-                )
-                .await?;
+                arepo::delete_config_value_price(&mut *tx, tenant.id, vid, *cur, *cycle).await?;
             }
         }
     }
     tx.commit().await?;
     Ok(())
+}
+
+/// Audit summary of written prices (`CUR/cycle` → price, `null` = cleared).
+fn prices_summary(prices: &ValuePrices) -> serde_json::Value {
+    prices
+        .iter()
+        .map(|(cur, cycle, p)| {
+            (
+                format!("{cur}/{}", cycle.as_str()),
+                p.map_or(serde_json::Value::Null, |(price, _)| {
+                    json!(price.to_string())
+                }),
+            )
+        })
+        .collect::<serde_json::Map<_, _>>()
+        .into()
 }
 
 async fn value_create(
@@ -446,7 +492,8 @@ async fn value_create(
         return Ok(failed(&ctx, &back, ctx.t("admin.common.required")));
     }
     let value = f.opt("value", 200).unwrap_or_else(|| label.clone());
-    let Ok(prices) = read_cycle_prices(&f) else {
+    let currencies = price_currencies(&state, &tenant).await?;
+    let Ok(prices) = read_value_prices(&f, &currencies, tenant.default_currency) else {
         return Ok(failed(&ctx, &back, ctx.t("admin.common.invalid_amount")));
     };
     let vid = catalog::create_config_option_value(
@@ -464,7 +511,7 @@ async fn value_create(
         &state,
         "config_value.create",
         Some(("config_group", group.id.into())),
-        json!({"option": oid, "value": vid, "label": label}),
+        json!({"option": oid, "value": vid, "label": label, "prices": prices_summary(&prices)}),
     )
     .await?;
     storefront_changed(&state);
@@ -501,7 +548,8 @@ async fn value_prices(
     let group = load_group(&state, &tenant, gid).await?;
     let back = format!("/admin/catalog/options/{}", group.id);
     let vid = owned_value(&state, &tenant, group.id, vid).await?;
-    let Ok(prices) = read_cycle_prices(&f) else {
+    let currencies = price_currencies(&state, &tenant).await?;
+    let Ok(prices) = read_value_prices(&f, &currencies, tenant.default_currency) else {
         return Ok(failed(&ctx, &back, ctx.t("admin.common.invalid_amount")));
     };
     store_value_prices(&state, &tenant, vid, &prices).await?;
@@ -509,7 +557,7 @@ async fn value_prices(
         &state,
         "config_value.pricing",
         Some(("config_group", group.id.into())),
-        json!({"value": vid}),
+        json!({"value": vid, "prices": prices_summary(&prices)}),
     )
     .await?;
     storefront_changed(&state);

@@ -25,9 +25,9 @@ English. More: [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md).
 
 ## Features
 
-**Storefront.** Server-rendered pages in Turkish and English with six
-templates (classic, cloud, corporate, editorial, studio, terminal), light
-and dark mode, product groups and configurable options, bundles, a currency
+**Storefront.** Server-rendered pages in Turkish and English with seven
+templates (atlas, classic, cloud, corporate, editorial, studio, terminal),
+light and dark mode, product groups and configurable options, bundles, a currency
 switcher, domain search, knowledge base, blog, announcements, downloads,
 network status page, contact form and landing pages. SEO: canonical URLs,
 hreflang, JSON-LD, sitemap, `robots.txt`, `llms.txt`, Markdown versions of

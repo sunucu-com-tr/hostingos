@@ -26,9 +26,9 @@ var. Diğer görüntüler: [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md).
 
 ## Neler yapabiliyor?
 
-**Mağaza.** Sunucu tarafında oluşturulan Türkçe ve İngilizce sayfalar; altı
-şablon (Klasik, Bulut, Kurumsal, Editoryal, Stüdyo, Terminal), açık ve
-koyu tema, ürün grupları ve yapılandırılabilir seçenekler, paketler
+**Mağaza.** Sunucu tarafında oluşturulan Türkçe ve İngilizce sayfalar; yedi
+şablon (Atlas, Klasik, Bulut, Kurumsal, Editoryal, Stüdyo, Terminal), açık
+ve koyu tema, ürün grupları ve yapılandırılabilir seçenekler, paketler
 (bundle), para birimi seçici, alan adı sorgulama, bilgi bankası, blog,
 duyurular, dosya indirme merkezi, ağ durumu sayfası, iletişim formu ve
 açılış sayfaları. SEO tarafında canonical adresler, hreflang, JSON-LD,

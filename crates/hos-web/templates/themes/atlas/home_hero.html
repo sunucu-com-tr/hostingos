@@ -1,0 +1,41 @@
+{#- Atlas template (infrastructure / data centre): a deep, brand-tinted hero
+    on a fine engineering grid. Left: headline, lead, domain search with the
+    popular extensions, actions. Right: a rack elevation whose units are the
+    real product groups (or, without groups, the extension price list), each
+    a link with its "from" price; the rails, unit numbers, LEDs and the
+    empty units below are drawn by CSS (no images, no script). Included by
+    storefront/home.html. -#}
+<section class="hero hero--atlas">
+  <div class="container hero__inner">
+    <div class="hero__main">
+      {%- if !posts.is_empty() %}
+      {%- let latest = posts[0].clone() %}
+      <a class="pill-link" href="{{ latest.href }}"><span class="badge badge--brand">{{ t("storefront.home.new") }}</span><span>{{ latest.title }}</span>{{ icon("arrow-right") }}</a>
+      {%- endif %}
+      <h1>{{ hero_title }}</h1>
+      <p class="hero__lead">{{ hero_lead }}</p>
+      <div class="hero__search">{% call cat::domain_search("") %}{% endcall %}</div>
+      {%- if !groups.is_empty() %}{% include "themes/_tld_chips.html" %}{% endif %}
+      {% include "themes/_hero_actions.html" %}
+    </div>
+    {%- if !groups.is_empty() || !tlds.is_empty() %}
+    <div class="hero__panel atlas-rack">
+      {%- if !groups.is_empty() %}
+      <div class="atlas-rack__head"><h2 id="atlas-rack-title">{{ t("storefront.home.groups_eyebrow") }}</h2><span>{{ tn("storefront.catalog.plans", facts.plans) }}</span></div>
+      <ol class="atlas-rack__units" aria-labelledby="atlas-rack-title">
+        {%- for g in groups %}
+        <li class="atlas-unit"><a href="{{ g.href }}"><span class="atlas-unit__name">{{ g.name }}</span><span class="atlas-unit__price">{% match g.from %}{% when Some(f) %}<small>{{ t("storefront.catalog.from_label") }}</small> {{ money(f) }}<small>{{ t("common.per.monthly") }}</small>{% when None %}<small>{{ tn("storefront.catalog.plans", g.count) }}</small>{% endmatch %}</span></a></li>
+        {%- endfor %}
+      </ol>
+      {%- else %}
+      <div class="atlas-rack__head"><h2 id="atlas-rack-title">{{ t("storefront.home.tld_prices") }}</h2><span>{{ t("storefront.domains.col_register") }}</span></div>
+      <ol class="atlas-rack__units" aria-labelledby="atlas-rack-title">
+        {%- for c in tlds %}
+        <li class="atlas-unit"><a href="{{ url("/domains") }}"><span class="atlas-unit__name">.{{ c.tld }}</span><span class="atlas-unit__price">{% match c.price %}{% when Some(p) %}{{ money(p) }}<small>{{ t("common.per.annual") }}</small>{% when None %}—{% endmatch %}</span></a></li>
+        {%- endfor %}
+      </ol>
+      {%- endif %}
+    </div>
+    {%- endif %}
+  </div>
+</section>

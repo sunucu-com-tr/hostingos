@@ -285,8 +285,8 @@ Per-tenant appearance, edited at `/admin/settings/appearance`
   gradient partner and the light / dark text variants keep AA.
 * Templates (`presets.rs`), each with its own home hero partial
   (`templates/themes/<key>/home_hero.html`, shared pieces in
-  `themes/_hero_actions.html` / `_tld_chips.html`), drawn SVG art (token
-  colours only, no images) and a share-image style:
+  `themes/_hero_actions.html` / `_tld_chips.html`), drawn SVG or CSS art
+  (token colours only, no images) and a share-image style:
 
   | key | look | fonts | art / share image |
   |---|---|---|---|
@@ -296,20 +296,21 @@ Per-tenant appearance, edited at `/admin/settings/appearance`
   | `terminal` | mono accents, console TLD table, green accents | Inter / Space Grotesk + Geist Mono | console window / terminal |
   | `studio` | warm, rounded, offset-shadow pill buttons, playful shapes | Figtree / Outfit | browser + sun + blob / blocks |
   | `editorial` | paper and ink, Fraunces display serif, hairline rules, roman numerals | DM Sans / Fraunces | circle ornament + TLD index / paper |
+  | `atlas` | data centre: deep brand-tinted hero on an engineering grid, utility bar with status link, spec-sheet plans, ruler section heads, vent-strip footer | Manrope + Geist Mono | CSS rack elevation of the product groups / rack |
 
   Each has `static/css/themes/<key>.css` (classic has none)
   (tokens in `@layer tokens` for light, `[data-theme="dark"]` and the
   `prefers-color-scheme` query; components in `@layer template`, every
   selector under `[data-template="<key>"]`) and, where structure differs,
   partials in `templates/themes/<key>/` included with
-  `{% if tpl() == "<key>" %}` (home hero, corporate utility bar, cloud /
-  studio / editorial footer wordmark). Page templates stay shared. To add
+  `{% if tpl() == "<key>" %}` (home hero, corporate / atlas utility bar,
+  cloud / studio / editorial / atlas footer wordmark). Page templates stay shared. To add
   one: a `PRESETS` entry (fonts, radius, mode, colours, `share_style`,
   480×300 thumbnail in `static/img/themes/<key>.webp`, a 1440×900 capture
   of the home page scaled down), the CSS file, the hero partial,
   `admin_settings.appearance.templates.<key>.{name,description}` in both
-  locales, and the key in `TEMPLATES` of `tests/it/appearance.rs` and
-  `tests/it/storefront_seo.rs`. Check 320–1920 px, light and dark, reduced
+  locales, and the key in `TEMPLATES` of `tests/it/appearance.rs`,
+  `tests/it/storefront_seo.rs` and `tests/it/currency_switch.rs`. Check 320–1920 px, light and dark, reduced
   motion and any brand colour (pale and dark).
 * Share images: `GET /og/<key>.png?v=<theme version>` is a 1200×630 PNG
   drawn in pure Rust (`hos_seo::og`, own DEFLATE + CRC) from the theme's

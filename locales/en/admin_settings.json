@@ -660,6 +660,10 @@
       "editorial": {
         "name": "Editorial",
         "description": "Large serif headlines, generous whitespace and fine rules: a calm, premium publication look."
+      },
+      "atlas": {
+        "name": "Atlas",
+        "description": "A deep brand-tinted hero with a server rack of your product groups, spec-sheet plans and hairline tables: for companies that sell servers by specification."
       }
     },
     "colors_title": "Colours",

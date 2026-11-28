@@ -1287,7 +1287,19 @@ impl Resolver<'_> {
                 }
                 _ => 1,
             };
-            let tag = value.prices.iter().find(|t| t.billing_cycle == cycle);
+            // Values are priced per currency without conversion: a value
+            // another currency prices for this cycle but the cart currency
+            // does not is unavailable, never free (as a product without a
+            // price in the cart currency). No price in any currency = free.
+            let tag = value.price_for(cycle).map_err(|()| {
+                CoreError::validation(format!(
+                    "{}: {} is not available {} in {}",
+                    option.option.name,
+                    value.label,
+                    cycle_label(cycle, Locale::En).to_lowercase(),
+                    self.currency
+                ))
+            })?;
             out.push(ConfigOptionCharge {
                 option_id: option.option.id,
                 option_name: option.option.name.clone(),

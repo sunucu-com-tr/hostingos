@@ -859,6 +859,7 @@ pub(super) async fn product(
             values: o
                 .values
                 .iter()
+                .filter(|v| v.offered())
                 .map(|v| {
                     let monthly = v
                         .prices

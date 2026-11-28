@@ -18,13 +18,14 @@ use serde_json::json;
 
 const PASSWORD: &str = "Correct-Horse-Battery-9";
 const PAGE: &str = "/admin/settings/appearance";
-const TEMPLATES: [&str; 6] = [
+const TEMPLATES: [&str; 7] = [
     "classic",
     "cloud",
     "corporate",
     "terminal",
     "studio",
     "editorial",
+    "atlas",
 ];
 
 // ---------------------------------------------------------------------------
@@ -715,9 +716,14 @@ async fn every_template_renders_customer_pages() {
         assert!(home.body.contains("application/ld+json"), "{key}: JSON-LD");
         assert_eq!(
             home.body.contains("utility-bar"),
-            key == "corporate",
+            key == "corporate" || key == "atlas",
             "{key}: utility bar"
         );
+        if key == "atlas" {
+            // The rack lists the real product groups; status page linked.
+            assert!(home.body.contains("atlas-rack"), "atlas: rack panel");
+            assert!(home.body.contains("href=\"/status\""), "atlas: status link");
+        }
         let pricing = app.get("/tema-paketleri").await;
         assert!(pricing.body.contains("Tema Pro"), "{key}: plan card");
     }

@@ -836,6 +836,12 @@ pub struct ConfigOptionRow {
 }
 
 /// A selectable value with its prices (all cycles) in one currency.
+///
+/// Option values are priced per currency without conversion. A cycle with
+/// no price row in any currency is free; a cycle that another currency
+/// prices (non-zero price or setup fee) but this one does not is listed in
+/// `unpriced`: the value cannot be ordered for that cycle in this currency
+/// (it must never fall back to free).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConfigValueTag {
     pub id: ConfigOptionValueId,
@@ -843,6 +849,28 @@ pub struct ConfigValueTag {
     pub value: String,
     pub translations: Json,
     pub prices: Vec<PriceTag>,
+    /// Cycles priced in another currency but not in this one.
+    #[serde(default)]
+    pub unpriced: Vec<BillingCycle>,
+}
+
+impl ConfigValueTag {
+    /// The price for `cycle` in this currency: `Ok(None)` when no currency
+    /// prices the cycle (free), `Err(())` when only another currency does.
+    #[allow(clippy::result_unit_err)]
+    pub fn price_for(&self, cycle: BillingCycle) -> Result<Option<&PriceTag>, ()> {
+        match self.prices.iter().find(|p| p.billing_cycle == cycle) {
+            Some(p) => Ok(Some(p)),
+            None if self.unpriced.contains(&cycle) => Err(()),
+            None => Ok(None),
+        }
+    }
+
+    /// Whether the value can be offered in this currency: false when it has
+    /// no price here at all but is priced in another currency.
+    pub fn offered(&self) -> bool {
+        !(self.prices.is_empty() && !self.unpriced.is_empty())
+    }
 }
 
 /// A configurable option of a product with its values.
@@ -1010,7 +1038,9 @@ pub async fn product_option_values_for_keys(
     .await?)
 }
 
-/// Visible config options of a product with their values and prices in `currency`.
+/// Visible config options of a product with their values and prices in
+/// `currency` (and, per value, the cycles only other currencies price: see
+/// [`ConfigValueTag`]).
 pub async fn product_config_options(
     db: impl PgExecutor<'_>,
     tenant_id: TenantId,
@@ -1025,7 +1055,15 @@ pub async fn product_config_options(
                                           'billing_cycle', cp.billing_cycle, 'price', cp.price::text,
                                           'setup_fee', cp.setup_fee::text))
                                         from config_option_pricing cp
-                                        where cp.value_id = v.id and cp.currency = $3), '[]'::json))
+                                        where cp.value_id = v.id and cp.currency = $3), '[]'::json),
+                             'unpriced', coalesce((select json_agg(distinct op.billing_cycle)
+                                        from config_option_pricing op
+                                        where op.value_id = v.id and op.currency <> $3
+                                          and (op.price <> 0 or op.setup_fee <> 0)
+                                          and not exists (
+                                              select 1 from config_option_pricing hp
+                                              where hp.value_id = v.id and hp.currency = $3
+                                                and hp.billing_cycle = op.billing_cycle)), '[]'::json))
                            order by v.sort_order, v.label)
                           from config_option_values v
                           where v.option_id = o.id and not v.is_hidden), '[]'::json) as values

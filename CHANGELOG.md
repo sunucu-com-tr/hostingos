@@ -96,6 +96,25 @@ following.
   `HOS_HTTP_BODY_TIMEOUT_SECS` (60, answers `408`) and
   `HOS_HTTP_REQUEST_TIMEOUT_SECS` (120, answers `503`).
 - Licensed under the GNU Affero General Public License v3.0 only.
+- Storefront template "Atlas" (seventh template) for companies that sell
+  servers by specification: a deep brand-tinted hero on an engineering grid
+  with a rack drawing of the product groups, a utility bar with phone and
+  service status, spec-sheet plans with tabular figures, ruler section
+  heads and a deep footer. Pure CSS, no images or scripts; light and dark.
+
+### Fixed
+
+- Configurable option values are priced in every active currency: the
+  admin forms show and accept `price_<CUR>_<cycle>` like product pricing
+  (the older `price_<cycle>` fields still mean the default currency). A
+  value charged in another currency but not priced in the cart currency is
+  no longer free: pricing refuses it ("… is not available … in <CUR>") and
+  the storefront does not offer it in that currency. A value no currency
+  prices stays free.
+- CMS pages: the copy pages of `/contact` and `/domains` can be saved again
+  (and re-created after deletion), and a page may use a product group's
+  slug, which makes it that group's landing page, as documented. Area
+  routes (`admin`, `cart`, `checkout` …) stay reserved.
 
 ### Security
 

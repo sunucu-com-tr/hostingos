@@ -121,10 +121,16 @@ async fn load(state: &AppState, tenant: &Tenant, cart: &CartRow, slug: &str) -> 
         .filter(|p| p.currency == cart.currency && p.is_enabled)
         .map(|p| (p.billing_cycle, p.price, p.setup_fee))
         .collect();
+    // Values priced only in other currencies are not offered (pricing
+    // would refuse them; they are never free).
     let options =
         catalog::product_config_options(&state.pool, tenant.id, product.id, cart.currency)
             .await?
             .into_iter()
+            .map(|mut o| {
+                o.values.retain(catalog::ConfigValueTag::offered);
+                o
+            })
             .filter(|o| !o.option.is_hidden && !o.values.is_empty())
             .collect();
     let addons = catalog::addons_for_product(&state.pool, tenant.id, product.id, cart.currency)

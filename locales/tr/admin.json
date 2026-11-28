@@ -1106,9 +1106,10 @@
     "no_options": "Bu grupta seçenek yok.",
     "no_values": "Değer yok.",
     "options": "Seçenek",
-    "price_hint": "Fiyatlar varsayılan para birimindedir; boş dönem ücretsizdir.",
+    "price_hint": "Fiyatlar her para birimi için ayrı girilir, çevrilmez. Hiçbir para biriminde fiyatı olmayan dönem ücretsizdir; bir para biriminde ücretli olup diğerinde boş bırakılan dönem o para biriminde sipariş edilemez.",
     "prices_in": "Fiyatlar: {currency}",
     "products": "Ürün",
+    "currency": "Para birimi",
     "title": "Yapılandırma seçenekleri",
     "type": "Tip",
     "types": {

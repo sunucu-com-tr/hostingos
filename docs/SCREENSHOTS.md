@@ -13,8 +13,8 @@ sayfanın İngilizcesi de var.
 
 ## Storefront · Mağaza
 
-Six templates, chosen and adjusted under Admin → Settings → Appearance.
-Altı şablon; Yönetim → Ayarlar → Görünüm altından seçilip ayarlanır.
+Seven templates, chosen and adjusted under Admin → Settings → Appearance.
+Yedi şablon; Yönetim → Ayarlar → Görünüm altından seçilip ayarlanır.
 
 | | |
 |---|---|
@@ -24,6 +24,8 @@ Altı şablon; Yönetim → Ayarlar → Görünüm altından seçilip ayarlanır
 | "Corporate" template · "Kurumsal" şablon | "Editorial" template · "Editoryal" şablon |
 | ![Storefront home page, "Studio" template](screenshots/storefront-home-studio.jpg) | ![Storefront home page, "Terminal" template](screenshots/storefront-home-terminal.jpg) |
 | "Studio" template · "Stüdyo" şablon | "Terminal" template · "Terminal" şablon |
+| ![Storefront home page, "Atlas" template](screenshots/storefront-home-atlas.jpg) | |
+| "Atlas" template · "Atlas" şablon | |
 
 ![Storefront home page in dark mode](screenshots/dark-storefront-home.jpg)
 

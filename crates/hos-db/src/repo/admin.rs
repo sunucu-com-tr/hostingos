@@ -774,28 +774,27 @@ pub async fn group_option_values(
 #[derive(Debug, Clone, FromRow)]
 pub struct ValuePriceRow {
     pub value_id: ConfigOptionValueId,
+    pub currency: Currency,
     pub billing_cycle: BillingCycle,
     pub price: Decimal,
     pub setup_fee: Decimal,
 }
 
-/// All prices in `currency` of the option values of a group.
+/// All prices (every currency) of the option values of a group.
 pub async fn group_value_prices(
     db: impl PgExecutor<'_>,
     tenant_id: TenantId,
     group_id: ConfigOptionGroupId,
-    currency: Currency,
 ) -> DbResult<Vec<ValuePriceRow>> {
     Ok(sqlx::query_as::<_, ValuePriceRow>(
-        "select pr.value_id, pr.billing_cycle, pr.price, pr.setup_fee
+        "select pr.value_id, pr.currency, pr.billing_cycle, pr.price, pr.setup_fee
            from config_option_pricing pr
            join config_option_values v on v.id = pr.value_id
            join config_options o on o.id = v.option_id
-          where pr.tenant_id = $1 and o.group_id = $2 and pr.currency = $3",
+          where pr.tenant_id = $1 and o.group_id = $2",
     )
     .bind(tenant_id)
     .bind(group_id)
-    .bind(currency)
     .fetch_all(db)
     .await?)
 }

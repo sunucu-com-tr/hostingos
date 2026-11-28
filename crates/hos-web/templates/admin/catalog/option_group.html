@@ -2,7 +2,7 @@
 {% import "components/ui.html" as ui %}
 {% block content %}
 <div class="page-head">
-  <div><h1>{{ group.name }}</h1><p>{{ tv("admin.options.used_by", "count", group.product_count) }} · {{ tv("admin.options.prices_in", "currency", currency) }}</p></div>
+  <div><h1>{{ group.name }}</h1><p>{{ tv("admin.options.used_by", "count", group.product_count) }} · {{ tv("admin.options.prices_in", "currency", currencies.join(", ")) }}</p></div>
   <div class="page-head__actions"><form method="post" action="{{ url("/admin/catalog/options/" ~ group.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--danger btn--sm" type="submit">{{ icon("x") }}{{ t("admin.options.delete_group") }}</button></form></div>
 </div>
 <div class="stack-lg">
@@ -10,21 +10,29 @@
 {% call ui::card(o.name.clone(), lbl("admin.options.types", o.option_type.as_str())) %}
   {%- if !o.module_key.is_empty() %}<p class="small muted">{{ t("admin.options.module_key") }}: <span class="mono">{{ o.module_key }}</span></p>{% endif %}
   <div class="table-wrap"><table class="table table--dense matrix">
-    <thead><tr><th>{{ t("admin.options.value_label") }}</th>{% for (cv, cl) in cycles %}<th class="num">{{ cl }}</th>{% endfor %}<th class="actions"></th></tr></thead>
+    <thead><tr><th>{{ t("admin.options.value_label") }}</th><th>{{ t("admin.options.currency") }}</th>{% for (cv, cl) in cycles %}<th class="num">{{ cl }}</th>{% endfor %}<th class="actions"></th></tr></thead>
     <tbody>
     {%- for v in o.values %}
+    {%- for row in v.rows %}
     <tr>
-      <td><strong>{{ v.label }}</strong><span class="sub mono">{{ v.value }}</span></td>
-      {%- for (cycle, price, setup) in v.prices %}<td class="num"><input form="vp-{{ v.id }}" class="input input--sm" name="price_{{ cycle }}" value="{{ price }}" inputmode="decimal" aria-label="{{ v.label }} {{ cycle }}"><input form="vp-{{ v.id }}" type="hidden" name="setup_{{ cycle }}" value="{{ setup }}"></td>{% endfor %}
-      <td class="actions">
+      {%- if loop.first %}
+      <td rowspan="{{ v.rows.len() }}"><strong>{{ v.label }}</strong><span class="sub mono">{{ v.value }}</span></td>
+      {%- endif %}
+      <td class="mono">{{ row.currency }}</td>
+      {%- for (cycle, price, setup) in row.cells %}<td class="num"><input form="vp-{{ v.id }}" class="input input--sm" name="price_{{ row.currency }}_{{ cycle }}" value="{{ price }}" inputmode="decimal" aria-label="{{ v.label }} {{ row.currency }} {{ cycle }}"><input form="vp-{{ v.id }}" type="hidden" name="setup_{{ row.currency }}_{{ cycle }}" value="{{ setup }}"></td>{% endfor %}
+      {%- if loop.first %}
+      <td class="actions" rowspan="{{ v.rows.len() }}">
         <form id="vp-{{ v.id }}" method="post" action="{{ url("/admin/catalog/options/" ~ group.id ~ "/values/" ~ v.id ~ "/prices") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--soft btn--sm" type="submit">{{ t("common.actions.save") }}</button></form>
         <form method="post" action="{{ url("/admin/catalog/options/" ~ group.id ~ "/values/" ~ v.id ~ "/delete") }}" data-confirm="{{ t("admin.common.confirm_delete") }}">{% call ui::csrf() %}{% endcall %}<button class="btn btn--ghost btn--sm btn--icon" type="submit" aria-label="{{ t("admin.common.delete") }}">{{ icon("x") }}</button></form>
       </td>
+      {%- endif %}
     </tr>
     {%- endfor %}
-    {%- if o.values.is_empty() %}<tr><td colspan="8" class="muted">{{ t("admin.options.no_values") }}</td></tr>{% endif %}
+    {%- endfor %}
+    {%- if o.values.is_empty() %}<tr><td colspan="{{ cycles.len() + 3 }}" class="muted">{{ t("admin.options.no_values") }}</td></tr>{% endif %}
     </tbody>
   </table></div>
+  {%- if !o.values.is_empty() && currencies.len() > 1 %}<p class="field__hint">{{ t("admin.options.price_hint") }}</p>{% endif %}
   <details class="mt-4"><summary>{{ t("admin.options.add_value") }}</summary>
   <form class="stack mt-2" method="post" action="{{ url("/admin/catalog/options/" ~ group.id ~ "/options/" ~ o.id ~ "/values") }}">
     {% call ui::csrf() %}{% endcall %}
@@ -32,7 +40,14 @@
       <div class="field"><label class="field__label" for="vl-{{ o.id }}">{{ t("admin.options.value_label") }}</label><input class="input" id="vl-{{ o.id }}" name="label" required placeholder="4 GB"></div>
       <div class="field"><label class="field__label" for="vv-{{ o.id }}">{{ t("admin.options.value_value") }}</label><input class="input" id="vv-{{ o.id }}" name="value" placeholder="4096"></div>
     </div>
-    <div class="form-grid">{% for (cv, cl) in cycles %}<div class="field"><label class="field__label" for="vpn-{{ o.id }}-{{ cv }}">{{ cl }}</label><input class="input" id="vpn-{{ o.id }}-{{ cv }}" name="price_{{ cv }}" inputmode="decimal"></div>{% endfor %}</div>
+    <div class="table-wrap"><table class="table table--dense matrix">
+      <thead><tr><th>{{ t("admin.options.currency") }}</th>{% for (cv, cl) in cycles %}<th class="num">{{ cl }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {%- for cur in currencies %}
+      <tr><th scope="row" class="mono">{{ cur }}</th>{% for (cv, cl) in cycles %}<td class="num"><input class="input input--sm" name="price_{{ cur }}_{{ cv }}" inputmode="decimal" aria-label="{{ cl }} {{ cur }}"></td>{% endfor %}</tr>
+      {%- endfor %}
+      </tbody>
+    </table></div>
     <p class="field__hint">{{ t("admin.options.price_hint") }}</p>
     <div class="btn-row"><button class="btn btn--primary btn--sm" type="submit">{{ icon("plus") }}{{ t("admin.common.add") }}</button></div>
   </form>

@@ -47,6 +47,8 @@ pub enum Style {
     Paper,
     /// Big rounded geometric forms.
     Blocks,
+    /// Deep brand-tinted field, engineering grid, a rack of 1U units.
+    Rack,
 }
 
 /// What to draw.
@@ -313,6 +315,72 @@ pub fn render(spec: &Spec) -> Vec<u8> {
             c.rect([90.0, 190.0, 380.0, 34.0], 17.0, INK, 0.85);
             c.rect([90.0, 246.0, 300.0, 34.0], 17.0, INK, 0.85);
             c.rect([90.0, 320.0, 160.0, 54.0], 27.0, spec.brand, 1.0);
+        }
+        Style::Rack => {
+            let deep = spec.brand.mix(Rgb(5, 9, 18), 0.8);
+            c = Canvas::new(deep);
+            // Engineering grid: fine lines every 24 px, stronger every 120.
+            let mut i = 0;
+            while (i as f32) * 24.0 < w.max(h) {
+                let p = i as f32 * 24.0;
+                let a = if i % 5 == 0 { 0.09 } else { 0.035 };
+                c.rect([p, 0.0, 1.0, h], 0.0, WHITE, a);
+                c.rect([0.0, p, w, 1.0], 0.0, WHITE, a);
+                i += 1;
+            }
+            // Spec sheet: title bars, ruled rows, a strong price bar.
+            c.rect([96.0, 150.0, 420.0, 30.0], 3.0, WHITE, 0.9);
+            c.rect([96.0, 196.0, 300.0, 30.0], 3.0, WHITE, 0.9);
+            for row in 0..3 {
+                let y = 280.0 + row as f32 * 44.0;
+                c.rect([96.0, y, 120.0, 12.0], 2.0, WHITE, 0.35);
+                c.rect(
+                    [96.0 + r.range(300.0, 340.0), y, 80.0, 12.0],
+                    2.0,
+                    WHITE,
+                    0.7,
+                );
+                c.rect([96.0, y + 28.0, 420.0, 1.0], 0.0, WHITE, 0.15);
+            }
+            c.rect(
+                [96.0, 430.0, 190.0, 52.0],
+                3.0,
+                spec.brand.mix(WHITE, 0.35),
+                1.0,
+            );
+            // Rack elevation: rails and 1U / 2U units inside the frame.
+            let (x, top) = (720.0 + r.range(-20.0, 20.0), 64.0);
+            c.rect([x, top, 380.0, 502.0], 4.0, Rgb(3, 6, 12), 0.55);
+            c.rect([x + 14.0, top, 8.0, 502.0], 0.0, WHITE, 0.14);
+            c.rect([x + 358.0, top, 8.0, 502.0], 0.0, WHITE, 0.14);
+            let mut y = top + 16.0;
+            let mut n = 0;
+            loop {
+                let units = if n % 4 == 1 { 2.0 } else { 1.0 };
+                if y + units * 36.0 > top + 494.0 {
+                    break;
+                }
+                let uh = units * 36.0 - 6.0;
+                c.rect([x + 30.0, y, 320.0, uh], 3.0, WHITE, 0.1);
+                c.rect([x + 30.0, y, 320.0, 1.0], 0.0, WHITE, 0.18);
+                c.circle(x + 48.0, y + uh / 2.0, 4.0, spec.accent, 1.0);
+                let busy = if r.unit() > 0.5 { 1.0 } else { 0.35 };
+                c.circle(
+                    x + 62.0,
+                    y + uh / 2.0,
+                    4.0,
+                    spec.brand.mix(WHITE, 0.4),
+                    busy,
+                );
+                c.rect(
+                    [x + 230.0, y + uh / 2.0 - 3.0, 100.0, 6.0],
+                    1.0,
+                    WHITE,
+                    0.16,
+                );
+                y += units * 36.0;
+                n += 1;
+            }
         }
     }
     png(&c.px)
@@ -591,6 +659,7 @@ mod tests {
             Style::Terminal,
             Style::Paper,
             Style::Blocks,
+            Style::Rack,
         ] {
             let spec = Spec {
                 brand: Rgb::parse("#2563eb").unwrap(),

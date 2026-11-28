@@ -1,6 +1,6 @@
 {%- import "components/ui.html" as ui -%}
 {%- let sc = store() -%}
-{%- if tpl() == "corporate" %}{% include "themes/corporate/utility_bar.html" %}{% endif %}
+{%- if tpl() == "corporate" %}{% include "themes/corporate/utility_bar.html" %}{% elif tpl() == "atlas" %}{% include "themes/atlas/utility_bar.html" %}{% endif %}
 <header class="site-header">
   <div class="container site-header__bar">
     <a class="brand" href="{{ url("/") }}">

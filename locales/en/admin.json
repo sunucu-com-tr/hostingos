@@ -1106,9 +1106,10 @@
     "no_options": "No options in this group.",
     "no_values": "No values.",
     "options": "Options",
-    "price_hint": "Prices are in the default currency; empty cycles are free.",
+    "price_hint": "Prices are entered per currency and never converted. A cycle left empty in every currency is free; a cycle with a charge in one currency but empty in another cannot be ordered in that currency.",
     "prices_in": "Prices in {currency}",
     "products": "Products",
+    "currency": "Currency",
     "title": "Configurable options",
     "type": "Type",
     "types": {

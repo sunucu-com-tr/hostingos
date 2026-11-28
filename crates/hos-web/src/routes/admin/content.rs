@@ -163,7 +163,10 @@ impl Kind {
     }
 }
 
-/// Slugs a CMS page may not use (storefront and area routes).
+/// Slugs a CMS page may not use (storefront and area routes). Not in the
+/// list by design: the copy slugs of routes (`home`, `domains`, `contact`,
+/// `status` / `durum`: `storefront::landing::RESERVED`, the page holds that
+/// route's copy) and product group slugs (the page is the group's landing).
 const RESERVED_PAGE_SLUGS: &[&str] = &[
     "admin",
     "api",
@@ -174,8 +177,6 @@ const RESERVED_PAGE_SLUGS: &[&str] = &[
     "cart",
     "checkout",
     "client",
-    "contact",
-    "domains",
     "en",
     "healthz",
     "internal",
@@ -528,17 +529,9 @@ async fn slug_taken(
     {
         return Ok(true);
     }
-    if kind == Kind::Page {
-        if RESERVED_PAGE_SLUGS.contains(&slug) {
-            return Ok(true);
-        }
-        let groups =
-            hos_db::repo::catalog::list_product_groups(&state.pool, tenant.id, true).await?;
-        if groups.iter().any(|g| g.slug == slug) {
-            return Ok(true);
-        }
-    }
-    Ok(false)
+    // A page may share its slug with a route's copy (`contact` …) or a
+    // product group (its landing): the storefront merges them into one URL.
+    Ok(kind == Kind::Page && RESERVED_PAGE_SLUGS.contains(&slug))
 }
 
 // ---------------------------------------------------------------------------
@@ -1717,6 +1710,16 @@ mod tests {
         assert!(!valid_slug("-a"));
         assert!(!valid_slug("a/b"));
         assert!(!valid_slug(""));
+    }
+
+    #[test]
+    fn copy_slugs_are_not_reserved() {
+        for (slug, _) in crate::routes::storefront::landing::RESERVED {
+            assert!(!RESERVED_PAGE_SLUGS.contains(slug), "{slug}");
+        }
+        for slug in ["admin", "cart", "checkout", "client", "auth", "kb", "blog"] {
+            assert!(RESERVED_PAGE_SLUGS.contains(&slug), "{slug}");
+        }
     }
 
     #[test]

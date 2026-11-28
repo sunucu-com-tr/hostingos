@@ -3,10 +3,11 @@
 Captured from a local single-company instance (the default `HOS_MODE=single`)
 with the seeded demo data (`hostingos seed-demo` and, for `demo-login.jpg`,
 demo mode). Desktop shots are 1440 × 900 CSS pixels,
-mobile shots 390 × 844 at 2× scale. All are JPEG, about 2.6 MB in total.
+mobile shots 390 × 844 at 2× scale. All are JPEG, about 2.8 MB in total.
 
 | File | Caption |
 |---|---|
+| `storefront-home-atlas.jpg` | Storefront home page, "Atlas" template |
 | `storefront-home-classic.jpg` | Storefront home page, "Classic" template |
 | `storefront-home-cloud.jpg` | Storefront home page, "Cloud" template |
 | `storefront-home-corporate.jpg` | Storefront home page, "Corporate" template |

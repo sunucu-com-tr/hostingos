@@ -26,6 +26,8 @@ mod einvoice;
 mod import;
 mod inbound_mail;
 mod mass_pay;
+mod option_prices;
+mod page_slugs;
 mod platform;
 mod quotes;
 mod schema;

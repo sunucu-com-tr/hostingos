@@ -660,6 +660,10 @@
       "editorial": {
         "name": "Editoryal",
         "description": "Büyük serif başlıklar, bol boşluk ve ince çizgiler: sade, premium bir yayın estetiği."
+      },
+      "atlas": {
+        "name": "Atlas",
+        "description": "Marka tonlu koyu bir giriş, ürün gruplarınızı gösteren bir sunucu kabini, teknik föy gibi okunan paketler ve ince çizgili tablolar: sunucuyu özellikleriyle satan firmalar için."
       }
     },
     "colors_title": "Renkler",

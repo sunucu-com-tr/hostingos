@@ -13,13 +13,14 @@ use http::StatusCode;
 use rust_decimal::Decimal;
 use serde_json::json;
 
-const TEMPLATES: [&str; 6] = [
+const TEMPLATES: [&str; 7] = [
     "classic",
     "cloud",
     "corporate",
     "terminal",
     "studio",
     "editorial",
+    "atlas",
 ];
 
 async fn currency(app: &TestApp, code: Currency, active: bool) {
